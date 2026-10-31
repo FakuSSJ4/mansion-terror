@@ -539,35 +539,96 @@ local FURNITURE: { [string]: (CFrame) -> { Vector3 } } = {
 	end,
 	doubleBed = function(base)
 		local linen = Color3.fromRGB(120, 28, 36)
+		local sheet = Color3.fromRGB(220, 215, 200)
+		local dark = Color3.fromRGB(38, 24, 16)
+		local fabric = Enum.Material.Fabric
+		-- Bastidor de madera, colchón, sábana doblada y acolchado que cae por los costados.
 		solid(
 			base,
-			"CamaDosPlazas",
-			Vector3.new(11, 1.6, 12),
-			CFrame.new(0, 2.2, 0),
-			linen,
-			Enum.Material.Fabric
+			"Bastidor",
+			Vector3.new(11.6, 0.9, 13),
+			CFrame.new(0, 1.4, 0),
+			dark,
+			Enum.Material.Wood
 		)
+		solid(base, "Colchon", Vector3.new(11, 1, 12.4), CFrame.new(0, 2.35, 0), sheet, fabric)
+		solid(base, "Acolchado", Vector3.new(11.5, 0.5, 8.6), CFrame.new(0, 3, -1.9), linen, fabric)
+		solid(
+			base,
+			"SabanaDoblada",
+			Vector3.new(11.55, 0.55, 1.4),
+			CFrame.new(0, 3.05, 2),
+			sheet,
+			fabric
+		)
+		for _, x in { -5.75, 5.75 } do
+			solid(
+				base,
+				"CaidaAcolchado",
+				Vector3.new(0.25, 2, 8.6),
+				CFrame.new(x, 2, -1.9),
+				linen,
+				fabric
+			)
+		end
+		solid(base, "CaidaPie", Vector3.new(11.5, 2, 0.25), CFrame.new(0, 2, -6.2), linen, fabric)
+		-- Cabecera tallada con tres paneles y piecera más baja.
 		solid(
 			base,
 			"Cabecera",
-			Vector3.new(12, 7, 0.8),
-			CFrame.new(0, 3.5, 6.2),
-			GOLD_COLOR,
+			Vector3.new(12.4, 6.5, 0.7),
+			CFrame.new(0, 3.25, 6.7),
+			dark,
 			Enum.Material.Wood
 		)
+		for _, x in { -4, 0, 4 } do
+			solid(
+				base,
+				"PanelCabecera",
+				Vector3.new(3.4, 3.8, 0.15),
+				CFrame.new(x, 4.3, 6.3),
+				WOOD_COLOR,
+				Enum.Material.Wood
+			)
+		end
+		solid(
+			base,
+			"Piecera",
+			Vector3.new(12.4, 3.2, 0.5),
+			CFrame.new(0, 1.6, -6.7),
+			dark,
+			Enum.Material.Wood
+		)
+		-- Dos almohadas y un almohadón, y postes con remate dorado en las cuatro esquinas.
 		for _, x in { -2.8, 2.8 } do
 			solid(
 				base,
 				"Almohada",
-				Vector3.new(4, 0.8, 2.2),
-				CFrame.new(x, 3.4, 4.3),
-				Color3.fromRGB(220, 215, 200),
-				Enum.Material.Fabric
+				Vector3.new(4.2, 0.9, 2.4),
+				CFrame.new(x, 3.3, 4.6),
+				sheet,
+				fabric
 			)
 		end
-		for _, x in { -5.2, 5.2 } do
-			for _, z in { -5.5, 5.5 } do
-				solid(base, "Pata", Vector3.new(0.6, 1.4, 0.6), CFrame.new(x, 0.7, z), WOOD_COLOR)
+		solid(base, "Almohadon", Vector3.new(2.6, 0.8, 1.4), CFrame.new(0, 3.5, 3.4), linen, fabric)
+		for _, x in { -6, 6 } do
+			for _, post in { { 6.7, 8 }, { -6.7, 5 } } do
+				solid(
+					base,
+					"Poste",
+					Vector3.new(0.7, post[2], 0.7),
+					CFrame.new(x, post[2] / 2, post[1]),
+					dark,
+					Enum.Material.Wood
+				)
+				solid(
+					base,
+					"Remate",
+					Vector3.new(0.8, 0.8, 0.8),
+					CFrame.new(x, post[2] + 0.2, post[1]),
+					GOLD_COLOR,
+					Enum.Material.Metal
+				)
 			end
 		end
 		return { (base * CFrame.new(0, 0.3, 0)).Position, (base * CFrame.new(2, 3.2, -3)).Position }
@@ -962,7 +1023,10 @@ local function pumaOnPlinth(base: CFrame)
 	local coat = Color3.fromRGB(170, 126, 80)
 	local pale = Color3.fromRGB(214, 190, 156)
 	local dark = Color3.fromRGB(42, 30, 22)
-	solid(base, "Pedestal", Vector3.new(9, 1.5, 3.4), CFrame.new(0, 0.75, 0), WOOD_COLOR)
+	-- Está en el centro de la pieza, por donde pasan los asesinos: a ellos no los frena.
+	local plinth =
+		solid(base, "Pedestal", Vector3.new(9, 1.5, 3.4), CFrame.new(0, 0.75, 0), WOOD_COLOR)
+	plinth.CollisionGroup = "KillerPass"
 	solid(
 		base,
 		"PlacaPedestal",
@@ -970,9 +1034,10 @@ local function pumaOnPlinth(base: CFrame)
 		CFrame.new(0, 0.75, -1.72),
 		GOLD_COLOR,
 		Enum.Material.Metal
-	)
+	).CollisionGroup =
+		"KillerPass"
 	local top = base * CFrame.new(0, 1.5, 0)
-	trophyLight((top * CFrame.new(0, 4, -6)).Position)
+	trophyLight((top * CFrame.new(0, 7, 0)).Position)
 	stuffed(top, "Cuerpo", Vector3.new(4.4, 1.6, 1.5), CFrame.new(0, 2.2, 0), coat)
 	stuffed(top, "Lomo", Vector3.new(1.7, 1.8, 1.6), CFrame.new(-1.9, 2.3, 0), coat)
 	stuffed(top, "Pecho", Vector3.new(1.5, 1.9, 1.5), CFrame.new(1.9, 2.2, 0), coat)
@@ -1053,8 +1118,8 @@ local function placeTrophies(id: string)
 	elseif id == "room2" then
 		rhinoHead(onWall(-HALF + 0.5, 13, Vector3.xAxis))
 	elseif id == "room11" then
-		local spot = center + Vector3.new(-11, 0, -HALF + 2.4)
-		pumaOnPlinth(CFrame.lookAt(spot, spot + Vector3.zAxis))
+		-- En el centro, con la cabeza (su +X) hacia el ventanal de +Z.
+		pumaOnPlinth(CFrame.lookAt(center, center + Vector3.xAxis))
 	end
 end
 
@@ -1471,20 +1536,25 @@ local function buildLink(a: string, b: string)
 	local middle = (ca + cb) / 2
 	local across = Vector3.new(-dir.Z, 0, dir.X)
 	local length = PITCH - ROOM_SIZE
+	-- Del lado del hall arranca adentro de la pared, para no coincidir con su cara interna.
+	local hallTrim = if GRAND_ROOMS[a] then 0.05 else 0
+	local slabMiddle = middle + dir * hallTrim / 2
+	local slabLength = length - hallTrim
 	local floorSize = if math.abs(dir.X) > 0
-		then Vector3.new(length, 1, CORRIDOR_WIDTH + 2)
-		else Vector3.new(CORRIDOR_WIDTH + 2, 1, length)
+		then Vector3.new(slabLength, 1, CORRIDOR_WIDTH + 2)
+		else Vector3.new(CORRIDOR_WIDTH + 2, 1, slabLength)
 	part({
 		Name = "PisoPasillo",
 		Size = floorSize,
-		Position = middle - Vector3.new(0, 0.5, 0),
+		Position = slabMiddle - Vector3.new(0, 0.5, 0),
 		Color = FLOOR_COLOR,
 		Material = Enum.Material.WoodPlanks,
 	})
 	part({
 		Name = "TechoPasillo",
 		Size = floorSize,
-		Position = middle + Vector3.new(0, CORRIDOR_HEIGHT + 0.5, 0),
+		-- Un pelo más arriba que el dintel de la pared, para que no se peleen en el mismo plano.
+		Position = slabMiddle + Vector3.new(0, CORRIDOR_HEIGHT + 0.55, 0),
 		Color = CEILING_COLOR,
 		Material = Enum.Material.Wood,
 	})
@@ -1675,6 +1745,8 @@ local function setupCollisionGroups()
 	PhysicsService:RegisterCollisionGroup("Killer")
 	PhysicsService:RegisterCollisionGroup("KillerBarrier")
 	PhysicsService:RegisterCollisionGroup("LockedDoor")
+	PhysicsService:RegisterCollisionGroup("KillerPass")
+	PhysicsService:CollisionGroupSetCollidable("KillerPass", "Killer", false)
 	PhysicsService:CollisionGroupSetCollidable("KillerBarrier", "Default", false)
 	-- El modo desarrollador atraviesa puertas cerradas y barreras.
 	PhysicsService:RegisterCollisionGroup("DevPlayer")

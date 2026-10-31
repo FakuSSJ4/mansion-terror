@@ -37,6 +37,23 @@ local Config = {
 				room12 = true,
 			},
 		},
+		-- El carnicero: arranca en el sótano y sube solo hasta la planta baja. 5 golpes, pero más rápido.
+		butcher = {
+			damage = 20,
+			patrolSpeed = 12,
+			chaseSpeed = 17,
+			searchSpeed = 20,
+			startRoom = "room6",
+			rooms = {
+				room5 = true,
+				room6 = true,
+				hall = true,
+				room1 = true,
+				room2 = true,
+				room3 = true,
+				room4 = true,
+			},
+		},
 	},
 	KillerHitCooldown = 3,
 	KillerHitPause = 2,

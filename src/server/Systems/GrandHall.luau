@@ -53,7 +53,8 @@ function GrandHall.build(ctx: any)
 	end
 
 	-- Pisos y techos.
-	box(X0 - 1, -1, Z0 - 1, X1 + 1, 0, Z1 + 1, floorColor, Enum.Material.WoodPlanks, "PisoHall")
+	-- Los pisos entran apenas en la pared este, para no superponerse con los de los pasillos.
+	box(X0 - 1, -1, Z0 - 1, X1 + 0.1, 0, Z1 + 1, floorColor, Enum.Material.WoodPlanks, "PisoHall")
 	box(X0 - 1, TOP, Z0 - 1, X1 + 1, TOP + 1, Z1 + 1, ceilingColor, Enum.Material.Wood, "TechoHall")
 	box(
 		X0,
@@ -66,7 +67,17 @@ function GrandHall.build(ctx: any)
 		Enum.Material.Wood,
 		"TechoBajoGaleria"
 	)
-	box(X0, FLOOR - 1, galleryZ, X1, FLOOR, Z1, floorColor, Enum.Material.WoodPlanks, "PisoGaleria")
+	box(
+		X0,
+		FLOOR - 1,
+		galleryZ,
+		X1 + 0.1,
+		FLOOR,
+		Z1,
+		floorColor,
+		Enum.Material.WoodPlanks,
+		"PisoGaleria"
+	)
 
 	-- Ventanal alto con parteluz y remate redondo, que simula un arco con dos discos.
 	local function tallWindow(center: Vector3, outward: Vector3, width: number)
@@ -158,7 +169,8 @@ function GrandHall.build(ctx: any)
 	wallBox(X1, 0, hole, X1 + 1, TOP, Z1)
 	wallBox(X1, 0, sideWindow - windowHalf, X1 + 1, WINDOW_BOTTOM, sideWindow + windowHalf)
 	wallBox(X1, WINDOW_TOP, sideWindow - windowHalf, X1 + 1, TOP, sideWindow + windowHalf)
-	wallBox(X1, holeHeight, -hole, X1 + 1, FLOOR, hole)
+	-- Termina debajo del piso del pasillo de arriba, para que no asome en el umbral.
+	wallBox(X1, holeHeight, -hole, X1 + 1, FLOOR - 1, hole)
 	wallBox(X1, FLOOR + holeHeight, -hole, X1 + 1, TOP, hole)
 	tallWindow(Vector3.new(X1 + 0.5, 0, sideWindow), Vector3.new(1, 0, 0), 2 * windowHalf)
 

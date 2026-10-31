@@ -42,6 +42,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `P` | Ir al pedestal del taser |
 | `L` | Ir a las librerías del hall |
 | `M` | Traer al asesino de smoking a tu pieza |
+| `B` | Traer al carnicero a tu pieza |
 | `T` | Recorrer alce, rinoceronte, puma, teclado del piano y un umbral del primer piso |
 
 ## Sonidos

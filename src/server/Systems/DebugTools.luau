@@ -20,9 +20,10 @@ local Weather = require(Systems:WaitForChild("Weather"))
 local TOUR_STOPS: { [any]: Vector3 } = {
 	tour1 = Vector3.new(94, 10, 25),
 	tour2 = Vector3.new(146, 10, 25),
-	tour3 = Vector3.new(69, 24, 64),
+	tour3 = Vector3.new(68, 24, 80),
 	tour4 = Vector3.new(173.5, 8, 93.5),
-	tour5 = Vector3.new(98, 26, 0),
+	tour5 = Vector3.new(16, 26, 0),
+	tour6 = Vector3.new(88, 27, 8),
 }
 
 local DebugTools = {}
@@ -100,6 +101,11 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			local room = Vitality.getRoom(player)
 			if room then
 				Killer.debugTeleport(2, refs.rooms[room].center + Vector3.new(10, 0, 10))
+			end
+		elseif command == "summon3" then
+			local room = Vitality.getRoom(player)
+			if room then
+				Killer.debugTeleport(3, refs.rooms[room].center + Vector3.new(10, 0, 10))
 			end
 		elseif command == "lightning" then
 			Weather.strike()

@@ -18,7 +18,7 @@ local PAGES = {
 	},
 	{
 		title = "Cómo sobrevivir",
-		body = "El asesino te mata con 3 golpes. En el piso de arriba anda otro, de smoking: es más lento, pero con 2 golpes te mata.\nLas píldoras curan 50 de vida.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesa, al lado de la estatua de lobo. Gasta batería: buscá pilas.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
+		body = "El asesino te mata con 3 golpes. En el piso de arriba anda otro, de smoking: es más lento, pero con 2 golpes te mata. Abajo hay un carnicero con máscara de chancho: es más rápido, sube hasta la planta baja y te mata con 5 golpes.\nLas píldoras curan 50 de vida.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesa, al lado de la estatua de lobo. Gasta batería: buscá pilas.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
 	},
 }
 

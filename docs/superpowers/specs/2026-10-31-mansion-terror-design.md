@@ -9,7 +9,7 @@ Fecha: 2026-10-31
 - **Recorrido:** llaves de color, cada una abre la puerta de su color, alternando pisos: roja (living) abre la gran escalera; azul (dormitorio) abre el comedor; verde (comedor) abre la pieza 9; violeta (pieza 10) abre la sala de música; amarilla (sala de música) abre la pieza 11; negra (pieza 12) abre el sótano, en la cocina.
 - **Librerías:** seis en la pared del fondo del hall, con huecos donde puede aparecer loot.
 - **Arma:** hacha con mango negro, cabeza y empuñadura amarillas.
-- **Asesinos:** el principal mata con 3 golpes (34 de daño). El segundo, de smoking y con bastón estoque, solo recorre el primer piso sin subir al cobertizo, es más lento y mata con 2 golpes (50). Ambos esperan 2 s tras golpear.
+- **Asesinos:** el principal mata con 3 golpes (34 de daño). El segundo, de smoking y con bastón estoque, solo recorre el primer piso sin subir al cobertizo, es más lento y mata con 2 golpes (50). El tercero, un carnicero bajito con máscara de chancho y machete, arranca en el sótano y sube solo hasta la planta baja, una vez abierta la puerta del sótano; es más rápido que el principal y mata con 5 golpes (20). Los tres esperan 2 s tras golpear.
 - **Pergaminos:** son 4: uno en el sótano, uno en el altillo, uno en una pieza de planta baja con puerta de color y uno en el primer piso. Se dejan en la estatua de lobo del hall: su cajón da la llave dorada del lobo, que abre la puerta principal.
 - **Escalera de mano:** siempre en el sótano, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va, igual que la llave dorada.
 - **Puertas y asesino:** solo cruza puertas ya abiertas y sube al altillo si la escalera está puesta. Arranca en el living y espera 20 s desde que alguien empieza a jugar.

@@ -516,6 +516,7 @@ function Killer.start(mansionRefs: Mansion.MansionRefs)
 	killers = {
 		create("asesino", Config.Killers.main, KillerModel.build),
 		create("smoking", Config.Killers.gentleman, KillerModel.buildGentleman),
+		create("carnicero", Config.Killers.butcher, KillerModel.buildButcher),
 	}
 
 	local function forEach(action: (any) -> ())

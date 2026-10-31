@@ -21,6 +21,7 @@ local KEYS = {
 	[Enum.KeyCode.P] = "pedestal",
 	[Enum.KeyCode.L] = "library",
 	[Enum.KeyCode.M] = "summon2",
+	[Enum.KeyCode.B] = "summon3",
 }
 
 local Debug = {}
@@ -31,13 +32,14 @@ local function aim(direction: Vector3)
 	camera.CFrame = CFrame.lookAt(position, position + direction)
 end
 
--- Hacia dónde mirar en cada parada de la tecla T: alce, rinoceronte, puma, teclado y umbral.
+-- Hacia dónde mirar en cada parada de la tecla T: alce, rinoceronte, puma, teclado, umbral y cama.
 local TOUR_AIMS = {
 	Vector3.new(1, 0.03, -1),
 	Vector3.new(-1, 0.03, -1),
-	-Vector3.zAxis,
+	Vector3.xAxis,
 	Vector3.new(1, -0.8, 1),
 	Vector3.new(1, -0.25, 0),
+	Vector3.new(1, -0.45, 1),
 }
 local tourStop = 0
 

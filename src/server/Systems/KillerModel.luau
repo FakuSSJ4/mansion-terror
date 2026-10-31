@@ -517,4 +517,186 @@ function KillerModel.buildGentleman(): Rig
 	}
 end
 
+-- El tercer asesino: bajito, máscara de chancho, delantal de carnicero con sangre y machete.
+function KillerModel.buildButcher(): Rig
+	local legLength, torsoHeight, headHeight = 2, 2, 1.2
+	local shirt = Color3.fromRGB(150, 146, 136)
+	local apron = Color3.fromRGB(205, 200, 186)
+	local pants = Color3.fromRGB(46, 44, 42)
+	local pig = Color3.fromRGB(226, 158, 158)
+	local pigDark = Color3.fromRGB(150, 84, 90)
+	local steel = Color3.fromRGB(165, 168, 172)
+	local fabric = Enum.Material.Fabric
+
+	local model = Instance.new("Model")
+	model.Name = "AsesinoCarnicero"
+	model:AddTag("Killer")
+
+	local root = piece(model, "HumanoidRootPart", Vector3.new(2, torsoHeight, 1), shirt)
+	root.Transparency = 1
+	root.CanCollide = true
+	root.Massless = false
+	model.PrimaryPart = root
+
+	local torso = attach(
+		model,
+		root,
+		"Camisa",
+		Vector3.new(2, torsoHeight, 1.1),
+		CFrame.identity,
+		shirt,
+		fabric
+	)
+	-- Delantal largo con pechera, tiras y manchas de sangre.
+	local bib = attach(
+		model,
+		torso,
+		"Delantal",
+		Vector3.new(1.7, 2.9, 0.08),
+		CFrame.new(0, -0.4, -0.6),
+		apron,
+		fabric
+	)
+	for _, stain in { { -0.35, 0.5, 0.8, 0.7 }, { 0.4, -0.3, 0.6, 1 }, { -0.2, -1, 0.9, 0.5 } } do
+		attach(
+			model,
+			bib,
+			"Mancha",
+			Vector3.new(stain[3], stain[4], 0.03),
+			CFrame.new(stain[1], stain[2], -0.05),
+			BLOOD
+		)
+	end
+	for _, side in { -1, 1 } do
+		attach(
+			model,
+			torso,
+			"Tira",
+			Vector3.new(0.18, 0.9, 1.14),
+			CFrame.new(side * 0.6, 0.65, 0),
+			apron,
+			fabric
+		)
+	end
+
+	local leftArm = attach(
+		model,
+		torso,
+		"BrazoIzquierdo",
+		Vector3.new(0.75, 1.9, 0.8),
+		CFrame.new(-1.38, 0.05, 0),
+		shirt,
+		fabric
+	)
+	local rightArm = piece(model, "BrazoDerecho", Vector3.new(0.75, 1.9, 0.8), shirt, fabric)
+	local shoulder =
+		joint(torso, rightArm, CFrame.new(1.38, torsoHeight / 2 - 0.15, 0), CFrame.new(0, 0.8, 0))
+	for _, arm in { leftArm, rightArm } do
+		attach(model, arm, "Guante", Vector3.new(0.72, 0.45, 0.72), CFrame.new(0, -1.1, 0), pigDark)
+	end
+
+	-- Machete: mango negro y hoja ancha de acero, con la punta manchada.
+	local hand = CFrame.new(0, -1.1, 0)
+	attach(
+		model,
+		rightArm,
+		"MangoMachete",
+		Vector3.new(0.28, 0.28, 1.2),
+		hand * CFrame.new(0, 0, -0.3),
+		Color3.fromRGB(16, 15, 14)
+	)
+	attach(
+		model,
+		rightArm,
+		"Machete",
+		Vector3.new(0.1, 0.75, 3.2),
+		hand * CFrame.new(0, -0.15, -2.5),
+		steel,
+		Enum.Material.Metal
+	)
+	attach(
+		model,
+		rightArm,
+		"SangreMachete",
+		Vector3.new(0.12, 0.6, 1),
+		hand * CFrame.new(0, -0.2, -3.5),
+		BLOOD
+	)
+
+	local hipOffset = -torsoHeight / 2
+	local leftLeg = piece(model, "PiernaIzquierda", Vector3.new(0.9, legLength, 0.9), pants, fabric)
+	local rightLeg = piece(model, "PiernaDerecha", Vector3.new(0.9, legLength, 0.9), pants, fabric)
+	local c1 = CFrame.new(0, legLength / 2, 0)
+	local leftHip = joint(root, leftLeg, CFrame.new(-0.5, hipOffset, 0), c1)
+	local rightHip = joint(root, rightLeg, CFrame.new(0.5, hipOffset, 0), c1)
+
+	-- Máscara de chancho: cabeza rosada, trompa con fosas, orejas y ojos hundidos.
+	local head = attach(
+		model,
+		torso,
+		"Mascara",
+		Vector3.new(1.4, headHeight, 1.25),
+		CFrame.new(0, torsoHeight / 2 + headHeight / 2, 0),
+		pig,
+		fabric
+	)
+	local snout = attach(
+		model,
+		head,
+		"Trompa",
+		Vector3.new(0.75, 0.55, 0.4),
+		CFrame.new(0, -0.15, -0.8),
+		Color3.fromRGB(240, 175, 175),
+		fabric
+	)
+	for _, side in { -1, 1 } do
+		attach(
+			model,
+			snout,
+			"Fosa",
+			Vector3.new(0.14, 0.2, 0.04),
+			CFrame.new(side * 0.17, 0, -0.21),
+			pigDark
+		)
+		attach(
+			model,
+			head,
+			"Ojo",
+			Vector3.new(0.22, 0.2, 0.05),
+			CFrame.new(side * 0.33, 0.25, -0.64),
+			Color3.new(0.02, 0, 0)
+		)
+		attach(
+			model,
+			head,
+			"Oreja",
+			Vector3.new(0.45, 0.45, 0.15),
+			CFrame.new(side * 0.62, 0.72, 0) * CFrame.Angles(0, 0, math.rad(side * -30)),
+			pigDark,
+			fabric
+		)
+	end
+
+	local humanoid = Instance.new("Humanoid")
+	humanoid.RigType = Enum.HumanoidRigType.R15
+	humanoid.HipHeight = legLength
+	humanoid.MaxHealth = math.huge
+	humanoid.Health = math.huge
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.BreakJointsOnDeath = false
+	humanoid.RequiresNeck = false
+	humanoid.Parent = model
+
+	return {
+		model = model,
+		root = root,
+		humanoid = humanoid,
+		leftHip = leftHip,
+		rightHip = rightHip,
+		shoulder = shoulder,
+		glowPart = head,
+		glowColor = Color3.fromRGB(190, 195, 210),
+	}
+end
+
 return KillerModel

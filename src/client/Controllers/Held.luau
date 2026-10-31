@@ -35,13 +35,17 @@ function Held.start()
 		handPart("Taser", Vector3.new(0.25, 0.3, 0.9), Color3.fromRGB(230, 190, 40), holder)
 	local flashlight =
 		handPart("Linterna", Vector3.new(0.25, 0.25, 1), Color3.fromRGB(60, 60, 66), holder)
+	-- El haz sale de los ojos: desde la mano, lo que estaba cerca quedaba detrás o fuera del cono.
+	local beamSource =
+		handPart("HazLinterna", Vector3.new(0.1, 0.1, 0.1), Color3.new(0, 0, 0), holder)
+	beamSource.Transparency = 1
 	local beam = Instance.new("SpotLight")
 	beam.Range = 50
-	beam.Angle = 55
+	beam.Angle = 70
 	beam.Brightness = 2
 	beam.Face = Enum.NormalId.Front
 	beam.Shadows = true
-	beam.Parent = flashlight
+	beam.Parent = beamSource
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.F then
@@ -59,6 +63,7 @@ function Held.start()
 		taser.CFrame = camera.CFrame * CFrame.new(1.6, -1.1, -2.6)
 		flashlight.Transparency = if hasFlashlight then 0 else 1
 		flashlight.CFrame = camera.CFrame * CFrame.new(-1.6, -1.1, -2.6)
+		beamSource.CFrame = camera.CFrame * CFrame.new(0, 0, -0.6)
 		beam.Enabled = on
 
 		-- La luz que el servidor le pone a la cabeza es para los otros; acá manda el haz local.

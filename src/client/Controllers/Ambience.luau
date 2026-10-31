@@ -17,6 +17,8 @@ local Sounds = require(Shared:WaitForChild("Sounds"))
 
 local RAIN_VOLUME_HALL = 0.5
 local RAIN_VOLUME_INSIDE = 0.2
+local STEPS_VOLUME_WALK = 0.12
+local STEPS_VOLUME_RUN = 0.65
 
 local Ambience = {}
 
@@ -83,6 +85,17 @@ function Ambience.start()
 			return
 		end
 		clock = 0
+		-- Roblox crea el sonido de pasos "Running" en cada personaje; caminando suena mucho menos.
+		for _, other in Players:GetPlayers() do
+			local character = other.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local steps = root and root:FindFirstChild("Running")
+			if steps and steps:IsA("Sound") then
+				steps.Volume = if other:GetAttribute("Running") == true
+					then STEPS_VOLUME_RUN
+					else STEPS_VOLUME_WALK
+			end
+		end
 		local eye = workspace.CurrentCamera.CFrame.Position
 		for _, flame in CollectionService:GetTagged("CandleFlame") do
 			local light = flame:FindFirstChildOfClass("PointLight")

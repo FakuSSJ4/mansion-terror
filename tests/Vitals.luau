@@ -28,6 +28,22 @@ return {
 		assert(rooms.room7 and rooms.room12)
 		assert(not rooms.attic and not rooms.hall)
 	end,
+	butcherNeedsFiveHits = function()
+		local damage = Config.Killers.butcher.damage
+		assert(damage * 5 >= Config.MaxHealth and damage * 4 < Config.MaxHealth)
+	end,
+	butcherIsFasterThanMain = function()
+		local butcher, main = Config.Killers.butcher, Config.Killers.main
+		assert(butcher.patrolSpeed > main.patrolSpeed)
+		assert(butcher.chaseSpeed > main.chaseSpeed)
+		assert(butcher.searchSpeed > main.searchSpeed)
+	end,
+	butcherClimbsOnlyOneFloor = function()
+		local rooms = Config.Killers.butcher.rooms
+		assert(Config.Killers.butcher.startRoom == "room6")
+		assert(rooms.room5 and rooms.room6 and rooms.room4 and rooms.hall)
+		assert(not rooms.room7 and not rooms.attic)
+	end,
 	damageSubtractsDownToZero = function()
 		assert(Vitals.damage(100, 50) == 50)
 		assert(Vitals.damage(50, 50) == 0)
