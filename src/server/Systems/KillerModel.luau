@@ -1,5 +1,5 @@
 --!strict
--- Arma al asesino con piezas: 1,80 m, machete en la izquierda, sin brazo derecho,
+-- Arma al asesino con piezas: 1,80 m, hacha en la izquierda, sin brazo derecho,
 -- pelo largo, media cara con piel y media en carne viva, y un solo ojo.
 -- Con el modelo mirando a -Z, su derecha es +X.
 
@@ -118,34 +118,64 @@ function KillerModel.build(): Rig
 		Enum.Material.Slate
 	)
 
-	-- Brazo izquierdo con machete, articulado para el golpe.
+	-- Brazo izquierdo con hacha, articulado para el golpe.
 	local arm =
 		piece(model, "BrazoIzquierdo", Vector3.new(0.9, 2.3, 0.9), SKIN, Enum.Material.Fabric)
 	local shoulder =
 		joint(torso, arm, CFrame.new(-1.45, TORSO_HEIGHT / 2 - 0.2, 0), CFrame.new(0, 0.95, 0))
-	attach(
-		model,
-		arm,
-		"Mango",
-		Vector3.new(0.25, 0.25, 0.9),
-		CFrame.new(0, -1.15, -0.3),
-		Color3.fromRGB(30, 20, 14)
+	local axeYellow = Color3.fromRGB(225, 185, 30)
+	local axeSteel = Color3.fromRGB(190, 190, 195)
+	local axeHand = CFrame.new(0, -1.15, 0)
+	local function axe(
+		name: string,
+		size: Vector3,
+		offset: CFrame,
+		color: Color3,
+		material: Enum.Material
 	)
-	attach(
-		model,
-		arm,
-		"Machete",
-		Vector3.new(0.1, 0.55, 3),
-		CFrame.new(0, -1.15, -2.2),
-		Color3.fromRGB(120, 120, 118),
+		attach(model, arm, name, size, axeHand * offset, color, material)
+	end
+	-- Mango negro con la empuñadura amarilla.
+	axe(
+		"MangoHacha",
+		Vector3.new(0.3, 0.32, 4.6),
+		CFrame.new(0, 0, -1.8),
+		Color3.fromRGB(14, 14, 16),
+		Enum.Material.Wood
+	)
+	axe(
+		"Empunadura",
+		Vector3.new(0.38, 0.4, 1.3),
+		CFrame.new(0, 0, 0.4),
+		axeYellow,
+		Enum.Material.SmoothPlastic
+	)
+	-- Cabeza amarilla, con el filo y el pico de acero.
+	axe(
+		"CabezaHacha",
+		Vector3.new(0.42, 1.5, 1.3),
+		CFrame.new(0, 0.1, -4.1),
+		axeYellow,
+		Enum.Material.SmoothPlastic
+	)
+	axe(
+		"FiloHacha",
+		Vector3.new(0.14, 0.75, 1.9),
+		CFrame.new(0, -1, -4.1),
+		axeSteel,
 		Enum.Material.Metal
 	)
-	attach(
-		model,
-		arm,
-		"SangreMachete",
-		Vector3.new(0.12, 0.3, 1.1),
-		CFrame.new(0, -1.05, -3.05),
+	axe(
+		"PicoHacha",
+		Vector3.new(0.14, 0.75, 0.5),
+		CFrame.new(0, 1.2, -4.1),
+		axeSteel,
+		Enum.Material.Metal
+	)
+	axe(
+		"SangreHacha",
+		Vector3.new(0.16, 0.35, 1),
+		CFrame.new(0, -1.1, -4.3),
 		BLOOD,
 		Enum.Material.Slate
 	)

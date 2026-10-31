@@ -243,7 +243,7 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 	end
 
 	for n = 1, Config.KeyCount do
-		spawnItem(`key{n}`, "key", takeSpot(free[`room{n}`], random), function(player)
+		spawnItem(`key{n}`, "key", takeSpot(free[Config.KeyRooms[n]], random), function(player)
 			handlers.onKey(player, n)
 			return true
 		end, Config.KeyColors[n])
@@ -256,8 +256,8 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 	local scrollRooms = {
 		pick({ "room5", "room6" }),
 		"attic",
-		pick({ "room2", "room3", "room4" }),
-		pick({ "room7", "room8", "room9", "room10", "room11", "room12" }),
+		pick({ "room2", "room3" }),
+		pick({ "room9", "room10", "room11", "room12" }),
 	}
 	for n = 1, Config.BookCount do
 		local id = `book{n}`
@@ -268,6 +268,11 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 	end
 
 	local function randomSpot(rooms: { number }): Vector3
+		-- A veces cae en un hueco de las librerías del hall.
+		local shelves = free.hall
+		if shelves and #shelves > 0 and random:NextNumber() < 0.3 then
+			return takeSpot(shelves, random)
+		end
 		while true do
 			local spots = free[`room{rooms[random:NextInteger(1, #rooms)]}`]
 			if #spots > 0 then

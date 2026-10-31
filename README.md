@@ -28,7 +28,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 
 | Tecla | Acción |
 |---|---|
-| `1` | Modo desarrollador: sin daño, todas las llaves, atravesás puertas y volás (`W A S D`, `Espacio` sube, `Ctrl` baja) |
+| `1` | Modo desarrollador: sin daño, todas las llaves, atravesás puertas y volás (`W A S D`, `Espacio` sube, `Ctrl` baja, doble `Espacio` deja de volar) |
 | `K` | Dar todas las llaves |
 | `2` | Dar todos los pergaminos |
 | `3` | Ir a la pieza siguiente |
@@ -40,6 +40,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `9` | Ir al pie de la gran escalera |
 | `0` | Girar la vista 90° y nivelarla |
 | `P` | Ir al pedestal del taser |
+| `L` | Ir a las librerías del hall |
 
 ## Sonidos
 

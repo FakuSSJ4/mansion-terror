@@ -153,11 +153,10 @@ local function setupDoors()
 				end
 				return
 			end
-			local room = tonumber(string.match(key, "%d+")) :: number
-			if Progress.isDoorOpen(progress, room) then
+			if Progress.isDoorOpen(progress, key, Config) then
 				Mansion.setDoorUnlocked(door, true)
 			else
-				local name = Config.KeyColors[room - 1].name
+				local name = Config.KeyColors[Config.DoorKeys[key]].name
 				Remotes.get("Notify"):FireClient(player, `Necesitás la llave {name}`)
 			end
 		end)

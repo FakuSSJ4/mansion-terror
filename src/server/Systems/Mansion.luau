@@ -23,14 +23,15 @@ local DOOR_HEIGHT = 12
 local CORRIDOR_HEIGHT = DOOR_HEIGHT + 2
 local REFUGE_WIDTH = 24
 local REFUGE_DEPTH = 18
+local RAIN_SLANT_DEGREES = 24
 
 local CELLAR_Y = -LEVEL_HEIGHT
 local GROUND_Y = 0
 local UPPER_Y = LEVEL_HEIGHT
 local ATTIC_Y = 2 * LEVEL_HEIGHT
 
--- La escalera ocupa este rectángulo del lado oeste de la pieza, subiendo hacia +Z.
-local STAIR = { x0 = -HALF, x1 = -12, z0 = -18, z1 = 22 }
+-- La escalera ocupa este rectángulo, separada de la pared oeste para poder rodearla, subiendo hacia +Z.
+local STAIR = { x0 = -20, x1 = -4, z0 = -18, z1 = 20 }
 -- Trampilla del altillo, contra el lado sur.
 local HATCH = { x0 = -5, x1 = 5, z0 = 14, z1 = 24 }
 
@@ -77,7 +78,7 @@ local LINKS = {
 	{ "room11", "room12" },
 }
 
-local LOCKED_LINKS = { room2 = true, room3 = true, room4 = true, room6 = true }
+local LOCKED_LINKS = { room2 = true, room3 = true, room9 = true, room11 = true }
 
 local REFUGES = {
 	refuge1 = { room = "room1", dir = Vector3.new(0, 0, 1) },
@@ -997,8 +998,8 @@ local function buildDoor(
 	local function sized(w: number, h: number): Vector3
 		return if math.abs(along.X) > 0 then Vector3.new(w, h, 0.6) else Vector3.new(0.6, h, w)
 	end
-	local keyIndex = tonumber(string.match(key, "%d+"))
-	local keyColor = if keyIndex then Config.KeyColors[keyIndex - 1] else nil
+	local keyIndex = Config.DoorKeys[key]
+	local keyColor = if keyIndex then Config.KeyColors[keyIndex] else nil
 	local emblem =
 		Color3.fromRGB(table.unpack(if keyColor then keyColor.rgb else Config.GoldKeyRgb))
 	local gate = style == "gate"
@@ -1180,27 +1181,36 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 			Color = Color3.fromRGB(70, 44, 28),
 			Material = Enum.Material.Wood,
 		})
-		-- Lateral macizo que acompaña los escalones y termina al nivel del piso de arriba.
-		local sideHeight = math.min(i + 4, LEVEL_HEIGHT)
-		part({
-			Name = "LateralEscalera",
-			Size = Vector3.new(1, sideHeight, run),
-			Position = base + Vector3.new(STAIR.x1 + 0.5, sideHeight / 2, z),
-			Color = WOOD_COLOR,
-			Material = Enum.Material.Wood,
-		})
+	end
+
+	-- Laterales de una pieza en cuña: se ven limpios desde abajo y llegan justo al piso de arriba.
+	local stairLength = STAIR.z1 - STAIR.z0
+	local stairMidZ = (STAIR.z0 + STAIR.z1) / 2
+	for _, x in { STAIR.x0 - 0.5, STAIR.x1 + 0.5 } do
+		local wedge = Instance.new("WedgePart")
+		wedge.Name = "LateralEscalera"
+		wedge.Anchored = true
+		wedge.Size = Vector3.new(1, steps, stairLength)
+		wedge.CFrame = CFrame.new(base + Vector3.new(x, steps / 2, stairMidZ))
+			* CFrame.Angles(0, math.rad(180), 0)
+		wedge.Color = WOOD_COLOR
+		wedge.Material = Enum.Material.Wood
+		wedge.Parent = world
 	end
 
 	-- Baranda recta alrededor del hueco; una pared invisible impide saltarla.
-	local stairLength = STAIR.z1 - STAIR.z0
-	local sideRail = Vector3.new(STAIR.x1 + 0.5, LEVEL_HEIGHT, (STAIR.z0 + STAIR.z1) / 2)
-	local endRail = Vector3.new(xCenter + 0.5, LEVEL_HEIGHT, STAIR.z0 - 0.5)
-	for _, rail in
+	local rails = {
 		{
-			{ sideRail, Vector3.new(0.6, 0.5, stairLength + 1) },
-			{ endRail, Vector3.new(width + 1, 0.5, 0.6) },
-		}
-	do
+			Vector3.new(STAIR.x0 - 0.5, LEVEL_HEIGHT, stairMidZ),
+			Vector3.new(0.6, 0.5, stairLength + 1),
+		},
+		{
+			Vector3.new(STAIR.x1 + 0.5, LEVEL_HEIGHT, stairMidZ),
+			Vector3.new(0.6, 0.5, stairLength + 1),
+		},
+		{ Vector3.new(xCenter, LEVEL_HEIGHT, STAIR.z0 - 0.5), Vector3.new(width + 2, 0.5, 0.6) },
+	}
+	for _, rail in rails do
 		part({
 			Name = "Baranda",
 			Size = rail[2],
@@ -1216,14 +1226,16 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 			CanQuery = false,
 		})
 	end
-	for offset = 0, stairLength, 8 do
-		part({
-			Name = "Baluastre",
-			Size = Vector3.new(0.5, 3.5, 0.5),
-			Position = base + Vector3.new(STAIR.x1 + 0.5, LEVEL_HEIGHT + 1.75, STAIR.z0 + offset),
-			Color = WOOD_COLOR,
-			Material = Enum.Material.Wood,
-		})
+	for _, x in { STAIR.x0 - 0.5, STAIR.x1 + 0.5 } do
+		for offset = 0, stairLength, 6 do
+			part({
+				Name = "Balaustre",
+				Size = Vector3.new(0.5, 3.5, 0.5),
+				Position = base + Vector3.new(x, LEVEL_HEIGHT + 1.75, STAIR.z0 + offset),
+				Color = WOOD_COLOR,
+				Material = Enum.Material.Wood,
+			})
+		end
 	end
 
 	local gatePosition = if gateAtTop
@@ -1243,10 +1255,10 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 
 	local up = LEVEL_HEIGHT
 	addRoute(lower, upper, {
-		base + Vector3.new(-6, 0, STAIR.z0 - 6),
+		base + Vector3.new(STAIR.x1 + 5, 0, STAIR.z0 - 6),
 		base + Vector3.new(xCenter, 0, STAIR.z0 - 6),
 		base + Vector3.new(xCenter, up, STAIR.z1 + 3),
-		base + Vector3.new(-6, up, STAIR.z1 + 3),
+		base + Vector3.new(STAIR.x1 + 5, up, STAIR.z1 + 3),
 	})
 end
 
@@ -1373,12 +1385,15 @@ end
 -- Lluvia densa justo del otro lado de cada ventanal.
 local function rainOutside(window: any)
 	local top = window.height / 2 + 14
+	-- Cae de costado: inclinada a lo largo del ventanal, así nunca entra a la casa.
+	local tilt = CFrame.fromAxisAngle(window.outward, math.rad(RAIN_SLANT_DEGREES))
+	local fall = tilt:VectorToWorldSpace(-Vector3.yAxis)
 	local cloud = decor({
 		Name = "Lluvia",
 		Size = if window.horizontal
-			then Vector3.new(window.width + 10, 1, 10)
-			else Vector3.new(10, 1, window.width + 10),
-		Position = window.position + window.outward * 7 + Vector3.new(0, top, 0),
+			then Vector3.new(window.width + 26, 1, 10)
+			else Vector3.new(10, 1, window.width + 26),
+		CFrame = CFrame.new(window.position + window.outward * 7 - fall * top) * tilt,
 		Transparency = 1,
 	})
 	local rain = Instance.new("ParticleEmitter")
@@ -1761,10 +1776,10 @@ end
 local LOCKED_BY: { [string]: string } = {
 	["room1|room2"] = "room2",
 	["room2|room3"] = "room3",
-	["room3|room4"] = "room4",
 	["room4|room5"] = "room5",
-	["room5|room6"] = "room6",
 	["hall|room7"] = "room7",
+	["room8|room9"] = "room9",
+	["room10|room11"] = "room11",
 }
 local hatchOpen = false
 

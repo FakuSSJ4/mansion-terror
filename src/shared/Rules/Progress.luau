@@ -33,9 +33,10 @@ function Progress.addBook(s: State, id: string): boolean
 	return true
 end
 
--- Puerta de entrada a la pieza `room`: la 1 no lleva llave y la N se abre con la llave N-1.
-function Progress.isDoorOpen(s: State, room: number): boolean
-	return room <= 1 or s.keys[room - 1] == true
+-- Si el equipo tiene la llave de esa puerta; las que no figuran en DoorKeys no llevan llave.
+function Progress.isDoorOpen(s: State, door: string, cfg: any): boolean
+	local key = cfg.DoorKeys[door]
+	return key == nil or s.keys[key] == true
 end
 
 function Progress.isExitOpen(s: State): boolean

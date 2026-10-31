@@ -8,6 +8,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
+local DOUBLE_TAP_SECONDS = 0.35
+
 local DevFlight = {}
 
 function DevFlight.start()
@@ -16,6 +18,26 @@ function DevFlight.start()
 	end
 	local player = Players.LocalPlayer
 	local wasFlying = false
+	local grounded = false
+	local lastSpace = 0
+
+	-- Doble Espacio apaga o prende el vuelo, sin salir del modo desarrollador.
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed or input.KeyCode ~= Enum.KeyCode.Space then
+			return
+		end
+		local now = os.clock()
+		if player:GetAttribute("GodMode") and now - lastSpace < DOUBLE_TAP_SECONDS then
+			grounded = not grounded
+			lastSpace = 0
+		else
+			lastSpace = now
+		end
+	end)
+
+	player:GetAttributeChangedSignal("GodMode"):Connect(function()
+		grounded = false
+	end)
 
 	RunService.RenderStepped:Connect(function()
 		local character = player.Character
@@ -24,7 +46,7 @@ function DevFlight.start()
 		if not humanoid or not root then
 			return
 		end
-		local flying = player:GetAttribute("GodMode") == true
+		local flying = player:GetAttribute("GodMode") == true and not grounded
 		if flying ~= wasFlying then
 			wasFlying = flying
 			humanoid.PlatformStand = flying

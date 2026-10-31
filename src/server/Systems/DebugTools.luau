@@ -35,7 +35,7 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			Remotes.get("Notify"):FireClient(
 				player,
 				if on
-					then "Modo desarrollador: todas las llaves. W A S D vuela, Espacio sube, Ctrl baja"
+					then "Modo desarrollador: W A S D vuela, Espacio sube, Ctrl baja, doble Espacio deja de volar"
 					else "Modo desarrollador apagado"
 			)
 		elseif command == "keys" then
@@ -62,6 +62,11 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			local root = Vitality.rootOf(player)
 			if root then
 				root.CFrame = CFrame.new(10, 4, -56)
+			end
+		elseif command == "library" then
+			local root = Vitality.rootOf(player)
+			if root then
+				root.CFrame = CFrame.new(-32, 4, 12)
 			end
 		elseif command == "pedestal" then
 			local root = Vitality.rootOf(player)

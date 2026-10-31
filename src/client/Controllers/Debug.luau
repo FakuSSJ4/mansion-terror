@@ -19,6 +19,7 @@ local KEYS = {
 	[Enum.KeyCode.Eight] = "gear",
 	[Enum.KeyCode.Nine] = "stairs",
 	[Enum.KeyCode.P] = "pedestal",
+	[Enum.KeyCode.L] = "library",
 }
 
 local Debug = {}
@@ -40,7 +41,7 @@ function Debug.start()
 		local command = KEYS[input.KeyCode]
 		if command then
 			Remotes.get("Debug"):FireServer(command)
-			if command == "stairs" or command == "pedestal" then
+			if command == "stairs" or command == "pedestal" or command == "library" then
 				task.delay(0.3, aim, Vector3.zAxis)
 			end
 		elseif input.KeyCode == Enum.KeyCode.Zero then

@@ -389,6 +389,99 @@ function GrandHall.build(ctx: any)
 	niche(X0 + 0.2, -16, 1)
 	niche(X1 - 0.2, -16, -1)
 
+	-- Seis librerías contra la pared del fondo, bajo la galería. Los libros van dibujados
+	-- sobre el panel trasero; los huecos de las tres repisas de abajo guardan loot.
+	local caseWidth, caseHeight, caseDepth = 13, 16, 2.6
+	local shelves = 5
+	local spines = {
+		Color3.fromRGB(110, 28, 26),
+		Color3.fromRGB(32, 56, 92),
+		Color3.fromRGB(40, 74, 44),
+		Color3.fromRGB(130, 96, 40),
+		Color3.fromRGB(74, 44, 28),
+		Color3.fromRGB(150, 140, 110),
+		Color3.fromRGB(30, 28, 30),
+	}
+	local random = Random.new()
+	local lootSpots = {}
+	local pixelsPerStud = 24
+	local rowPixels = caseHeight * pixelsPerStud / shelves
+	for caseIndex = 1, 6 do
+		local cx = midX + (caseIndex - 3.5) * (caseWidth + 0.4)
+		local front = Z1 - caseDepth
+		local back = ctx.part({
+			Name = "FondoLibreria",
+			Size = Vector3.new(caseWidth, caseHeight, 0.4),
+			Position = Vector3.new(cx, caseHeight / 2, Z1 - 0.3),
+			Color = Color3.fromRGB(30, 18, 12),
+			Material = Enum.Material.Wood,
+		})
+		for _, x in { cx - caseWidth / 2, cx + caseWidth / 2 } do
+			box(
+				x - 0.25,
+				0,
+				front,
+				x + 0.25,
+				caseHeight,
+				Z1,
+				wood,
+				Enum.Material.Wood,
+				"LateralLibreria"
+			)
+		end
+		for row = 0, shelves do
+			local y = row * caseHeight / shelves
+			box(
+				cx - caseWidth / 2,
+				y - 0.15,
+				front,
+				cx + caseWidth / 2,
+				y + 0.15,
+				Z1,
+				wood,
+				Enum.Material.Wood,
+				"Repisa"
+			)
+		end
+
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = pixelsPerStud
+		gui.LightInfluence = 1
+		gui.Parent = back
+		for row = 1, shelves do
+			-- De arriba a abajo en la pantalla; `row` 1 es la repisa superior.
+			local shelfTop = (row - 1) * rowPixels
+			local x = 8
+			local widthPixels = caseWidth * pixelsPerStud - 8
+			while x < widthPixels do
+				if random:NextNumber() < 0.09 then
+					-- Hueco en la repisa.
+					local gap = random:NextInteger(50, 80)
+					local gapCenter = math.min(x + gap / 2, widthPixels)
+					if row > shelves - 3 then
+						local worldX = cx + caseWidth / 2 - gapCenter / pixelsPerStud
+						local shelfY = (shelves - row) * caseHeight / shelves
+						table.insert(lootSpots, Vector3.new(worldX, shelfY + 0.5, Z1 - 1.3))
+					end
+					x += gap
+				else
+					local bookWidth = random:NextInteger(7, 13)
+					local bookHeight = rowPixels * random:NextNumber(0.62, 0.9)
+					local book = Instance.new("Frame")
+					book.BorderSizePixel = 0
+					book.BackgroundColor3 = spines[random:NextInteger(1, #spines)]
+					book.Size = UDim2.fromOffset(bookWidth, bookHeight)
+					book.Position = UDim2.fromOffset(x, shelfTop + rowPixels - bookHeight - 4)
+					book.Parent = gui
+					x += bookWidth + 1
+				end
+			end
+		end
+	end
+	ctx.refs.hidingSpots.hall = lootSpots
+
 	-- Sillones de cada lado de la entrada.
 	local center = Vector3.new(midX, 0, -40)
 	ctx.FURNITURE.sofa(CFrame.lookAt(Vector3.new(X0 + 8, 0, Z0 + 10), center))
@@ -401,7 +494,9 @@ function GrandHall.build(ctx: any)
 			Vector3.new(X1 - 1, 10, -58),
 			Vector3.new(X0 + 1, 10, 12),
 			Vector3.new(X1 - 1, 10, 12),
-			Vector3.new(midX, 10, Z1 - 1),
+			Vector3.new(midX - 21, 15, galleryZ + 3),
+			Vector3.new(midX + 21, 15, galleryZ + 3),
+			Vector3.new(midX, 15, galleryZ + 3),
 			Vector3.new(midX - 30, FLOOR + 8, Z1 - 1),
 			Vector3.new(midX + 30, FLOOR + 8, Z1 - 1),
 		}

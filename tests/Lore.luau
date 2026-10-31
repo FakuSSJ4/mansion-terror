@@ -3,10 +3,9 @@ local Config = require("../src/shared/Config")
 local Lighting = require("../src/shared/Rules/LightFade")
 
 return {
-	sixColoredKeysWithBlackForTheCellar = function()
+	sixColoredKeys = function()
 		assert(#Config.KeyColors == 6 and Config.KeyCount == 6)
-		-- La llave 4 abre la pieza 5: el sótano.
-		assert(Config.KeyColors[4].name == "negra")
+		assert(#Config.KeyRooms == 6)
 	end,
 	fourScrolls = function()
 		assert(Config.BookCount == 4)

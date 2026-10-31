@@ -6,7 +6,9 @@ Fecha: 2026-10-31
 
 - **Cámara:** primera persona fija.
 - **Mapa:** planta baja (hall con gran escalera, living, comedor, sala de música, cocina), sótano de 2 piezas al que se baja desde la cocina, primer piso de 6 piezas (dormitorio incluido) y altillo ("cobertizo") de 1 pieza. Refugios junto al living, en el sótano y junto al dormitorio.
-- **Recorrido:** llaves de color (roja, azul, verde y negra en planta baja; violeta y amarilla en el sótano), cada una abre la puerta de su color. La negra abre el sótano y la amarilla la reja de la escalera del hall.
+- **Recorrido:** llaves de color, cada una abre la puerta de su color, alternando pisos: roja (living) abre la gran escalera; azul (dormitorio) abre el comedor; verde (comedor) abre la pieza 9; violeta (pieza 10) abre la sala de música; amarilla (sala de música) abre la pieza 11; negra (pieza 12) abre el sótano, en la cocina.
+- **Librerías:** seis en la pared del fondo del hall, con huecos donde puede aparecer loot.
+- **Arma:** hacha con mango negro, cabeza y empuñadura amarillas.
 - **Pergaminos:** son 4: uno en el sótano, uno en el altillo, uno en una pieza de planta baja con puerta de color y uno en el primer piso. Se dejan en la estatua de lobo del hall: su cajón da la llave dorada del lobo, que abre la puerta principal.
 - **Escalera de mano:** siempre en el sótano, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va, igual que la llave dorada.
 - **Puertas y asesino:** solo cruza puertas ya abiertas y sube al altillo si la escalera está puesta. Arranca en el living y espera 20 s desde que alguien empieza a jugar.

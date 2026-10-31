@@ -14,7 +14,7 @@ local PAGES = {
 	},
 	{
 		title = "Cómo escapar",
-		body = "1. Buscá las llaves de colores: cada una abre la puerta de su mismo color.\n2. La llave negra abre el sótano, en la cocina. Ahí está la escalera de mano.\n3. La llave amarilla abre la reja de la gran escalera, en el hall.\n4. Poné la escalera bajo la trampilla del primer piso para subir al cobertizo.\n5. Juntá los 4 pergaminos: sótano, cobertizo, planta baja y primer piso.\n6. Llevalos a la estatua de lobo del hall: te da la llave dorada.\n7. Abrí la puerta principal con la llave dorada y escapá.",
+		body = "1. Buscá las llaves de colores: cada una abre la puerta de su mismo color.\n2. Las llaves se alternan: la roja abre la gran escalera, y cada llave siguiente te hace cambiar de piso.\n3. La llave negra es la última: abre el sótano, en la cocina. Ahí está la escalera de mano.\n4. Poné la escalera bajo la trampilla del primer piso para subir al cobertizo.\n5. Juntá los 4 pergaminos: sótano, cobertizo, planta baja y primer piso.\n6. Llevalos a la estatua de lobo del hall: te da la llave dorada.\n7. Abrí la puerta principal con la llave dorada y escapá.",
 	},
 	{
 		title = "Cómo sobrevivir",

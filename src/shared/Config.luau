@@ -47,14 +47,25 @@ local Config = {
 
 	-- Progreso
 	KeyCount = 6,
-	-- La llave N abre la puerta de la pieza N + 1.
 	KeyColors = {
 		{ name = "roja", rgb = { 190, 40, 40 } },
 		{ name = "azul", rgb = { 50, 90, 200 } },
 		{ name = "verde", rgb = { 50, 150, 70 } },
-		{ name = "negra", rgb = { 18, 18, 20 } },
 		{ name = "violeta", rgb = { 130, 60, 180 } },
 		{ name = "amarilla", rgb = { 220, 190, 50 } },
+		{ name = "negra", rgb = { 18, 18, 20 } },
+	},
+	-- Dónde está cada llave: se alternan planta baja y primer piso para obligar a ir y venir.
+	KeyRooms = { "room1", "room8", "room2", "room10", "room3", "room12" },
+	-- Qué llave abre cada puerta. Las piezas 4 (cocina) y 6 quedan sin puerta con llave.
+	DoorKeys = {
+		room7 = 1,
+		room7b = 1,
+		room2 = 2,
+		room9 = 3,
+		room3 = 4,
+		room11 = 5,
+		room5 = 6,
 	},
 	GoldKeyRgb = { 235, 180, 40 },
 	BookCount = 4,
