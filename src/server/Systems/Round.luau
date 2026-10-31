@@ -11,6 +11,7 @@ local Loot = require(Shared:WaitForChild("Rules"):WaitForChild("Loot"))
 local Progress = require(Shared:WaitForChild("Rules"):WaitForChild("Progress"))
 
 local Systems = script.Parent
+local Blood = require(Systems:WaitForChild("Blood"))
 local Items = require(Systems:WaitForChild("Items"))
 local Mansion = require(Systems:WaitForChild("Mansion"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
@@ -83,6 +84,7 @@ function Round.reset()
 		Mansion.setDoorUnlocked(door, false)
 	end
 	Mansion.setDrawerOpen(false)
+	Blood.clear()
 	spawnRoundItems()
 	publish()
 	resetEvent:Fire()

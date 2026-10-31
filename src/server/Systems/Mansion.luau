@@ -733,6 +733,154 @@ local function decorateRoom(id: string, random: Random)
 	end
 end
 
+-- Da a cada pieza el lenguaje del hall con pocas partes: zócalo, cornisa, pilastras y vigas.
+local function styleRoom(id: string, openings: { [string]: Opening })
+	local center = cellCenter(id)
+	local inCellar = PLAN[id].y == CELLAR_Y
+	local trim = if inCellar then Color3.fromRGB(70, 66, 60) else WOOD_COLOR
+	local inset = HALF - 0.6
+	local sides = {
+		{ key = "E", at = Vector3.xAxis, along = Vector3.zAxis },
+		{ key = "W", at = -Vector3.xAxis, along = Vector3.zAxis },
+		{ key = "S", at = Vector3.zAxis, along = Vector3.xAxis },
+		{ key = "N", at = -Vector3.zAxis, along = Vector3.xAxis },
+	}
+	local function band(
+		position: Vector3,
+		along: Vector3,
+		length: number,
+		height: number,
+		color: Color3
+	)
+		decor({
+			Name = "Moldura",
+			Size = if along.X ~= 0
+				then Vector3.new(length, height, 0.5)
+				else Vector3.new(0.5, height, length),
+			Position = position,
+			Color = color,
+			Material = Enum.Material.Wood,
+		})
+	end
+	for _, side in sides do
+		local wallPoint = center + side.at * inset
+		local opening = openings[side.key]
+		-- El zócalo se corta donde hay una puerta.
+		local baseY = Vector3.new(0, 0.6, 0)
+		if opening and opening.bottom == 0 then
+			local length = (ROOM_SIZE - opening.width) / 2
+			local offset = (opening.width + length) / 2
+			band(wallPoint + side.along * offset + baseY, side.along, length, 1.2, trim)
+			band(wallPoint - side.along * offset + baseY, side.along, length, 1.2, trim)
+		else
+			band(wallPoint + baseY, side.along, ROOM_SIZE, 1.2, trim)
+		end
+		band(wallPoint + Vector3.new(0, CEILING - 0.5, 0), side.along, ROOM_SIZE, 1, GOLD_COLOR)
+		-- Dos pilastras por pared, cerca de las esquinas.
+		for _, sign in { -1, 1 } do
+			decor({
+				Name = "Pilastra",
+				Size = if side.along.X ~= 0
+					then Vector3.new(2, CEILING, 0.7)
+					else Vector3.new(0.7, CEILING, 2),
+				Position = wallPoint + side.along * sign * 25 + Vector3.new(0, CEILING / 2, 0),
+				Color = if inCellar
+					then Color3.fromRGB(120, 114, 104)
+					else Color3.fromRGB(190, 190, 182),
+				Material = Enum.Material.Concrete,
+			})
+		end
+	end
+	-- Vigas del techo, salvo donde lo atraviesa una escalera.
+	if not STAIR_ROOMS[id] then
+		for _, offset in { -12, 12 } do
+			decor({
+				Name = "Viga",
+				Size = Vector3.new(ROOM_SIZE, 0.9, 1.2),
+				Position = center + Vector3.new(0, CEILING - 0.45, offset),
+				Color = CEILING_COLOR,
+				Material = Enum.Material.Wood,
+			})
+			decor({
+				Name = "Viga",
+				Size = Vector3.new(1.2, 0.9, ROOM_SIZE),
+				Position = center + Vector3.new(offset, CEILING - 0.45, 0),
+				Color = CEILING_COLOR,
+				Material = Enum.Material.Wood,
+			})
+		end
+	end
+	-- Columnas de piedra que sostienen el sótano.
+	if id == "room6" then
+		for _, x in { -12, 12 } do
+			for _, z in { -12, 12 } do
+				part({
+					Name = "ColumnaSotano",
+					Size = Vector3.new(2.4, CEILING, 2.4),
+					Position = center + Vector3.new(x, CEILING / 2, z),
+					Color = Color3.fromRGB(96, 92, 84),
+					Material = Enum.Material.Cobblestone,
+				})
+			end
+		end
+	end
+	-- Banco bajo cada ventanal, y una consola con florero en las paredes ciegas.
+	if not inCellar then
+		for _, side in sides do
+			local opening = openings[side.key]
+			local spot = center + side.at * (HALF - 2.4)
+			local stairSide = STAIR_ROOMS[id] and side.key == "W"
+			if opening and opening.bottom > 0 then
+				local base = CFrame.lookAt(spot, center)
+				solid(
+					base,
+					"Banco",
+					Vector3.new(14, 1.4, 2.6),
+					CFrame.new(0, 0.9, 0),
+					FABRIC_COLOR,
+					Enum.Material.Fabric
+				)
+			elseif not opening and not stairSide then
+				local base = CFrame.lookAt(spot, center)
+				solid(base, "Consola", Vector3.new(9, 3, 2.4), CFrame.new(0, 1.5, 0), WOOD_COLOR)
+				solid(
+					base,
+					"Florero",
+					Vector3.new(1, 1.8, 1),
+					CFrame.new(-2.6, 3.9, 0),
+					GOLD_COLOR,
+					Enum.Material.Marble
+				)
+				local spots = refs.hidingSpots[id]
+				if spots then
+					table.insert(spots, (base * CFrame.new(1.8, 3.3, 0)).Position)
+				end
+			end
+		end
+	end
+	-- Sillas alrededor de la mesa del comedor.
+	if id == "room2" then
+		for _, x in { -5.2, 5.2 } do
+			for _, z in { -6, 0, 6 } do
+				solid(
+					CFrame.new(center),
+					"Silla",
+					Vector3.new(2, 2.2, 2),
+					CFrame.new(x, 1.1, z),
+					WOOD_COLOR
+				)
+				solid(
+					CFrame.new(center),
+					"Respaldo",
+					Vector3.new(0.4, 2.6, 2),
+					CFrame.new(x + math.sign(x) * 0.9, 3.4, z),
+					WOOD_COLOR
+				)
+			end
+		end
+	end
+end
+
 local function buildRoom(id: string, random: Random, openings: { [string]: Opening })
 	local center = cellCenter(id)
 	plate(
@@ -769,6 +917,7 @@ local function buildRoom(id: string, random: Random, openings: { [string]: Openi
 		furnishRoom(id, random)
 	end
 	decorateRoom(id, random)
+	styleRoom(id, openings)
 end
 
 -- Dibuja una cara de la hoja sobre la superficie, sin agregar partes: paneles de madera,
@@ -963,6 +1112,42 @@ local function buildLink(a: string, b: string)
 	end
 	candle(middle + across * (CORRIDOR_WIDTH / 2 - 0.5) + Vector3.new(0, 7, 0), CANDLE_LIGHT)
 	addRoute(a, b, { middle })
+
+	-- Arcos facetados en las dos bocas del pasillo: dos riostras a 45° y un zócalo a cada lado.
+	local cellarLink = ca.Y == CELLAR_Y
+	local stone = if cellarLink then Color3.fromRGB(96, 92, 84) else Color3.fromRGB(190, 190, 182)
+	for _, endSign in { -1, 1 } do
+		local mouth = middle + dir * endSign * (length / 2 - 0.5)
+		for _, side in { -1, 1 } do
+			local tilt = (across * side - Vector3.yAxis).Unit
+			local up = dir:Cross(tilt)
+			decor({
+				Name = "Arco",
+				Size = Vector3.new(4.6, 1, 1),
+				CFrame = CFrame.fromMatrix(
+					mouth
+						+ across * side * (CORRIDOR_WIDTH / 2 - 1.4)
+						+ Vector3.new(0, CORRIDOR_HEIGHT - 1.4, 0),
+					tilt,
+					up,
+					dir
+				),
+				Color = stone,
+				Material = Enum.Material.Concrete,
+			})
+		end
+	end
+	for _, side in { -1, 1 } do
+		decor({
+			Name = "Zocalo",
+			Size = if math.abs(dir.X) > 0
+				then Vector3.new(length, 1.2, 0.4)
+				else Vector3.new(0.4, 1.2, length),
+			Position = middle + across * side * (CORRIDOR_WIDTH / 2 - 0.2) + Vector3.new(0, 0.6, 0),
+			Color = WOOD_COLOR,
+			Material = Enum.Material.Wood,
+		})
+	end
 
 	if LOCKED_LINKS[b] then
 		refs.doors[b] = buildDoor(
@@ -1391,6 +1576,29 @@ function Mansion.build(): MansionRefs
 			Material = Enum.Material.Glass,
 			Transparency = 0.7,
 		})
+		-- Marco de madera con parteluces y alféizar.
+		local along = if window.horizontal then Vector3.xAxis else Vector3.zAxis
+		local bars = if window.width > 20 then { -1 / 3, 0, 1 / 3 } else { 0 }
+		for _, offset in bars do
+			decor({
+				Name = "Parteluz",
+				Size = Vector3.new(0.5, window.height, 0.5),
+				Position = window.position + along * window.width * offset,
+				Color = WOOD_COLOR,
+				Material = Enum.Material.Wood,
+			})
+		end
+		for _, y in { -window.height / 2, window.height / 2 } do
+			decor({
+				Name = "MarcoVentana",
+				Size = if window.horizontal
+					then Vector3.new(window.width + 1, 0.6, 0.9)
+					else Vector3.new(0.9, 0.6, window.width + 1),
+				Position = window.position + Vector3.new(0, y, 0),
+				Color = WOOD_COLOR,
+				Material = Enum.Material.Wood,
+			})
+		end
 		-- Las ventanitas del altillo dan sobre los techos: su lluvia caería dentro de los pasillos.
 		if window.width > 20 then
 			rainOutside(window)

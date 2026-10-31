@@ -12,6 +12,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Vitals = require(Shared:WaitForChild("Rules"):WaitForChild("Vitals"))
 
+local Blood = require(script.Parent:WaitForChild("Blood"))
 local Mansion = require(script.Parent:WaitForChild("Mansion"))
 
 local Vitality = {}
@@ -65,6 +66,11 @@ function Vitality.damage(player: Player, amount: number)
 	then
 		humanoid.Health = Vitals.damage(humanoid.Health, amount)
 		Remotes.get("Hit"):FireClient(player)
+		local root = Vitality.rootOf(player)
+			or (player.Character and player.Character:FindFirstChild("HumanoidRootPart"))
+		if root and player.Character then
+			Blood.splat((root :: BasePart).Position, { player.Character })
+		end
 		if humanoid.Health <= 0 then
 			player:SetAttribute("Spectating", true)
 			killedEvent:Fire(player)
