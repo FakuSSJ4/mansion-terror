@@ -115,6 +115,7 @@ export type MansionRefs = {
 	hatchPoint: BasePart,
 	ladderCFrame: CFrame,
 	ladderSize: Vector3,
+	flashlightSpot: Vector3,
 	altar: {
 		prompt: ProximityPrompt,
 		drawer: BasePart,
@@ -1371,25 +1372,35 @@ end
 
 -- Lluvia densa justo del otro lado de cada ventanal.
 local function rainOutside(window: any)
+	local top = window.height / 2 + 14
 	local cloud = decor({
 		Name = "Lluvia",
 		Size = if window.horizontal
-			then Vector3.new(window.width + 16, 1, 22)
-			else Vector3.new(22, 1, window.width + 16),
-		Position = window.position + window.outward * 14 + Vector3.new(0, 24, 0),
+			then Vector3.new(window.width + 10, 1, 10)
+			else Vector3.new(10, 1, window.width + 10),
+		Position = window.position + window.outward * 7 + Vector3.new(0, top, 0),
 		Transparency = 1,
 	})
 	local rain = Instance.new("ParticleEmitter")
 	rain.EmissionDirection = Enum.NormalId.Bottom
-	rain.Speed = NumberRange.new(95, 115)
-	rain.Lifetime = NumberRange.new(0.45)
-	rain.Rate = 500
-	rain.Size = NumberSequence.new(0.2)
-	rain.Squash = NumberSequence.new(5)
-	rain.Color = ColorSequence.new(Color3.fromRGB(190, 205, 230))
-	rain.Transparency = NumberSequence.new(0.35)
+	rain.Orientation = Enum.ParticleOrientation.VelocityParallel
+	rain.Speed = NumberRange.new(120, 145)
+	-- Tiempo justo para llegar del techo hasta el piso, sin atravesarlo.
+	rain.Lifetime = NumberRange.new((top + window.height / 2) / 130)
+	rain.Rate = 1800
+	rain.Size = NumberSequence.new(0.55)
+	-- Negativo: alarga la gota en el sentido en que cae.
+	rain.Squash = NumberSequence.new(-3)
+	rain.Color = ColorSequence.new(Color3.fromRGB(215, 228, 245))
+	rain.Transparency = NumberSequence.new(0.1)
 	rain.LightInfluence = 0
+	rain.LightEmission = 0.6
+	rain.Brightness = 3
 	rain.Parent = cloud
+	-- Roblox limita cada emisor: varias copias dan una lluvia bien tupida.
+	for _ = 1, 3 do
+		rain:Clone().Parent = cloud
+	end
 end
 
 -- Calcula las aberturas de cada pieza y guarda dónde van los ventanales.
@@ -1492,6 +1503,14 @@ local function buildAltar(hall: Vector3)
 	candle((base * CFrame.new(-4.5, 5.1, -0.8)).Position, CANDLE_LIGHT)
 	candle((base * CFrame.new(4.5, 5.1, -0.8)).Position, CANDLE_LIGHT)
 
+	-- Mesita al costado del mueble, donde está la linterna al empezar.
+	local side = base * CFrame.new(10, 0, 0)
+	solid(side, "MesaLinterna", Vector3.new(5, 0.5, 4), CFrame.new(0, 3.2, 0), WOOD_COLOR)
+	solid(side, "PataMesa", Vector3.new(0.8, 3, 0.8), CFrame.new(0, 1.5, 0), WOOD_COLOR)
+	solid(side, "BaseMesa", Vector3.new(3, 0.4, 3), CFrame.new(0, 0.2, 0), WOOD_COLOR)
+	refs.flashlightSpot = (side * CFrame.new(0, 3.75, 0)).Position
+	candle((side * CFrame.new(1.8, 4, 1)).Position, CANDLE_LIGHT)
+
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Dejar pergaminos"
 	prompt.ObjectText = "Estatua de lobo"
@@ -1537,6 +1556,7 @@ function Mansion.build(): MansionRefs
 		hatchPoint = nil :: any,
 		ladderCFrame = CFrame.identity,
 		ladderSize = Vector3.one,
+		flashlightSpot = Vector3.zero,
 		altar = nil :: any,
 	}
 
@@ -1573,8 +1593,9 @@ function Mansion.build(): MansionRefs
 				else Vector3.new(0.3, window.height, window.width),
 			Position = window.position,
 			Color = Color3.fromRGB(90, 110, 140),
-			Material = Enum.Material.Glass,
-			Transparency = 0.7,
+			-- El material Glass oculta las partículas que hay detrás: la lluvia no se vería.
+			Material = Enum.Material.SmoothPlastic,
+			Transparency = 0.88,
 		})
 		-- Marco de madera con parteluces y alféizar.
 		local along = if window.horizontal then Vector3.xAxis else Vector3.zAxis

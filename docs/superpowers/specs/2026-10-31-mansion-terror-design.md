@@ -18,7 +18,7 @@ Fecha: 2026-10-31
 - **Luz a distancia:** las velas se apagan gradualmente con la distancia, así lo lejano queda oscuro.
 - **Asesino:** cruza la trampilla apareciendo del otro lado. No acecha los refugios: si su objetivo entra a uno, lo abandona y sigue patrullando.
 - **Taser:** se lleva uno, con 1 descarga, y desaparece al usarlo. Uno por jugador en el hall y 4 escondidos.
-- **Linterna:** una sola, escondida; tecla `F`; 2 minutos de batería. 6 pilas de 1 minuto cada una. Se cae si el dueño muere o se va.
+- **Linterna:** una sola, sobre una mesa al lado de la estatua de lobo; tecla `F`; 2 minutos de batería. 6 pilas de 1 minuto cada una. Se cae si el dueño muere o se va.
 - **Aspecto:** paredes blanco grisáceo, cielo raso marrón oscuro, piso rojo sangre, cuadros medievales, alfombras y candelabros. Ventanales grandes y bosque afuera.
 - **Cuervos:** evento cada 20 minutos; suena cuando se cargue el audio.
 

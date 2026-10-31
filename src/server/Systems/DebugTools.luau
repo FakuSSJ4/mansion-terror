@@ -27,10 +27,15 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			local on = not player:GetAttribute("GodMode")
 			player:SetAttribute("GodMode", on)
 			Vitality.applyDevCollision(player)
+			if on then
+				for n = 1, Config.KeyCount do
+					Round.addKey(player, n)
+				end
+			end
 			Remotes.get("Notify"):FireClient(
 				player,
 				if on
-					then "Modo desarrollador: sin daño y atravesás puertas"
+					then "Modo desarrollador: todas las llaves. W A S D vuela, Espacio sube, Ctrl baja"
 					else "Modo desarrollador apagado"
 			)
 		elseif command == "keys" then

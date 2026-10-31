@@ -80,8 +80,9 @@ function GrandHall.build(ctx: any)
 				else Vector3.new(0.3, height, width),
 			Position = middle,
 			Color = Color3.fromRGB(90, 110, 140),
-			Material = Enum.Material.Glass,
-			Transparency = 0.7,
+			-- El material Glass oculta las partículas que hay detrás: la lluvia no se vería.
+			Material = Enum.Material.SmoothPlastic,
+			Transparency = 0.88,
 		})
 		local along = if horizontal then Vector3.xAxis else Vector3.zAxis
 		for _, offset in { -width / 6, width / 6 } do

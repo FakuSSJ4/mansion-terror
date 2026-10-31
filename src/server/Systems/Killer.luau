@@ -246,7 +246,8 @@ local function tryHit(position: Vector3, now: number)
 		then
 			lastHit = now
 			swingUntil = now + 0.4
-			Vitality.damage(player, Config.KillerDamage)
+			KillerBrain.registerHit(brain, now, Config)
+			Vitality.damage(player, Config.KillerDamage, position)
 			return
 		end
 	end
@@ -320,10 +321,15 @@ local function tick(now: number)
 		minRoomDistance = minDistance,
 	}, Config)
 
-	current.humanoid.WalkSpeed = speedFor(brain.state)
 	if sparks then
 		sparks.Enabled = brain.state == "Stunned"
 	end
+	if not KillerBrain.canAct(brain, now) then
+		current.humanoid.WalkSpeed = 0
+		current.humanoid:MoveTo(position)
+		return
+	end
+	current.humanoid.WalkSpeed = speedFor(brain.state)
 	local point = destination(position)
 	local seenRoot = visible and Vitality.rootOf(visible)
 	if seenRoot and brain.state == "Chase" then

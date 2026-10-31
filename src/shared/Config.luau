@@ -6,6 +6,8 @@ local Config = {
 	MaxHealth = 100,
 	WalkSpeed = 12,
 	RunSpeed = 20,
+	DevWalkSpeed = 40,
+	DevFlySpeed = 70,
 	StaminaSeconds = 6,
 	StaminaRecoverySeconds = 10,
 
@@ -15,6 +17,7 @@ local Config = {
 	KillerSearchSpeed = 18,
 	KillerDamage = 50,
 	KillerHitCooldown = 3,
+	KillerHitPause = 2,
 	KillerHitRange = 5,
 	-- Las puertas lo encierran: arranca del lado abierto y espera antes de moverse.
 	KillerStartRoom = "room1",

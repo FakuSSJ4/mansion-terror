@@ -11,6 +11,7 @@ export type Brain = {
 	immuneUntil: number,
 	lostFor: number,
 	farFor: number,
+	pausedUntil: number,
 }
 
 export type Input = {
@@ -32,6 +33,7 @@ function KillerBrain.new(): Brain
 		immuneUntil = 0,
 		lostFor = 0,
 		farFor = 0,
+		pausedUntil = 0,
 	}
 end
 
@@ -80,6 +82,15 @@ function KillerBrain.step(b: Brain, input: Input, cfg: any): Brain
 		enter(b, "Search", nil)
 	end
 	return b
+end
+
+-- Después de pegar se queda quieto un momento: es la ventana para escapar.
+function KillerBrain.registerHit(b: Brain, now: number, cfg: any)
+	b.pausedUntil = now + cfg.KillerHitPause
+end
+
+function KillerBrain.canAct(b: Brain, now: number): boolean
+	return now >= b.pausedUntil
 end
 
 -- Un jugador se fue o murió: si era el objetivo, se descarta en el acto.

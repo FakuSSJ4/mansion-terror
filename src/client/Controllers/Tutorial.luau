@@ -18,7 +18,7 @@ local PAGES = {
 	},
 	{
 		title = "Cómo sobrevivir",
-		body = "El asesino te saca 50 de vida por golpe. Las píldoras curan 50.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna gasta batería: buscá pilas para recargarla.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
+		body = "El asesino te saca 50 de vida por golpe. Las píldoras curan 50.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesa, al lado de la estatua de lobo. Gasta batería: buscá pilas.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
 	},
 }
 

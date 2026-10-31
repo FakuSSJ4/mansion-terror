@@ -43,6 +43,7 @@ function Spectator.start()
 	banner.TextSize = 28
 	banner.TextColor3 = Color3.fromRGB(225, 215, 195)
 	banner.TextStrokeTransparency = 0.5
+	banner.Text = ""
 	banner.Visible = false
 	banner.Parent = gui
 

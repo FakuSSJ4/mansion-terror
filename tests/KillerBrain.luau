@@ -64,6 +64,13 @@ return {
 		run(b, 200, {})
 		assert(b.state == "Patrol")
 	end,
+	pausesTwoSecondsAfterHit = function()
+		local b = KillerBrain.new()
+		assert(KillerBrain.canAct(b, 10))
+		KillerBrain.registerHit(b, 10, Config)
+		assert(not KillerBrain.canAct(b, 11.9))
+		assert(KillerBrain.canAct(b, 12))
+	end,
 	neverCampsARefuge = function()
 		local b = KillerBrain.new()
 		run(b, 200, { refugeCamper = "ana" })

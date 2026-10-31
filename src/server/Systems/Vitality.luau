@@ -57,7 +57,8 @@ function Vitality.canReach(player: Player, position: Vector3): boolean
 	return root ~= nil and (root.Position - position).Magnitude <= Config.InteractRange + 4
 end
 
-function Vitality.damage(player: Player, amount: number)
+-- `source` es de dónde viene el golpe: la sangre salpica en sentido contrario.
+function Vitality.damage(player: Player, amount: number, source: Vector3?)
 	local humanoid = humanoidOf(player)
 	if
 		humanoid
@@ -69,7 +70,7 @@ function Vitality.damage(player: Player, amount: number)
 		local root = Vitality.rootOf(player)
 			or (player.Character and player.Character:FindFirstChild("HumanoidRootPart"))
 		if root and player.Character then
-			Blood.splat((root :: BasePart).Position, { player.Character })
+			Blood.splat((root :: BasePart).Position, { player.Character }, source)
 		end
 		if humanoid.Health <= 0 then
 			player:SetAttribute("Spectating", true)
@@ -108,6 +109,10 @@ local function setupCharacter(player: Player, character: Model)
 	humanoid.MaxHealth = Config.MaxHealth
 	humanoid.Health = Config.MaxHealth
 	humanoid.WalkSpeed = Config.WalkSpeed
+	-- Nadie salta: el servidor lo fija para todos los personajes.
+	humanoid.UseJumpPower = true
+	humanoid.JumpPower = 0
+	humanoid.JumpHeight = 0
 	player:SetAttribute("Room", "hall")
 	local state = runStates[player]
 	if state then
@@ -155,6 +160,7 @@ local function step(dt: number)
 			-- Durante el tutorial no se puede caminar, así estar protegido no da ventaja.
 			humanoid.WalkSpeed = if player:GetAttribute("InTutorial")
 				then 0
+				elseif player:GetAttribute("GodMode") then Config.DevWalkSpeed
 				elseif running then Config.RunSpeed
 				else Config.WalkSpeed
 			player:SetAttribute("Running", running)

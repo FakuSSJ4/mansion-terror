@@ -309,7 +309,7 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 		end)
 	end
 
-	spawnFlashlight(randomSpot(allRooms), 1)
+	spawnFlashlight(refs.flashlightSpot, 1)
 	-- La escalera de mano siempre está en el sótano.
 	spawnLadder(randomSpot({ 5, 6 }))
 end

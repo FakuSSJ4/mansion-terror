@@ -28,7 +28,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 
 | Tecla | Acción |
 |---|---|
-| `1` | Modo desarrollador: el asesino no te daña y atravesás puertas |
+| `1` | Modo desarrollador: sin daño, todas las llaves, atravesás puertas y volás (`W A S D`, `Espacio` sube, `Ctrl` baja) |
 | `K` | Dar todas las llaves |
 | `2` | Dar todos los pergaminos |
 | `3` | Ir a la pieza siguiente |
