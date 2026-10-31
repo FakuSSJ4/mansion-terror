@@ -45,10 +45,18 @@ return {
 		run(b, 100, { minRoomDistance = 4 })
 		assert(b.state == "Patrol")
 	end,
-	searchEndsWhenClose = function()
+	searchKeepsGoingUntilSameRoom = function()
 		local b = KillerBrain.new()
 		run(b, 120, { minRoomDistance = 9 })
 		run(b, 1, { minRoomDistance = 2 })
+		assert(b.state == "Search")
+		run(b, 1, { minRoomDistance = 0 })
+		assert(b.state == "Patrol")
+	end,
+	searchEndsWhenAllInRefuges = function()
+		local b = KillerBrain.new()
+		run(b, 120, { minRoomDistance = 9 })
+		run(b, 1, {})
 		assert(b.state == "Patrol")
 	end,
 	allInRefugesKeepsPatrolling = function()

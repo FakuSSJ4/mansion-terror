@@ -95,7 +95,8 @@ function KillerBrain.step(b: Brain, input: Input, cfg: any): Brain
 	end
 
 	if b.state == "Search" then
-		if not distance or distance < cfg.SearchRoomDistance then
+		-- Sigue buscando hasta llegar a la pieza del jugador.
+		if not distance or distance == 0 then
 			enter(b, "Patrol", nil)
 		end
 	elseif b.farFor >= cfg.SearchAfterSeconds then

@@ -369,7 +369,7 @@ local function spawnKiller()
 	local glow = Instance.new("PointLight")
 	glow.Color = Color3.fromRGB(255, 140, 110)
 	glow.Range = Config.KillerGlowRange
-	glow.Brightness = 0.9
+	glow.Brightness = 0.45
 	glow.Shadows = false
 	glow.Parent = built.model:FindFirstChild("Corte") :: BasePart
 
