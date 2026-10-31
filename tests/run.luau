@@ -5,6 +5,9 @@ local process = require("@lune/process")
 local suites = {
 	MapGraph = require("./MapGraph"),
 	Progress = require("./Progress"),
+	Vitals = require("./Vitals"),
+	Taser = require("./Taser"),
+	KillerBrain = require("./KillerBrain"),
 }
 
 local failed = 0
