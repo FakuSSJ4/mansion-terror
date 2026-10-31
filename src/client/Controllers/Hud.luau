@@ -53,7 +53,7 @@ function Hud.start()
 
 	local healthFill = bar(gui, -46, Color3.fromRGB(150, 25, 25))
 	local staminaFill = bar(gui, -28, Color3.fromRGB(170, 150, 80))
-	local status = label(gui, UDim2.fromOffset(16, 48), UDim2.fromOffset(300, 80), 24)
+	local status = label(gui, UDim2.fromOffset(16, 96), UDim2.fromOffset(300, 80), 24)
 	status.TextYAlignment = Enum.TextYAlignment.Top
 
 	local notice = label(gui, UDim2.fromScale(0, 0.72), UDim2.new(1, 0, 0, 40), 28)

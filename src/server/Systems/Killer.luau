@@ -96,7 +96,13 @@ local function senseTarget(position: Vector3, forward: Vector3): Player?
 				)
 			local heard = distance <= Config.KillerHearRange
 				and player:GetAttribute("Running") == true
-			if (seen or heard) and distance < bestDistance then
+			local sensed = distance <= Config.KillerSenseRange
+				and hasLineOfSight(
+					position,
+					root.Position,
+					{ current.model, player.Character :: Model }
+				)
+			if (seen or heard or sensed) and distance < bestDistance then
 				best, bestDistance = player, distance
 			end
 		end
@@ -359,6 +365,14 @@ local function spawnKiller()
 	emitter.Parent = built.root
 	sparks = emitter
 
+	-- Resplandor tenue para que se le distinga la cara en la oscuridad.
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.fromRGB(255, 140, 110)
+	glow.Range = Config.KillerGlowRange
+	glow.Brightness = 0.9
+	glow.Shadows = false
+	glow.Parent = built.model:FindFirstChild("Corte") :: BasePart
+
 	baseC0 = {
 		[built.leftHip] = built.leftHip.C0,
 		[built.rightHip] = built.rightHip.C0,
@@ -381,6 +395,19 @@ local function restart()
 	active = true
 	spawnKiller()
 	stuckAnchor = (rig :: KillerModel.Rig).root.Position
+end
+
+-- Solo para los atajos de QA.
+function Killer.debugStatus(): string
+	local position = Killer.getPosition()
+	return `estado={brain.state} objetivo={brain.target} pieza={currentRoom} pos={position} lejos={brain.farFor}`
+end
+
+function Killer.debugTeleport(position: Vector3)
+	if rig then
+		passing = nil
+		rig.root.CFrame = CFrame.new(position + Vector3.new(0, 4, 0))
+	end
 end
 
 function Killer.stun(now: number): boolean

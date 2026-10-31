@@ -27,11 +27,13 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 
 | Tecla | Acción |
 |---|---|
-| `F1` | Dar todas las llaves |
-| `F2` | Dar todos los escritos |
-| `F3` | Ir a la pieza siguiente |
-| `F4` | Disparar un rayo |
-| `F6` | Recibir un golpe |
+| `1` | Dar todas las llaves |
+| `2` | Dar todos los escritos |
+| `3` | Ir a la pieza siguiente |
+| `4` | Disparar un rayo |
+| `5` | Recibir un golpe |
+| `6` | Mostrar en Output el estado del asesino |
+| `7` | Traer al asesino a tu pieza |
 
 ## Sonidos
 
