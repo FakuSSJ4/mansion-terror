@@ -41,6 +41,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `0` | Girar la vista 90° y nivelarla |
 | `P` | Ir al pedestal del taser |
 | `L` | Ir a las librerías del hall |
+| `M` | Traer al asesino de smoking a tu pieza |
 
 ## Sonidos
 

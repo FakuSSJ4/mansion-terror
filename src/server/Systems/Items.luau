@@ -216,8 +216,28 @@ local function placeLadder()
 	ladder.Anchored = true
 	ladder.Size = mansion.ladderSize
 	ladder.CFrame = mansion.ladderCFrame
-	ladder.Color = LOOKS.ladder.color
+	-- El truss invisible da el trepado; lo que se ve son largueros y peldaños de madera.
+	ladder.Transparency = 1
 	ladder.Parent = folder
+	local function wood(name: string, size: Vector3, offset: CFrame)
+		local part = Instance.new("Part")
+		part.Name = name
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.Size = size
+		part.CFrame = mansion.ladderCFrame * offset
+		part.Color = Color3.fromRGB(122, 84, 48)
+		part.Material = Enum.Material.WoodPlanks
+		part.Parent = ladder
+	end
+	local height = mansion.ladderSize.Y
+	for _, x in { -1.5, 1.5 } do
+		wood("Larguero", Vector3.new(0.45, height, 0.45), CFrame.new(x, 0, -0.9))
+	end
+	for y = -height / 2 + 1, height / 2 - 0.5, 1.5 do
+		wood("Peldano", Vector3.new(3.2, 0.28, 0.32), CFrame.new(0, y, -0.9))
+	end
 	Mansion.setHatchOpen(true)
 	if hatchPrompt then
 		hatchPrompt.Enabled = false

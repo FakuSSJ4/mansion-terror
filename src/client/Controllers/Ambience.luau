@@ -87,9 +87,9 @@ function Ambience.start()
 		for _, flame in CollectionService:GetTagged("CandleFlame") do
 			local light = flame:FindFirstChildOfClass("PointLight")
 			if light then
-				local flicker = 0.2 + math.noise(flame.Position.X, os.clock() * 3) * 0.12
+				local flicker = 0.12 + math.noise(flame.Position.X, os.clock() * 3) * 0.07
 				if flame:GetAttribute("NoFade") then
-					light.Brightness = flicker * 3
+					light.Brightness = flicker * 2.5
 				else
 					light.Brightness = flicker
 						* LightFade.factor((flame.Position - eye).Magnitude, Config)

@@ -12,15 +12,36 @@ local Config = {
 	StaminaRecoverySeconds = 10,
 
 	-- Asesino
-	KillerPatrolSpeed = 10,
-	KillerChaseSpeed = 15,
-	KillerSearchSpeed = 18,
-	KillerDamage = 50,
+	Killers = {
+		-- Recorre toda la casa; hacen falta 3 golpes.
+		main = {
+			damage = 34,
+			patrolSpeed = 10,
+			chaseSpeed = 15,
+			searchSpeed = 18,
+			startRoom = "room1",
+		},
+		-- El del smoking: más lento, 2 golpes y solo en el primer piso, sin subir al cobertizo.
+		gentleman = {
+			damage = 50,
+			patrolSpeed = 7,
+			chaseSpeed = 11,
+			searchSpeed = 13,
+			startRoom = "room8",
+			rooms = {
+				room7 = true,
+				room8 = true,
+				room9 = true,
+				room10 = true,
+				room11 = true,
+				room12 = true,
+			},
+		},
+	},
 	KillerHitCooldown = 3,
 	KillerHitPause = 2,
 	KillerHitRange = 5,
 	-- Las puertas lo encierran: arranca del lado abierto y espera antes de moverse.
-	KillerStartRoom = "room1",
 	KillerGraceSeconds = 20,
 	KillerSightRange = 60,
 	KillerHearRange = 20,

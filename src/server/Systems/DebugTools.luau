@@ -80,12 +80,17 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 		elseif command == "summon" then
 			local room = Vitality.getRoom(player)
 			if room then
-				Killer.debugTeleport(refs.rooms[room].center + Vector3.new(10, 0, 10))
+				Killer.debugTeleport(1, refs.rooms[room].center + Vector3.new(10, 0, 10))
+			end
+		elseif command == "summon2" then
+			local room = Vitality.getRoom(player)
+			if room then
+				Killer.debugTeleport(2, refs.rooms[room].center + Vector3.new(10, 0, 10))
 			end
 		elseif command == "lightning" then
 			Weather.strike()
 		elseif command == "damage" then
-			Vitality.damage(player, Config.KillerDamage)
+			Vitality.damage(player, Config.Killers.main.damage)
 		end
 	end)
 end

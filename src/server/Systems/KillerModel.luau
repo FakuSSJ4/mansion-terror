@@ -22,6 +22,9 @@ export type Rig = {
 	leftHip: Motor6D,
 	rightHip: Motor6D,
 	shoulder: Motor6D,
+	-- Parte que lleva el resplandor de la cara.
+	glowPart: BasePart,
+	glowColor: Color3,
 }
 
 local function piece(
@@ -72,6 +75,7 @@ end
 function KillerModel.build(): Rig
 	local model = Instance.new("Model")
 	model.Name = "Asesino"
+	model:AddTag("Killer")
 
 	local root = piece(model, "HumanoidRootPart", Vector3.new(2, TORSO_HEIGHT, 1), CLOTH)
 	root.Transparency = 1
@@ -327,6 +331,189 @@ function KillerModel.build(): Rig
 		leftHip = leftHip,
 		rightHip = rightHip,
 		shoulder = shoulder,
+		glowPart = model:FindFirstChild("Corte") :: BasePart,
+		glowColor = Color3.fromRGB(255, 140, 110),
+	}
+end
+
+-- El segundo asesino: smoking negro, camisa blanca, moño y bastón estoque en la mano derecha.
+function KillerModel.buildGentleman(): Rig
+	local jacket = Color3.fromRGB(16, 16, 20)
+	local shirt = Color3.fromRGB(215, 212, 205)
+	local pale = Color3.fromRGB(205, 190, 175)
+	local fabric = Enum.Material.Fabric
+
+	local model = Instance.new("Model")
+	model.Name = "AsesinoSmoking"
+	model:AddTag("Killer")
+
+	local root = piece(model, "HumanoidRootPart", Vector3.new(2, TORSO_HEIGHT, 1), jacket)
+	root.Transparency = 1
+	root.CanCollide = true
+	root.Massless = false
+	model.PrimaryPart = root
+
+	local torso = attach(
+		model,
+		root,
+		"Saco",
+		Vector3.new(2, TORSO_HEIGHT, 1),
+		CFrame.identity,
+		jacket,
+		fabric
+	)
+	-- Pechera en V: camisa, moño y solapas.
+	attach(
+		model,
+		torso,
+		"Camisa",
+		Vector3.new(0.7, 1.3, 0.05),
+		CFrame.new(0, 0.5, -0.52),
+		shirt,
+		fabric
+	)
+	attach(
+		model,
+		torso,
+		"Mono",
+		Vector3.new(0.7, 0.25, 0.1),
+		CFrame.new(0, 1.02, -0.56),
+		Color3.new(0, 0, 0),
+		fabric
+	)
+	for _, side in { -1, 1 } do
+		attach(
+			model,
+			torso,
+			"Solapa",
+			Vector3.new(0.3, 1.5, 0.06),
+			CFrame.new(side * 0.42, 0.42, -0.53) * CFrame.Angles(0, 0, math.rad(side * -14)),
+			Color3.fromRGB(34, 34, 40),
+			Enum.Material.SmoothPlastic
+		)
+	end
+
+	-- Brazo izquierdo fijo y derecho articulado con el arma; los dos con puño de camisa.
+	local leftArm = attach(
+		model,
+		torso,
+		"BrazoIzquierdo",
+		Vector3.new(0.85, 2.3, 0.9),
+		CFrame.new(-1.43, 0.1, 0),
+		jacket,
+		fabric
+	)
+	local rightArm = piece(model, "BrazoDerecho", Vector3.new(0.85, 2.3, 0.9), jacket, fabric)
+	local shoulder =
+		joint(torso, rightArm, CFrame.new(1.43, TORSO_HEIGHT / 2 - 0.2, 0), CFrame.new(0, 0.95, 0))
+	for _, arm in { leftArm, rightArm } do
+		attach(
+			model,
+			arm,
+			"Puno",
+			Vector3.new(0.88, 0.25, 0.92),
+			CFrame.new(0, -1, 0),
+			shirt,
+			fabric
+		)
+		attach(model, arm, "Mano", Vector3.new(0.7, 0.4, 0.7), CFrame.new(0, -1.3, 0), pale)
+	end
+
+	-- Bastón estoque: mango de madera rojiza, virolas doradas y hoja fina de acero.
+	local gold = Color3.fromRGB(190, 150, 60)
+	local hand = CFrame.new(0, -1.3, 0)
+	local function sword(
+		name: string,
+		size: Vector3,
+		offset: CFrame,
+		color: Color3,
+		material: Enum.Material
+	)
+		attach(model, rightArm, name, size, hand * offset, color, material)
+	end
+	sword("Pomo", Vector3.new(0.42, 0.42, 0.5), CFrame.new(0, 0, 1), gold, Enum.Material.Metal)
+	sword(
+		"MangoBaston",
+		Vector3.new(0.3, 0.3, 1.5),
+		CFrame.new(0, 0, 0.1),
+		Color3.fromRGB(150, 72, 30),
+		Enum.Material.SmoothPlastic
+	)
+	sword("Virola", Vector3.new(0.36, 0.36, 0.2), CFrame.new(0, 0, -0.7), gold, Enum.Material.Metal)
+	sword(
+		"Estoque",
+		Vector3.new(0.09, 0.14, 5),
+		CFrame.new(0, 0, -3.25),
+		Color3.fromRGB(175, 178, 185),
+		Enum.Material.Metal
+	)
+
+	local hipOffset = -TORSO_HEIGHT / 2
+	local leftLeg =
+		piece(model, "PiernaIzquierda", Vector3.new(0.95, LEG_LENGTH, 0.95), jacket, fabric)
+	local rightLeg =
+		piece(model, "PiernaDerecha", Vector3.new(0.95, LEG_LENGTH, 0.95), jacket, fabric)
+	local c1 = CFrame.new(0, LEG_LENGTH / 2, 0)
+	local leftHip = joint(root, leftLeg, CFrame.new(-0.5, hipOffset, 0), c1)
+	local rightHip = joint(root, rightLeg, CFrame.new(0.5, hipOffset, 0), c1)
+
+	-- Cabeza pálida, pelo engominado y ojos hundidos.
+	local headY = TORSO_HEIGHT / 2 + HEAD_HEIGHT / 2
+	local head = attach(
+		model,
+		torso,
+		"Cabeza",
+		Vector3.new(1.25, HEAD_HEIGHT, 1.1),
+		CFrame.new(0, headY, 0),
+		pale
+	)
+	attach(
+		model,
+		head,
+		"Pelo",
+		Vector3.new(1.32, 0.3, 1.16),
+		CFrame.new(0, HEAD_HEIGHT / 2 - 0.05, 0.02),
+		Color3.fromRGB(12, 10, 10),
+		Enum.Material.SmoothPlastic
+	)
+	for _, side in { -1, 1 } do
+		attach(
+			model,
+			head,
+			"Ojo",
+			Vector3.new(0.24, 0.16, 0.05),
+			CFrame.new(side * 0.3, 0.1, -0.56),
+			Color3.new(0.03, 0, 0)
+		)
+	end
+	attach(
+		model,
+		head,
+		"Boca",
+		Vector3.new(0.5, 0.06, 0.05),
+		CFrame.new(0, -0.32, -0.56),
+		Color3.fromRGB(70, 20, 22)
+	)
+
+	local humanoid = Instance.new("Humanoid")
+	humanoid.RigType = Enum.HumanoidRigType.R15
+	humanoid.HipHeight = LEG_LENGTH
+	humanoid.MaxHealth = math.huge
+	humanoid.Health = math.huge
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.BreakJointsOnDeath = false
+	humanoid.RequiresNeck = false
+	humanoid.Parent = model
+
+	return {
+		model = model,
+		root = root,
+		humanoid = humanoid,
+		leftHip = leftHip,
+		rightHip = rightHip,
+		shoulder = shoulder,
+		glowPart = head,
+		glowColor = Color3.fromRGB(190, 195, 210),
 	}
 end
 

@@ -588,23 +588,87 @@ local FURNITURE: { [string]: (CFrame) -> { Vector3 } } = {
 		}
 	end,
 	piano = function(base)
-		solid(
-			base,
-			"Piano",
-			Vector3.new(9, 4, 5),
-			CFrame.new(0, 3, 0),
-			Color3.fromRGB(14, 12, 12),
-			Enum.Material.SmoothPlastic
+		-- Piano de cola negro laqueado: cuerpo, tapa abierta con su vara, atril, patas y pedales.
+		local lacquer = Color3.fromRGB(8, 8, 10)
+		local function black(name: string, size: Vector3, offset: CFrame)
+			local p = solid(base, name, size, offset, lacquer, Enum.Material.SmoothPlastic)
+			p.Reflectance = 0.28
+			return p
+		end
+		black("CuerpoPiano", Vector3.new(9, 2, 6), CFrame.new(0, 4, 0.5))
+		black("ColaPiano", Vector3.new(6, 2, 3), CFrame.new(-1.5, 4, 5))
+		black("TapaTeclado", Vector3.new(9, 1.1, 1), CFrame.new(0, 4.55, -3))
+		black("BaseTeclado", Vector3.new(9, 0.6, 1.6), CFrame.new(0, 3.3, -3.3))
+		for _, x in { -3.9, 3.9 } do
+			black("Costado", Vector3.new(0.5, 1.5, 1.8), CFrame.new(x, 3.95, -3.2))
+		end
+		-- Tapa inclinada, sostenida por la vara.
+		black(
+			"TapaPiano",
+			Vector3.new(9, 0.25, 8.6),
+			CFrame.new(0, 7.2, 2.4) * CFrame.Angles(math.rad(-22), 0, 0)
 		)
-		solid(
+		black("VaraTapa", Vector3.new(0.18, 3.2, 0.18), CFrame.new(3.8, 6.2, -0.6))
+		black(
+			"Atril",
+			Vector3.new(5.5, 1.7, 0.15),
+			CFrame.new(0, 5.8, -1.8) * CFrame.Angles(math.rad(-14), 0, 0)
+		)
+		-- Patas y lira con tres pedales dorados.
+		for _, leg in { { -4, -3 }, { 4, -3 }, { -1.5, 6 } } do
+			black("PataPiano", Vector3.new(0.7, 3, 0.7), CFrame.new(leg[1], 1.5, leg[2]))
+		end
+		black("LiraPiano", Vector3.new(0.3, 2.5, 0.3), CFrame.new(0, 1.5, -1.2))
+		black("CajaPedales", Vector3.new(1.8, 0.6, 0.9), CFrame.new(0, 0.3, -1.2))
+		for _, x in { -0.55, 0, 0.55 } do
+			solid(
+				base,
+				"Pedal",
+				Vector3.new(0.3, 0.12, 0.7),
+				CFrame.new(x, 0.25, -1.9),
+				GOLD_COLOR,
+				Enum.Material.Metal
+			)
+		end
+
+		-- Teclado: blancas con divisiones y negras dibujadas sobre una sola parte.
+		local keys = solid(
 			base,
 			"Teclas",
-			Vector3.new(8, 0.3, 1),
-			CFrame.new(0, 3.5, -3),
-			Color3.fromRGB(225, 222, 210),
+			Vector3.new(8, 0.3, 1.5),
+			CFrame.new(0, 3.72, -3.35),
+			Color3.fromRGB(235, 232, 222),
 			Enum.Material.SmoothPlastic
 		)
-		return { (base * CFrame.new(-2, 5.3, 0)).Position, (base * CFrame.new(1, 0.3, 0)).Position }
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Top
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 1
+		gui.Parent = keys
+		local whites = 36
+		local pattern = { true, true, false, true, true, true, false }
+		for i = 1, whites - 1 do
+			local line = Instance.new("Frame")
+			line.BorderSizePixel = 0
+			line.BackgroundColor3 = Color3.fromRGB(120, 118, 112)
+			line.Position = UDim2.fromScale(i / whites, 0)
+			line.Size = UDim2.new(0, 1, 1, 0)
+			line.Parent = gui
+			if pattern[(i - 1) % 7 + 1] then
+				local sharp = Instance.new("Frame")
+				sharp.BorderSizePixel = 0
+				sharp.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+				sharp.AnchorPoint = Vector2.new(0.5, 0)
+				sharp.Position = UDim2.fromScale(i / whites, 0)
+				sharp.Size = UDim2.fromScale(0.6 / whites, 0.6)
+				sharp.Parent = gui
+			end
+		end
+		return {
+			(base * CFrame.new(1, 0.3, 2)).Position,
+			(base * CFrame.new(-3, 5.3, 1.5)).Position,
+		}
 	end,
 	barrels = function(base)
 		for _, offset in { Vector3.new(-2, 0, 0), Vector3.new(2.5, 0, 1), Vector3.new(0, 0, 3.2) } do

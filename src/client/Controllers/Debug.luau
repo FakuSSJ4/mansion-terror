@@ -20,6 +20,7 @@ local KEYS = {
 	[Enum.KeyCode.Nine] = "stairs",
 	[Enum.KeyCode.P] = "pedestal",
 	[Enum.KeyCode.L] = "library",
+	[Enum.KeyCode.M] = "summon2",
 }
 
 local Debug = {}

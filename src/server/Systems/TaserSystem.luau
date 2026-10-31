@@ -26,16 +26,17 @@ function TaserSystem.start()
 
 		local charges = (player:GetAttribute("TaserCharges") :: number?) or 0
 		local root = Vitality.rootOf(player)
-		local killerPosition = Killer.getPosition()
-		if charges <= 0 or not root or not killerPosition then
+		if charges <= 0 or not root then
 			return
 		end
-		if not Killer.isVisibleFrom(player, Config.TaserRange) then
+		local target = Killer.inRange(player, Config.TaserRange)
+		if not target then
 			Remotes.get("Notify"):FireClient(player, "Está muy lejos")
 			return
 		end
+		local killerPosition = target.getPosition()
 		-- Durante el aturdimiento o la inmunidad no se gasta la carga.
-		if not Killer.stun(now) then
+		if not target.stun(now) then
 			Remotes.get("Notify"):FireClient(player, "El taser no le hace nada todavía")
 			return
 		end

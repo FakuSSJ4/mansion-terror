@@ -1,6 +1,7 @@
 --!strict
 -- Susto al ver al asesino de cerca: sonido fuerte y sacudida de cámara.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -59,14 +60,23 @@ function Scare.start()
 		end
 		clock = 0
 
-		local killer = workspace:FindFirstChild("Asesino") :: Model?
-		local root = killer and killer.PrimaryPart
 		local character = player.Character
-		if not killer or not root or not character then
+		if not character then
 			return
 		end
-		local close = (root.Position - camera.CFrame.Position).Magnitude <= Config.ScareRange
-		if close and canSee(camera, root.Position, { killer, character }) then
+		local seen = false
+		for _, killer in CollectionService:GetTagged("Killer") do
+			local root = (killer :: Model).PrimaryPart
+			if
+				root
+				and (root.Position - camera.CFrame.Position).Magnitude <= Config.ScareRange
+				and canSee(camera, root.Position, { killer, character })
+			then
+				seen = true
+				break
+			end
+		end
+		if seen then
 			lastSeen = now
 			if armed then
 				armed = false
