@@ -19,7 +19,7 @@ local Round = require(Systems:WaitForChild("Round"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
 
 local TICK = 0.2
-local DOOR_SWING_DISTANCE = 12
+local DOOR_SWING_DISTANCE = 16
 local WAYPOINT_REACHED = 5
 
 local Killer = {}
@@ -31,7 +31,7 @@ local brain = KillerBrain.new()
 local active = false
 local currentRoom = Config.KillerStartRoom
 local patrolRoom: string? = nil
-local passing: { from: string, to: string, through: boolean }? = nil
+local passing: { from: string, to: string, points: { Vector3 }, index: number }? = nil
 local needsCenter = false
 local baseC0: { [Motor6D]: CFrame } = {}
 local lastAnimate = 0
@@ -137,22 +137,22 @@ end
 -- Próximo punto para llegar a `dest`, avanzando de a una pieza por el grafo.
 local function waypointTo(dest: string, finalPoint: Vector3, position: Vector3): Vector3
 	if passing then
-		if currentRoom == passing.to then
-			passing = nil
-			needsCenter = true
-		else
-			local doorway = Mansion.doorway(passing.from, passing.to) :: Vector3
-			local flat = Vector3.new(doorway.X - position.X, 0, doorway.Z - position.Z)
-			if
-				flat.Magnitude > WAYPOINT_REACHED
-				and currentRoom == passing.from
-				and not passing.through
-			then
-				return doorway
-			end
-			passing.through = true
-			return refs.rooms[passing.to].center
+		local point = passing.points[passing.index]
+		local flat = Vector3.new(point.X - position.X, 0, point.Z - position.Z)
+		if flat.Magnitude > WAYPOINT_REACHED then
+			return point
 		end
+		passing.index += 1
+		if passing.index <= #passing.points then
+			return passing.points[passing.index]
+		end
+		-- Fin del recorrido; la trampilla del altillo se cruza apareciendo del otro lado.
+		if Mansion.isHatch(passing.from, passing.to) and rig then
+			rig.root.CFrame = CFrame.new(refs.rooms[passing.to].center + Vector3.new(0, 4, 0))
+			currentRoom = passing.to
+		end
+		passing = nil
+		needsCenter = true
 	end
 	if currentRoom == dest then
 		needsCenter = false
@@ -171,8 +171,9 @@ local function waypointTo(dest: string, finalPoint: Vector3, position: Vector3):
 	if #path < 2 or MapGraph.isRefuge(graph, path[2]) then
 		return refs.rooms[currentRoom].center
 	end
-	passing = { from = currentRoom, to = path[2], through = false }
-	return Mansion.doorway(currentRoom, path[2]) :: Vector3
+	local points = Mansion.route(currentRoom, path[2]) :: { Vector3 }
+	passing = { from = currentRoom, to = path[2], points = points, index = 1 }
+	return points[1]
 end
 
 local function patrolDestination(position: Vector3): Vector3
@@ -276,7 +277,8 @@ local function checkStuck(current: KillerModel.Rig, position: Vector3)
 	stuckFor = 0
 	passing = nil
 	for _, nextRoom in graph.neighbors[currentRoom] do
-		local doorway = Mansion.doorway(currentRoom, nextRoom)
+		local route = Mansion.route(currentRoom, nextRoom)
+		local doorway = route and route[1]
 		if doorway then
 			local watched = false
 			for _, player in Players:GetPlayers() do

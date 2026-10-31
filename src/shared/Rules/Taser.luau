@@ -5,6 +5,11 @@ type Stunnable = { stunUntil: number, immuneUntil: number }
 
 local Taser = {}
 
+-- Se lleva un solo taser: hay que gastarlo para poder agarrar otro.
+function Taser.canPickUp(charges: number): boolean
+	return charges < 1
+end
+
 function Taser.canStun(killer: Stunnable, now: number): boolean
 	return now >= killer.immuneUntil
 end

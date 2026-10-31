@@ -6,6 +6,8 @@ local RunService = game:GetService("RunService")
 
 local NAMES = {
 	"Lightning",
+	"Crow",
+	"Flashlight",
 	"Notify",
 	"Run",
 	"FireTaser",

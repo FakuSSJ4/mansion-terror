@@ -55,6 +55,10 @@ function Ambience.start()
 	local rain = makeSound(Sounds.Rain, true, RAIN_VOLUME_HALL)
 	rain:Play()
 	local thunder = makeSound(Sounds.Thunder, false, 1)
+	local crow = makeSound(Sounds.Crow, false, 0.7)
+	Remotes.get("Crow").OnClientEvent:Connect(function()
+		crow:Play()
+	end)
 
 	Remotes.get("Lightning").OnClientEvent:Connect(function()
 		flash()
@@ -80,7 +84,7 @@ function Ambience.start()
 		for _, flame in CollectionService:GetTagged("CandleFlame") do
 			local light = flame:FindFirstChildOfClass("PointLight")
 			if light then
-				light.Brightness = 0.9 + math.noise(flame.Position.X, os.clock() * 3) * 0.8
+				light.Brightness = 0.55 + math.noise(flame.Position.X, os.clock() * 3) * 0.4
 			end
 		end
 	end)

@@ -22,6 +22,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `E` | Agarrar objetos y abrir puertas |
 | `Shift` izquierdo | Correr |
 | Clic | Disparar el taser |
+| `F` | Prender o apagar la linterna |
 
 ## Atajos de QA (solo en Studio)
 
@@ -34,6 +35,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `5` | Recibir un golpe |
 | `6` | Mostrar en Output el estado del asesino |
 | `7` | Traer al asesino a tu pieza |
+| `8` | Darte la linterna y la escalera |
 
 ## Sonidos
 

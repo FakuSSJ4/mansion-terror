@@ -53,6 +53,8 @@ function Hud.start()
 
 	local healthFill = bar(gui, -46, Color3.fromRGB(150, 25, 25))
 	local staminaFill = bar(gui, -28, Color3.fromRGB(170, 150, 80))
+	local batteryFill = bar(gui, -64, Color3.fromRGB(90, 150, 200))
+	local batteryBack = batteryFill.Parent :: Frame
 	local status = label(gui, UDim2.fromOffset(16, 96), UDim2.fromOffset(300, 80), 24)
 	status.TextYAlignment = Enum.TextYAlignment.Top
 
@@ -75,13 +77,21 @@ function Hud.start()
 	local function refreshStatus()
 		local keys = workspace:GetAttribute("Keys") or 0
 		local books = workspace:GetAttribute("Books") or 0
-		local charges = player:GetAttribute("TaserCharges") or 0
+		local charges = (player:GetAttribute("TaserCharges") :: number?) or 0
+		local taser = if charges > 0 then "sí" else "no"
+		local ladder = if player:GetAttribute("HasLadder") then "\nLlevás la escalera" else ""
 		status.Text =
-			`Llaves: {keys}/{Config.KeyCount}\nEscritos: {books}/{Config.BookCount}\nTaser: {charges}`
+			`Llaves: {keys}/{Config.KeyCount}\nEscritos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}`
+		batteryBack.Visible = player:GetAttribute("HasFlashlight") == true
 	end
 	workspace:GetAttributeChangedSignal("Keys"):Connect(refreshStatus)
 	workspace:GetAttributeChangedSignal("Books"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("TaserCharges"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("HasLadder"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("HasFlashlight"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("Battery"):Connect(function()
+		batteryFill.Size = UDim2.fromScale((player:GetAttribute("Battery") :: number?) or 0, 1)
+	end)
 	refreshStatus()
 
 	local function refreshPhase()

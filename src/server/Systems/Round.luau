@@ -130,7 +130,7 @@ end
 function Round.start(mansionRefs: Mansion.MansionRefs)
 	refs = mansionRefs
 	setupDoors()
-	Items.setupTaserPedestal(refs.taserPedestal)
+	Items.start(refs)
 	spawnRoundItems()
 	publish()
 

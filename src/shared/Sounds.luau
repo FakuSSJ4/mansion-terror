@@ -4,6 +4,7 @@
 return {
 	Rain = "",
 	Thunder = "",
+	Crow = "",
 	Scare = "",
 	Hit = "",
 	Taser = "",

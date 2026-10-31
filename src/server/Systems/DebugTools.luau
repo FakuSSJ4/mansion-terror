@@ -9,6 +9,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local Systems = script.Parent
+local Items = require(Systems:WaitForChild("Items"))
 local Killer = require(Systems:WaitForChild("Killer"))
 local Mansion = require(Systems:WaitForChild("Mansion"))
 local Round = require(Systems:WaitForChild("Round"))
@@ -37,8 +38,13 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			end
 			local current = Vitality.getRoom(player)
 			local n = current and tonumber(string.match(current, "room(%d+)")) or 0
-			local target = if n >= 12 then "exit" else `room{n + 1}`
-			root.CFrame = CFrame.new(refs.rooms[target].center + Vector3.new(0, 4, 0))
+			local target = if current == "attic"
+				then "hall"
+				elseif n >= 12 then "attic"
+				else `room{n + 1}`
+			root.CFrame = CFrame.new(refs.rooms[target].center + Vector3.new(4, 4, 4))
+		elseif command == "gear" then
+			Items.debugGive(player)
 		elseif command == "status" then
 			print(`[QA] {Killer.debugStatus()} jugador={Vitality.getRoom(player)}`)
 		elseif command == "summon" then

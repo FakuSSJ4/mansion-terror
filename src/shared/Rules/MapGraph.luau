@@ -17,12 +17,17 @@ end
 
 function MapGraph.default(): Graph
 	local g: Graph = { neighbors = {}, refuges = {} }
+	-- Planta baja (1 a 4), sótano (5 y 6) y primer piso (7 a 12), con el altillo arriba.
 	connect(g, "hall", "room1")
-	for i = 1, 11 do
+	for i = 1, 5 do
 		connect(g, `room{i}`, `room{i + 1}`)
 	end
-	connect(g, "room12", "exit")
-	for refuge, room in { refuge1 = "room2", refuge2 = "room5", refuge3 = "room9" } do
+	connect(g, "hall", "room7")
+	for i = 7, 11 do
+		connect(g, `room{i}`, `room{i + 1}`)
+	end
+	connect(g, "room12", "attic")
+	for refuge, room in { refuge1 = "room1", refuge2 = "room6", refuge3 = "room8" } do
 		connect(g, room, refuge)
 		g.refuges[refuge] = true
 	end

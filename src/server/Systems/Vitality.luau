@@ -63,13 +63,6 @@ function Vitality.heal(player: Player, amount: number): boolean
 	return true
 end
 
-function Vitality.addCharges(player: Player, amount: number)
-	player:SetAttribute(
-		"TaserCharges",
-		((player:GetAttribute("TaserCharges") :: number?) or 0) + amount
-	)
-end
-
 local function setupCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	humanoid.MaxHealth = Config.MaxHealth
@@ -89,6 +82,9 @@ end
 function Vitality.resetPlayer(player: Player)
 	player:SetAttribute("TaserCharges", 0)
 	player:SetAttribute("TaserTaken", false)
+	player:SetAttribute("HasFlashlight", false)
+	player:SetAttribute("FlashlightOn", false)
+	player:SetAttribute("HasLadder", false)
 	-- LoadCharacter cede el hilo y falla si el jugador ya se fue.
 	task.spawn(function()
 		if player.Parent then

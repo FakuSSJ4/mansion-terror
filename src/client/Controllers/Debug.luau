@@ -1,5 +1,5 @@
 --!strict
--- Atajos de QA, solo en Studio: 1 llaves, 2 escritos, 3 pieza siguiente, 4 rayo, 5 daño, 6 estado del asesino, 7 traerlo.
+-- Atajos de QA, solo en Studio: 1 llaves, 2 escritos, 3 pieza siguiente, 4 rayo, 5 daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -15,6 +15,7 @@ local KEYS = {
 	[Enum.KeyCode.Five] = "damage",
 	[Enum.KeyCode.Six] = "status",
 	[Enum.KeyCode.Seven] = "summon",
+	[Enum.KeyCode.Eight] = "gear",
 }
 
 local Debug = {}

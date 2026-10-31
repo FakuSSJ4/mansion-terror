@@ -4,6 +4,13 @@ local KillerBrain = require("../src/shared/Rules/KillerBrain")
 local Taser = require("../src/shared/Rules/Taser")
 
 return {
+	carriesOnlyOneTaser = function()
+		assert(Taser.canPickUp(0))
+		assert(not Taser.canPickUp(1))
+	end,
+	eachTaserHasOneShot = function()
+		assert(Config.TaserStartCharges == 1)
+	end,
 	stunLastsTenSecondsThenFiveImmune = function()
 		local k = KillerBrain.new()
 		assert(Taser.canStun(k, 0))

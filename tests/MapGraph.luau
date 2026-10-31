@@ -6,13 +6,24 @@ local g = MapGraph.default()
 return {
 	distanceAlongRooms = function()
 		assert(MapGraph.distance(g, "hall", "room4") == 4)
-		assert(MapGraph.distance(g, "room12", "exit") == 1)
 		assert(MapGraph.distance(g, "room7", "room7") == 0)
 	end,
+	cellarHangsFromKitchen = function()
+		assert(MapGraph.distance(g, "room4", "room5") == 1)
+		assert(MapGraph.distance(g, "hall", "room6") == 6)
+	end,
+	stairsLinkHallToUpperFloor = function()
+		assert(MapGraph.distance(g, "hall", "room7") == 1)
+		assert(MapGraph.distance(g, "room6", "room7") == 7)
+	end,
+	atticHangsFromLastUpperRoom = function()
+		assert(MapGraph.distance(g, "room12", "attic") == 1)
+		assert(MapGraph.distance(g, "hall", "attic") == 7)
+	end,
 	refugesHangFromTheirRooms = function()
-		assert(MapGraph.distance(g, "room2", "refuge1") == 1)
-		assert(MapGraph.distance(g, "room5", "refuge2") == 1)
-		assert(MapGraph.distance(g, "room9", "refuge3") == 1)
+		assert(MapGraph.distance(g, "room1", "refuge1") == 1)
+		assert(MapGraph.distance(g, "room6", "refuge2") == 1)
+		assert(MapGraph.distance(g, "room8", "refuge3") == 1)
 	end,
 	identifiesRefuges = function()
 		assert(MapGraph.isRefuge(g, "refuge2"))

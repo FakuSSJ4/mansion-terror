@@ -2,6 +2,7 @@
 local Systems = script:WaitForChild("Systems")
 
 local DebugTools = require(Systems:WaitForChild("DebugTools"))
+local Flashlight = require(Systems:WaitForChild("Flashlight"))
 local Killer = require(Systems:WaitForChild("Killer"))
 local Mansion = require(Systems:WaitForChild("Mansion"))
 local Round = require(Systems:WaitForChild("Round"))
@@ -15,4 +16,5 @@ Vitality.start()
 Round.start(refs)
 Killer.start(refs)
 TaserSystem.start()
+Flashlight.start()
 DebugTools.start(refs)

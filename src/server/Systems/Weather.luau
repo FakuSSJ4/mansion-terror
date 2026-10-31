@@ -22,12 +22,18 @@ function Weather.start()
 	Lighting.GlobalShadows = true
 	Lighting.FogColor = Color3.fromRGB(8, 10, 16)
 	Lighting.FogStart = 40
-	Lighting.FogEnd = 320
+	Lighting.FogEnd = 240
 
 	task.spawn(function()
 		while true do
 			task.wait(Config.LightningInterval)
 			Weather.strike()
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(Config.CrowInterval)
+			Remotes.get("Crow"):FireAllClients()
 		end
 	end)
 end

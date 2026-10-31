@@ -30,11 +30,14 @@ local Config = {
 	KillerStuckSeconds = 10,
 
 	-- Objetos
-	TaserStartCharges = 2,
+	TaserStartCharges = 1,
 	TaserRange = 15,
 	TaserStunSeconds = 10,
 	TaserImmunitySeconds = 5,
-	TaserRechargeCount = 4,
+	TaserSpareCount = 4,
+	FlashlightSeconds = 120,
+	BatteryRechargeSeconds = 60,
+	BatteryCount = 6,
 	PillCount = 8,
 	PillHeal = 50,
 	InteractRange = 10,
@@ -47,6 +50,7 @@ local Config = {
 
 	-- Ambiente
 	LightningInterval = 900,
+	CrowInterval = 1200,
 	ScareRange = 30,
 	ScareRearmSeconds = 20,
 	MaxLightsPerRoom = 6,
