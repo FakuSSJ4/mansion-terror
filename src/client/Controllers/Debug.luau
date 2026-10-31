@@ -32,7 +32,8 @@ local function aim(direction: Vector3)
 	camera.CFrame = CFrame.lookAt(position, position + direction)
 end
 
--- Hacia dónde mirar en cada parada de la tecla T: alce, rinoceronte, puma, teclado, umbral y cama.
+-- Hacia dónde mirar en cada parada de la tecla T: alce, rinoceronte, puma, teclado, umbral, cama,
+-- sótano largo, mesa de carnicero, sala de juegos y bar.
 local TOUR_AIMS = {
 	Vector3.new(1, 0.03, -1),
 	Vector3.new(-1, 0.03, -1),
@@ -40,6 +41,11 @@ local TOUR_AIMS = {
 	Vector3.new(1, -0.8, 1),
 	Vector3.new(1, -0.25, 0),
 	Vector3.new(1, -0.45, 1),
+	Vector3.new(1, -0.08, 0),
+	Vector3.new(1, -0.3, -0.8),
+	Vector3.new(-0.6, -0.2, 1),
+	Vector3.new(-1, -0.3, -0.5),
+	-Vector3.xAxis,
 }
 local tourStop = 0
 

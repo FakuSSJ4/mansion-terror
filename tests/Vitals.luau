@@ -42,6 +42,8 @@ return {
 		local rooms = Config.Killers.butcher.rooms
 		assert(Config.Killers.butcher.startRoom == "room6")
 		assert(rooms.room5 and rooms.room6 and rooms.room4 and rooms.hall)
+		assert(rooms.gameRoom and not rooms.bar)
+		assert(Config.Killers.gentleman.rooms.bar and not Config.Killers.gentleman.rooms.gameRoom)
 		assert(not rooms.room7 and not rooms.attic)
 	end,
 	damageSubtractsDownToZero = function()

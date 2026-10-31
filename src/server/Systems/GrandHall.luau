@@ -156,7 +156,12 @@ function GrandHall.build(ctx: any)
 	-- Pared oeste con un ventanal.
 	local sideWindow = -38
 	wallBox(X0 - 1, 0, Z0, X0, TOP, sideWindow - windowHalf)
-	wallBox(X0 - 1, 0, sideWindow + windowHalf, X0, TOP, Z1)
+	-- Más los dos pasillos del ala oeste, en planta baja y en la galería.
+	local westHole = 6
+	wallBox(X0 - 1, 0, sideWindow + windowHalf, X0, TOP, -westHole)
+	wallBox(X0 - 1, 0, westHole, X0, TOP, Z1)
+	wallBox(X0 - 1, ctx.CORRIDOR_HEIGHT, -westHole, X0, FLOOR - 1, westHole)
+	wallBox(X0 - 1, FLOOR + ctx.CORRIDOR_HEIGHT, -westHole, X0, TOP, westHole)
 	wallBox(X0 - 1, 0, sideWindow - windowHalf, X0, WINDOW_BOTTOM, sideWindow + windowHalf)
 	wallBox(X0 - 1, WINDOW_TOP, sideWindow - windowHalf, X0, TOP, sideWindow + windowHalf)
 	tallWindow(Vector3.new(X0 - 0.5, 0, sideWindow), Vector3.new(-1, 0, 0), 2 * windowHalf)

@@ -43,7 +43,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `L` | Ir a las librerías del hall |
 | `M` | Traer al asesino de smoking a tu pieza |
 | `B` | Traer al carnicero a tu pieza |
-| `T` | Recorrer alce, rinoceronte, puma, teclado del piano y un umbral del primer piso |
+| `T` | Recorrer alce, rinoceronte, puma, teclado, umbral, cama, sótano largo, mesa de carnicero, sala de juegos y bar |
 
 ## Sonidos
 

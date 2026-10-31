@@ -48,6 +48,12 @@ type RoomPlan = { col: number, row: number, y: number }
 type Hole = { x0: number, x1: number, z0: number, z1: number }
 type Opening = { width: number, bottom: number, top: number }
 
+local WEST_WING_COL = -1.8
+local WEST_WING = { gameRoom = true, bar = true }
+-- Tramo que alarga el sótano hacia el este; más bajo que la pieza, porque arriba está el pasto.
+local CELLAR_WING_LENGTH = 56
+local CELLAR_WING_HEIGHT = 14.5
+
 local PLAN: { [string]: RoomPlan } = {
 	hall = { col = 0, row = 0, y = GROUND_Y },
 	room1 = { col = 1, row = 0, y = GROUND_Y }, -- Living
@@ -63,6 +69,9 @@ local PLAN: { [string]: RoomPlan } = {
 	room11 = { col = 1, row = 1, y = UPPER_Y },
 	room12 = { col = 0, row = 1, y = UPPER_Y },
 	attic = { col = 0, row = 1, y = ATTIC_Y },
+	-- Ala oeste: su pared este queda a un pasillo de la del hall, que no sigue la grilla.
+	gameRoom = { col = WEST_WING_COL, row = 0, y = GROUND_Y },
+	bar = { col = WEST_WING_COL, row = 0, y = UPPER_Y },
 }
 
 local LINKS = {
@@ -76,6 +85,8 @@ local LINKS = {
 	{ "room9", "room10" },
 	{ "room10", "room11" },
 	{ "room11", "room12" },
+	{ "hall", "gameRoom" },
+	{ "room7", "bar" },
 }
 
 local LOCKED_LINKS = { room2 = true, room3 = true, room9 = true, room11 = true }
@@ -89,7 +100,8 @@ local REFUGES = {
 local FLOOR_HOLES: { [string]: Hole } = { room4 = STAIR, attic = HATCH }
 local CEILING_HOLES: { [string]: Hole } = { room5 = STAIR, room12 = HATCH }
 local STAIR_ROOMS = { room4 = true, room5 = true }
-local CHANDELIER_ROOMS = { room1 = true, room2 = true, room8 = true, room10 = true }
+local CHANDELIER_ROOMS =
+	{ room1 = true, room2 = true, room8 = true, room10 = true, gameRoom = true, bar = true }
 -- Los construye GrandHall.
 local GRAND_ROOMS = { hall = true, room7 = true }
 
@@ -777,6 +789,8 @@ local THEMES: { [string]: { string } } = {
 	room6 = { "crates", "barrels", "barrels", "crates" },
 	room8 = { "doubleBed", "nightstand", "wardrobe", "nightstand" },
 	attic = { "chest", "crates", "wardrobe", "chest" },
+	gameRoom = { "sofa", "bookcase", "sofa", "chest" },
+	bar = { "sofa", "barrels", "sofa", "barrels" },
 }
 
 local CORNERS =
@@ -1107,8 +1121,327 @@ local function pumaOnPlinth(base: CFrame)
 	)
 end
 
+-- Mesa de pool con paño, troneras, bolas y tacos. Corrida del centro, por donde pasan los asesinos.
+local function poolTable(base: CFrame)
+	local felt = Color3.fromRGB(24, 92, 56)
+	local black = Color3.fromRGB(8, 8, 8)
+	local ball = Enum.PartType.Ball
+	local plastic = Enum.Material.SmoothPlastic
+	solid(
+		base,
+		"MesaPool",
+		Vector3.new(14, 1, 7.4),
+		CFrame.new(0, 3, 0),
+		WOOD_COLOR,
+		Enum.Material.Wood
+	)
+	for _, x in { -5.8, 5.8 } do
+		for _, z in { -2.8, 2.8 } do
+			solid(
+				base,
+				"Pata",
+				Vector3.new(1, 2.5, 1),
+				CFrame.new(x, 1.25, z),
+				WOOD_COLOR,
+				Enum.Material.Wood
+			)
+		end
+	end
+	stuffed(base, "Pano", Vector3.new(12.6, 0.1, 6), CFrame.new(0, 3.53, 0), felt)
+	for _, x in { -6.1, 0, 6.1 } do
+		for _, z in { -2.8, 2.8 } do
+			stuffed(
+				base,
+				"Tronera",
+				Vector3.new(0.75, 0.04, 0.75),
+				CFrame.new(x, 3.6, z),
+				black,
+				nil,
+				plastic
+			)
+		end
+	end
+	local colors = {
+		Color3.fromRGB(220, 190, 40),
+		Color3.fromRGB(30, 60, 170),
+		Color3.fromRGB(180, 30, 30),
+		Color3.fromRGB(90, 30, 130),
+		Color3.fromRGB(210, 100, 30),
+		Color3.fromRGB(20, 110, 60),
+		Color3.fromRGB(110, 25, 25),
+		black,
+		Color3.fromRGB(190, 170, 60),
+		Color3.fromRGB(40, 90, 180),
+	}
+	-- Triángulo armado, con la bola blanca enfrentada.
+	local n = 1
+	for row = 0, 3 do
+		for i = 0, row do
+			stuffed(
+				base,
+				"Bola",
+				Vector3.one * 0.5,
+				CFrame.new(2.4 + row * 0.45, 3.83, (i - row / 2) * 0.52),
+				colors[n],
+				ball,
+				plastic
+			)
+			n += 1
+		end
+	end
+	stuffed(
+		base,
+		"BolaBlanca",
+		Vector3.one * 0.5,
+		CFrame.new(-3.2, 3.83, 0.3),
+		Color3.fromRGB(235, 232, 220),
+		ball,
+		plastic
+	)
+	stuffed(
+		base,
+		"Taco",
+		Vector3.new(7.5, 0.13, 0.13),
+		CFrame.new(-1, 3.8, 1.9) * CFrame.Angles(0, math.rad(9), 0),
+		Color3.fromRGB(150, 105, 60),
+		nil,
+		Enum.Material.Wood
+	)
+end
+
+-- Máquina de paintball: gabinete, pantalla manchada de pintura, cartel y marcadora al frente.
+local function paintballMachine(base: CFrame, tint: Color3)
+	local plastic = Enum.Material.SmoothPlastic
+	solid(
+		base,
+		"Gabinete",
+		Vector3.new(4.4, 7.4, 3),
+		CFrame.new(0, 3.7, 0),
+		Color3.fromRGB(26, 26, 32),
+		plastic
+	)
+	local marquee = solid(
+		base,
+		"CartelMaquina",
+		Vector3.new(4.4, 1.1, 0.5),
+		CFrame.new(0, 7.95, -1.25),
+		tint,
+		Enum.Material.Neon
+	)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.Parent = marquee
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.Text = "PAINTBALL"
+	label.TextColor3 = Color3.fromRGB(15, 15, 18)
+	label.Parent = gui
+	stuffed(
+		base,
+		"Pantalla",
+		Vector3.new(3.4, 2.5, 0.08),
+		CFrame.new(0, 5.4, -1.53),
+		Color3.fromRGB(16, 44, 34),
+		nil,
+		Enum.Material.Neon
+	)
+	for _, splat in
+		{
+			{ -0.9, 5.9, 0.7, Color3.fromRGB(220, 50, 120) },
+			{ 0.8, 5.1, 0.9, Color3.fromRGB(240, 170, 30) },
+			{ -0.2, 4.7, 0.5, Color3.fromRGB(50, 170, 230) },
+		}
+	do
+		stuffed(
+			base,
+			"Pintura",
+			Vector3.new(splat[3], splat[3], 0.05),
+			CFrame.new(splat[1], splat[2], -1.58),
+			splat[4],
+			nil,
+			plastic
+		)
+	end
+	-- Tablero inclinado con la marcadora apoyada.
+	solid(
+		base,
+		"Tablero",
+		Vector3.new(4.4, 0.4, 1.8),
+		CFrame.new(0, 3.5, -2.1) * CFrame.Angles(math.rad(-15), 0, 0),
+		tint,
+		plastic
+	)
+	stuffed(
+		base,
+		"CanonMarcadora",
+		Vector3.new(0.3, 0.3, 1.5),
+		CFrame.new(0.4, 4, -2.5),
+		Color3.fromRGB(20, 20, 22),
+		nil,
+		Enum.Material.Metal
+	)
+	stuffed(
+		base,
+		"CuerpoMarcadora",
+		Vector3.new(0.45, 0.55, 0.9),
+		CFrame.new(0.4, 4, -1.8),
+		Color3.fromRGB(45, 45, 50),
+		nil,
+		Enum.Material.Metal
+	)
+	stuffed(
+		base,
+		"TolvaMarcadora",
+		Vector3.new(0.55, 0.55, 0.55),
+		CFrame.new(0.4, 4.5, -1.8),
+		tint,
+		Enum.PartType.Ball,
+		plastic
+	)
+end
+
+local function barStool(position: Vector3)
+	local base = CFrame.new(position)
+	local turn = CFrame.Angles(0, 0, math.rad(90))
+	stuffed(
+		base,
+		"PataBanqueta",
+		Vector3.new(2.7, 0.3, 0.3),
+		CFrame.new(0, 1.35, 0) * turn,
+		Color3.fromRGB(60, 60, 64),
+		Enum.PartType.Cylinder,
+		Enum.Material.Metal
+	)
+	stuffed(
+		base,
+		"AsientoBanqueta",
+		Vector3.new(0.4, 1.6, 1.6),
+		CFrame.new(0, 2.85, 0) * turn,
+		FABRIC_COLOR,
+		Enum.PartType.Cylinder
+	)
+end
+
+-- Barra larga con estantes de botellas detrás, banquetas, canilla y dos mesitas.
+local function barFittings(center: Vector3)
+	local base = CFrame.new(center)
+	local lacquer = Color3.fromRGB(44, 24, 14)
+	local wood = Enum.Material.Wood
+	solid(base, "Barra", Vector3.new(3, 3.4, 22), CFrame.new(-15, 1.7, 0), lacquer, wood)
+	solid(
+		base,
+		"TapaBarra",
+		Vector3.new(3.6, 0.3, 22.6),
+		CFrame.new(-14.8, 3.55, 0),
+		GOLD_COLOR,
+		wood
+	)
+	for _, z in { -8, -4, 0, 4, 8 } do
+		barStool(center + Vector3.new(-11.5, 0, z))
+	end
+	stuffed(
+		base,
+		"Canilla",
+		Vector3.new(0.3, 1.6, 0.3),
+		CFrame.new(-15, 4.5, -5),
+		GOLD_COLOR,
+		nil,
+		Enum.Material.Metal
+	)
+	stuffed(
+		base,
+		"Pico",
+		Vector3.new(0.7, 0.2, 0.2),
+		CFrame.new(-14.6, 5.1, -5),
+		GOLD_COLOR,
+		nil,
+		Enum.Material.Metal
+	)
+
+	local colors = {
+		Color3.fromRGB(40, 90, 50),
+		Color3.fromRGB(120, 70, 25),
+		Color3.fromRGB(150, 150, 165),
+		Color3.fromRGB(90, 25, 30),
+	}
+	solid(base, "FondoEstante", Vector3.new(0.5, 11, 24), CFrame.new(-23, 5.5, 0), lacquer, wood)
+	local turn = CFrame.Angles(0, 0, math.rad(90))
+	for shelf, y in { 3.6, 6.2, 8.8 } do
+		solid(
+			base,
+			"Estante",
+			Vector3.new(1.6, 0.25, 24),
+			CFrame.new(-22.3, y, 0),
+			WOOD_COLOR,
+			wood
+		)
+		for i = 1, 9 do
+			local z = -10 + (i - 1) * 2.5 + shelf * 0.3
+			local tint = colors[(i + shelf) % #colors + 1]
+			stuffed(
+				base,
+				"Botella",
+				Vector3.new(1.2, 0.45, 0.45),
+				CFrame.new(-22.2, y + 0.72, z) * turn,
+				tint,
+				Enum.PartType.Cylinder,
+				Enum.Material.SmoothPlastic
+			)
+			stuffed(
+				base,
+				"Pico",
+				Vector3.new(0.45, 0.18, 0.18),
+				CFrame.new(-22.2, y + 1.5, z) * turn,
+				tint,
+				Enum.PartType.Cylinder,
+				Enum.Material.SmoothPlastic
+			)
+		end
+	end
+	for _, z in { -15, 15 } do
+		local spot = center + Vector3.new(8, 0, z)
+		solid(
+			CFrame.new(spot),
+			"PataMesita",
+			Vector3.new(0.6, 3.2, 0.6),
+			CFrame.new(0, 1.6, 0),
+			lacquer,
+			wood
+		)
+		solid(
+			CFrame.new(spot),
+			"Mesita",
+			Vector3.new(4, 0.3, 4),
+			CFrame.new(0, 3.35, 0),
+			lacquer,
+			wood
+		)
+		for _, side in { -1, 1 } do
+			barStool(spot + Vector3.new(side * 3.2, 0, 0))
+		end
+	end
+end
+
 local function placeTrophies(id: string)
 	local center = cellCenter(id)
+	if id == "gameRoom" then
+		poolTable(CFrame.new(center + Vector3.new(0, 0, 13)))
+		for i, x in { -12, -5 } do
+			local spot = center + Vector3.new(x, 0, -18)
+			paintballMachine(
+				CFrame.lookAt(spot, spot + Vector3.zAxis),
+				if i == 1 then Color3.fromRGB(200, 60, 120) else Color3.fromRGB(230, 150, 30)
+			)
+		end
+		table.insert(refs.hidingSpots[id], center + Vector3.new(0, 0.3, 13))
+	elseif id == "bar" then
+		barFittings(center)
+		table.insert(refs.hidingSpots[id], center + Vector3.new(-15, 3.9, 6))
+		table.insert(refs.hidingSpots[id], center + Vector3.new(-19, 0.3, 0))
+	end
 	local function onWall(x: number, z: number, inward: Vector3): CFrame
 		local point = center + Vector3.new(x, 11, z)
 		return CFrame.lookAt(point, point + inward)
@@ -1531,7 +1864,9 @@ local function buildDoor(
 end
 
 local function buildLink(a: string, b: string)
-	local ca, cb = cellCenter(a), cellCenter(b)
+	local cb = cellCenter(b)
+	-- El hall no sigue la grilla: el pasillo del ala oeste se mide desde la pieza nueva.
+	local ca = if WEST_WING[b] then cb + Vector3.new(PITCH, 0, 0) else cellCenter(a)
 	local dir = (cb - ca).Unit
 	local middle = (ca + cb) / 2
 	local across = Vector3.new(-dir.Z, 0, dir.X)
@@ -1754,6 +2089,351 @@ local function setupCollisionGroups()
 	PhysicsService:CollisionGroupSetCollidable("DevPlayer", "KillerBarrier", false)
 end
 
+-- Cadáver tirado en el piso, a lo largo de su Z local, con su charco.
+local function lyingCorpse(base: CFrame, skin: Color3)
+	local cloth = Color3.fromRGB(58, 52, 46)
+	local wound = Color3.fromRGB(96, 14, 18)
+	local pool = Color3.fromRGB(58, 6, 8)
+	stuffed(
+		base,
+		"Charco",
+		Vector3.new(6, 0.05, 8),
+		CFrame.new(0.5, 0.03, 0),
+		pool,
+		nil,
+		Enum.Material.SmoothPlastic
+	)
+	stuffed(base, "CuerpoTorso", Vector3.new(2, 0.9, 2.6), CFrame.new(0, 0.5, 0), cloth)
+	stuffed(
+		base,
+		"Herida",
+		Vector3.new(1.2, 0.08, 1.3),
+		CFrame.new(0.1, 0.97, 0.2),
+		wound,
+		nil,
+		Enum.Material.SmoothPlastic
+	)
+	stuffed(
+		base,
+		"CuerpoCabeza",
+		Vector3.new(1.1, 0.9, 1.1),
+		CFrame.new(0.2, 0.5, 2) * CFrame.Angles(0, math.rad(25), 0),
+		skin
+	)
+	for _, side in { -1, 1 } do
+		stuffed(
+			base,
+			"CuerpoPierna",
+			Vector3.new(0.75, 0.7, 2.8),
+			CFrame.new(side * 0.55, 0.38, -2.6) * CFrame.Angles(0, math.rad(side * 10), 0),
+			cloth
+		)
+		stuffed(
+			base,
+			"CuerpoBrazo",
+			Vector3.new(0.6, 0.55, 2.5),
+			CFrame.new(side * 1.7, 0.32, 0.5) * CFrame.Angles(0, math.rad(side * 35), 0),
+			skin
+		)
+	end
+end
+
+-- Cadáver colgado de las muñecas con dos cadenas que bajan del techo.
+local function hangingCorpse(position: Vector3, height: number, skin: Color3)
+	local base = CFrame.new(position) * CFrame.Angles(0, math.rad(position.Z * 13 % 360), 0)
+	local cloth = Color3.fromRGB(70, 62, 54)
+	local wound = Color3.fromRGB(96, 14, 18)
+	local chain = Color3.fromRGB(70, 70, 74)
+	stuffed(base, "CuerpoTorso", Vector3.new(1.9, 2.5, 1), CFrame.new(0, 5.6, 0), cloth)
+	stuffed(
+		base,
+		"Herida",
+		Vector3.new(1, 1.3, 0.08),
+		CFrame.new(0, 5.4, -0.52),
+		wound,
+		nil,
+		Enum.Material.SmoothPlastic
+	)
+	stuffed(
+		base,
+		"CuerpoCabeza",
+		Vector3.new(1, 1, 1),
+		CFrame.new(0, 7, -0.35) * CFrame.Angles(math.rad(-30), 0, 0),
+		skin
+	)
+	for _, side in { -1, 1 } do
+		stuffed(
+			base,
+			"CuerpoPierna",
+			Vector3.new(0.75, 2.8, 0.8),
+			CFrame.new(side * 0.5, 3, 0),
+			cloth
+		)
+		stuffed(
+			base,
+			"CuerpoBrazo",
+			Vector3.new(0.55, 2.6, 0.6),
+			CFrame.new(side * 1.1, 7.8, 0) * CFrame.Angles(0, 0, math.rad(side * -14)),
+			skin
+		)
+		-- Eslabones alternados desde la muñeca hasta el techo.
+		local y = 9.1
+		local i = 0
+		while y < height do
+			local turn = if i % 2 == 0 then 0 else 90
+			stuffed(
+				base,
+				"Eslabon",
+				Vector3.new(0.09, 0.6, 0.28),
+				CFrame.new(side * 1.45, y, 0) * CFrame.Angles(0, math.rad(turn), 0),
+				chain,
+				nil,
+				Enum.Material.Metal
+			)
+			y += 0.48
+			i += 1
+		end
+	end
+	stuffed(
+		base,
+		"Charco",
+		Vector3.new(3.4, 0.05, 3.4),
+		CFrame.new(0, 0.03, 0),
+		Color3.fromRGB(58, 6, 8),
+		nil,
+		Enum.Material.SmoothPlastic
+	)
+end
+
+-- Mesa de carnicero toda de metal, con bisturí, serrucho, cuchilla, pinza, martillo y gancho.
+local function butcherTable(base: CFrame)
+	local steel = Color3.fromRGB(176, 180, 186)
+	local dark = Color3.fromRGB(26, 24, 22)
+	local blood = Color3.fromRGB(80, 8, 10)
+	local metal = Enum.Material.Metal
+	local plastic = Enum.Material.SmoothPlastic
+	solid(
+		base,
+		"MesaMetal",
+		Vector3.new(13, 0.3, 5),
+		CFrame.new(0, 3.5, 0),
+		steel,
+		Enum.Material.DiamondPlate
+	)
+	for _, side in { -1, 1 } do
+		solid(
+			base,
+			"Reborde",
+			Vector3.new(13, 0.35, 0.2),
+			CFrame.new(0, 3.75, side * 2.4),
+			steel,
+			metal
+		)
+		solid(
+			base,
+			"Reborde",
+			Vector3.new(0.2, 0.35, 5),
+			CFrame.new(side * 6.4, 3.75, 0),
+			steel,
+			metal
+		)
+		for _, z in { -2.1, 2.1 } do
+			solid(
+				base,
+				"PataMetal",
+				Vector3.new(0.4, 3.4, 0.4),
+				CFrame.new(side * 6, 1.7, z),
+				steel,
+				metal
+			)
+		end
+	end
+	solid(base, "EstanteMetal", Vector3.new(12, 0.2, 4.4), CFrame.new(0, 1.2, 0), steel, metal)
+	stuffed(
+		base,
+		"SangreMesa",
+		Vector3.new(4.5, 0.03, 2.6),
+		CFrame.new(-3, 3.66, 0.3),
+		blood,
+		nil,
+		plastic
+	)
+	stuffed(
+		base,
+		"SangrePiso",
+		Vector3.new(5, 0.05, 3),
+		CFrame.new(-4.5, 0.03, 3),
+		blood,
+		nil,
+		plastic
+	)
+
+	local top = base * CFrame.new(0, 3.68, 0)
+	-- Bisturí.
+	stuffed(
+		top,
+		"MangoBisturi",
+		Vector3.new(0.14, 0.08, 1),
+		CFrame.new(1.2, 0.04, -1.3),
+		steel,
+		nil,
+		metal
+	)
+	stuffed(
+		top,
+		"HojaBisturi",
+		Vector3.new(0.13, 0.04, 0.4),
+		CFrame.new(1.2, 0.04, -2),
+		Color3.fromRGB(215, 218, 224),
+		nil,
+		metal
+	)
+	-- Serrucho.
+	stuffed(
+		top,
+		"Serrucho",
+		Vector3.new(0.75, 0.05, 3.2),
+		CFrame.new(3.2, 0.03, 0.2) * CFrame.Angles(0, math.rad(12), 0),
+		steel,
+		nil,
+		metal
+	)
+	stuffed(top, "MangoSerrucho", Vector3.new(0.9, 0.3, 1), CFrame.new(3, 0.15, -1.8), dark)
+	-- Cuchilla.
+	stuffed(
+		top,
+		"Cuchilla",
+		Vector3.new(1.3, 0.06, 1.6),
+		CFrame.new(5, 0.03, -0.9),
+		steel,
+		nil,
+		metal
+	)
+	stuffed(top, "MangoCuchilla", Vector3.new(0.28, 0.24, 1.2), CFrame.new(5, 0.12, 0.5), dark)
+	stuffed(
+		top,
+		"SangreCuchilla",
+		Vector3.new(0.9, 0.02, 0.7),
+		CFrame.new(5, 0.07, -1.2),
+		blood,
+		nil,
+		plastic
+	)
+	-- Pinza.
+	for _, side in { -1, 1 } do
+		stuffed(
+			top,
+			"Pinza",
+			Vector3.new(0.1, 0.06, 1.5),
+			CFrame.new(-0.4 + side * 0.08, 0.03, 1.3) * CFrame.Angles(0, math.rad(side * 6), 0),
+			steel,
+			nil,
+			metal
+		)
+	end
+	-- Martillo.
+	stuffed(top, "MangoMartillo", Vector3.new(0.2, 0.16, 1.7), CFrame.new(0.8, 0.08, 1.2), dark)
+	stuffed(
+		top,
+		"CabezaMartillo",
+		Vector3.new(0.8, 0.3, 0.32),
+		CFrame.new(0.8, 0.15, 0.3),
+		steel,
+		nil,
+		metal
+	)
+	-- Gancho colgado en el costado.
+	stuffed(base, "Gancho", Vector3.new(0.1, 1.2, 0.1), CFrame.new(-6.55, 3, 0), steel, nil, metal)
+	stuffed(
+		base,
+		"PuntaGancho",
+		Vector3.new(0.1, 0.1, 0.6),
+		CFrame.new(-6.55, 2.45, -0.25),
+		steel,
+		nil,
+		metal
+	)
+end
+
+-- Alarga room6 hacia el este sin ensancharla: la pared este queda abierta y sigue un tramo igual.
+local function buildCellarWing()
+	local east = cellCenter("room6") + Vector3.new(HALF, 0, 0)
+	local middle = east + Vector3.new(CELLAR_WING_LENGTH / 2, 0, 0)
+	local height = CELLAR_WING_HEIGHT
+	local slab = Vector3.new(CELLAR_WING_LENGTH + 0.5, 1, ROOM_SIZE)
+	local slabMiddle = middle + Vector3.new(0.25, 0, 0)
+	part({
+		Name = "PisoSotano",
+		Size = slab,
+		Position = slabMiddle - Vector3.new(0, 0.5, 0),
+		Color = FLOOR_COLOR,
+		Material = Enum.Material.WoodPlanks,
+	})
+	part({
+		Name = "TechoSotano",
+		Size = slab,
+		Position = slabMiddle + Vector3.new(0, height + 0.5, 0),
+		Color = CEILING_COLOR,
+		Material = Enum.Material.Wood,
+	})
+	for _, side in { -1, 1 } do
+		wall(middle + Vector3.new(0, 0, side * HALF), Vector3.xAxis, CELLAR_WING_LENGTH + 1, height)
+		decor({
+			Name = "Moldura",
+			Size = Vector3.new(CELLAR_WING_LENGTH, 1.2, 0.5),
+			Position = middle + Vector3.new(0, 0.6, side * (HALF - 0.6)),
+			Color = Color3.fromRGB(70, 66, 60),
+			Material = Enum.Material.Wood,
+		})
+	end
+	wall(middle + Vector3.new(CELLAR_WING_LENGTH / 2, 0, 0), Vector3.zAxis, ROOM_SIZE, height)
+
+	for _, spot in
+		{
+			Vector3.new(-16, 7.5, -HALF + 1),
+			Vector3.new(16, 7.5, HALF - 1),
+			Vector3.new(CELLAR_WING_LENGTH / 2 - 1, 7.5, 0),
+		}
+	do
+		candle(middle + spot, CANDLE_LIGHT)
+	end
+
+	-- Luz tenue sobre la mesa y sobre los colgados: el resto queda en penumbra.
+	trophyLight(middle + Vector3.new(14, 9, 0))
+	trophyLight(middle + Vector3.new(-13, 9, 4))
+	trophyLight(middle + Vector3.new(-3, 9, -9))
+
+	local pale = Color3.fromRGB(176, 170, 156)
+	local grey = Color3.fromRGB(150, 150, 138)
+	hangingCorpse(middle + Vector3.new(-13, 0, 11), height, pale)
+	hangingCorpse(middle + Vector3.new(-3, 0, -12), height, grey)
+	lyingCorpse(
+		CFrame.new(middle + Vector3.new(-16, 0, -17)) * CFrame.Angles(0, math.rad(35), 0),
+		pale
+	)
+	lyingCorpse(
+		CFrame.new(middle + Vector3.new(12, 0, 18)) * CFrame.Angles(0, math.rad(100), 0),
+		grey
+	)
+	lyingCorpse(
+		CFrame.new(middle + Vector3.new(19, 0, -17)) * CFrame.Angles(0, math.rad(200), 0),
+		pale
+	)
+
+	local tableBase = CFrame.new(middle + Vector3.new(14, 0, 0))
+	butcherTable(tableBase)
+	local spots = refs.hidingSpots.room6
+	table.insert(spots, (tableBase * CFrame.new(-3, 1.6, 0)).Position)
+	table.insert(spots, (tableBase * CFrame.new(-1.5, 4, 1)).Position)
+	table.insert(spots, middle + Vector3.new(23, 0.3, 22))
+
+	-- La pieza ahora abarca los dos tramos, y el asesino la recorre por el medio.
+	local room = refs.rooms.room6
+	room.size = Vector3.new(ROOM_SIZE + CELLAR_WING_LENGTH, LEVEL_HEIGHT, ROOM_SIZE)
+	room.box = east
+	room.center = east
+end
+
 local function buildExterior()
 	-- Terreno en cuatro franjas: no tapa el agujero de la escalera del sótano.
 	local x0, x1, z0, z1 = -HALF - 2, 2 * PITCH + HALF + 2, -HALF - 2, PITCH + HALF + 2
@@ -1771,7 +2451,12 @@ local function buildExterior()
 	local hallX0, hallZ0 = GrandHall.X0 - 2, GrandHall.Z0 - 2
 	ground(-far, far, -far, hallZ0)
 	ground(-far, far, z1, far)
-	ground(-far, hallX0, hallZ0, z1)
+	-- El ala oeste tiene piso propio: el pasto la rodea.
+	local wingX0 = cellCenter("gameRoom").X - HALF - 2
+	local wingZ = HALF + 2
+	ground(-far, wingX0, hallZ0, z1)
+	ground(wingX0, hallX0, hallZ0, -wingZ)
+	ground(wingX0, hallX0, wingZ, z1)
 	ground(x1, far, hallZ0, z1)
 	ground(GrandHall.X1 + 2, x1, hallZ0, z0)
 	ground(hallX0, x0, GrandHall.Z1 + 2, z1)
@@ -1786,7 +2471,8 @@ local function buildExterior()
 		local angle = random:NextNumber(0, 2 * math.pi)
 		local radius = random:NextNumber(70, 300)
 		local x, z = midX + math.cos(angle) * radius, midZ + math.sin(angle) * radius
-		if x < hallX0 - 14 or x > x1 + 14 or z < hallZ0 - 14 or z > z1 + 14 then
+		local onWing = x > wingX0 - 14 and x < hallX0 and z > -wingZ - 14 and z < wingZ + 14
+		if (x < hallX0 - 14 or x > x1 + 14 or z < hallZ0 - 14 or z > z1 + 14) and not onWing then
 			planted += 1
 			local height = random:NextNumber(38, 70)
 			decor({
@@ -1860,6 +2546,7 @@ local function planOpenings(): ({ [string]: { [string]: Opening } }, { any })
 	for _, refuge in REFUGES do
 		openings[refuge.room][sideOf(refuge.dir)] = doorHole
 	end
+	openings.room6.E = { width = ROOM_SIZE - 2, bottom = 0, top = CELLAR_WING_HEIGHT }
 	local occupied: { [string]: boolean } = { [`0,1,{GROUND_Y}`] = true }
 	for _, plan in PLAN do
 		occupied[`{plan.col},{plan.row},{plan.y}`] = true
@@ -2068,6 +2755,7 @@ function Mansion.build(): MansionRefs
 		end
 	end
 
+	buildCellarWing()
 	for _, link in LINKS do
 		buildLink(link[1], link[2])
 	end
@@ -2178,6 +2866,7 @@ function Mansion.build(): MansionRefs
 end
 
 -- Pieza que contiene la posición; nil en pasillos.
+-- (El tramo largo del sótano cuenta como room6: ver buildCellarWing.)
 function Mansion.roomAt(position: Vector3): string?
 	for id, room in refs.rooms do
 		local delta = position - (room.box or room.center)

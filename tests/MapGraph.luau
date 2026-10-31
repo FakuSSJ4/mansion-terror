@@ -20,6 +20,11 @@ return {
 		assert(MapGraph.distance(g, "room12", "attic") == 1)
 		assert(MapGraph.distance(g, "hall", "attic") == 7)
 	end,
+	westWingHangsFromHallAndGallery = function()
+		assert(MapGraph.distance(g, "hall", "gameRoom") == 1)
+		assert(MapGraph.distance(g, "room7", "bar") == 1)
+		assert(MapGraph.distance(g, "gameRoom", "bar") == 3)
+	end,
 	refugesHangFromTheirRooms = function()
 		assert(MapGraph.distance(g, "room1", "refuge1") == 1)
 		assert(MapGraph.distance(g, "room6", "refuge2") == 1)

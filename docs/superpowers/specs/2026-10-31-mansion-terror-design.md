@@ -6,6 +6,8 @@ Fecha: 2026-10-31
 
 - **Cámara:** primera persona fija.
 - **Mapa:** planta baja (hall con gran escalera, living, comedor, sala de música, cocina), sótano de 2 piezas al que se baja desde la cocina, primer piso de 6 piezas (dormitorio incluido) y altillo ("cobertizo") de 1 pieza. Refugios junto al living, en el sótano y junto al dormitorio.
+- **Ala oeste:** a la derecha de la entrada, sin llave: sala de juegos con pool y máquinas de paintball (desde el hall) y bar arriba (desde la galería).
+- **Sótano:** la segunda pieza se alarga hacia el este, sin ensancharse, con 5 cadáveres (2 colgados de cadenas) y una mesa de carnicero metálica con sus instrumentos.
 - **Recorrido:** llaves de color, cada una abre la puerta de su color, alternando pisos: roja (living) abre la gran escalera; azul (dormitorio) abre el comedor; verde (comedor) abre la pieza 9; violeta (pieza 10) abre la sala de música; amarilla (sala de música) abre la pieza 11; negra (pieza 12) abre el sótano, en la cocina.
 - **Librerías:** seis en la pared del fondo del hall, con huecos donde puede aparecer loot.
 - **Arma:** hacha con mango negro, cabeza y empuñadura amarillas.

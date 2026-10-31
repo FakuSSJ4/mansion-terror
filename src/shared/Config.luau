@@ -35,6 +35,7 @@ local Config = {
 				room10 = true,
 				room11 = true,
 				room12 = true,
+				bar = true,
 			},
 		},
 		-- El carnicero: arranca en el sótano y sube solo hasta la planta baja. 5 golpes, pero más rápido.
@@ -52,6 +53,7 @@ local Config = {
 				room2 = true,
 				room3 = true,
 				room4 = true,
+				gameRoom = true,
 			},
 		},
 	},

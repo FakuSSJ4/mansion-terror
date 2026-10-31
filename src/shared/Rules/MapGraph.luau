@@ -27,6 +27,9 @@ function MapGraph.default(): Graph
 		connect(g, `room{i}`, `room{i + 1}`)
 	end
 	connect(g, "room12", "attic")
+	-- Ala oeste, a la derecha de la entrada: sala de juegos abajo y bar arriba.
+	connect(g, "hall", "gameRoom")
+	connect(g, "room7", "bar")
 	for refuge, room in { refuge1 = "room1", refuge2 = "room6", refuge3 = "room8" } do
 		connect(g, room, refuge)
 		g.refuges[refuge] = true
