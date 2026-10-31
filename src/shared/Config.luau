@@ -16,7 +16,9 @@ local Config = {
 	KillerDamage = 50,
 	KillerHitCooldown = 3,
 	KillerHitRange = 5,
-	KillerStartRoom = "room3",
+	-- Las puertas lo encierran: arranca del lado abierto y espera antes de moverse.
+	KillerStartRoom = "room1",
+	KillerGraceSeconds = 20,
 	KillerSightRange = 60,
 	KillerHearRange = 20,
 	KillerSenseRange = 10,
@@ -54,6 +56,7 @@ local Config = {
 	GoldKeyRgb = { 235, 180, 40 },
 	BookCount = 4,
 	VictorySeconds = 15,
+	DeathScreenSeconds = 4,
 
 	-- Ambiente
 	LightningInterval = 900,

@@ -34,6 +34,22 @@ return {
 		local path = MapGraph.path(g, "room1", "room3")
 		assert(#path == 3 and path[2] == "room2")
 	end,
+	closedLinkBlocksPath = function()
+		local closed = function(a: string, b: string): boolean
+			return not ((a == "room1" and b == "room2") or (a == "room2" and b == "room1"))
+		end
+		assert(#MapGraph.path(g, "hall", "room3", closed) == 0)
+		assert(MapGraph.distance(g, "hall", "room3", closed) == math.huge)
+		assert(MapGraph.distance(g, "hall", "room1", closed) == 1)
+	end,
+	reachableListsOnlyOpenSide = function()
+		local onlyFirst = function(a: string, b: string): boolean
+			return (a == "hall" and b == "room1") or (a == "room1" and b == "hall")
+		end
+		local rooms = MapGraph.reachable(g, "room1", onlyFirst)
+		assert(#rooms == 2)
+		assert(table.find(rooms, "hall") and table.find(rooms, "room1"))
+	end,
 	unknownRoomIsInfinitelyFar = function()
 		assert(MapGraph.distance(g, "hall", "nada") == math.huge)
 	end,

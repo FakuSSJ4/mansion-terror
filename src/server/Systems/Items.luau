@@ -12,6 +12,8 @@ local Battery = require(Rules:WaitForChild("Battery"))
 local ItemClaim = require(Rules:WaitForChild("ItemClaim"))
 local Taser = require(Rules:WaitForChild("Taser"))
 
+local Loot = require(Rules:WaitForChild("Loot"))
+local Mansion = require(script.Parent:WaitForChild("Mansion"))
 local Vitality = require(script.Parent:WaitForChild("Vitality"))
 
 local PICKUP_DISTANCE = 7
@@ -199,13 +201,15 @@ local function placeLadder()
 	ladder.CFrame = mansion.ladderCFrame
 	ladder.Color = LOOKS.ladder.color
 	ladder.Parent = folder
+	Mansion.setHatchOpen(true)
 	if hatchPrompt then
 		hatchPrompt.Enabled = false
 	end
 end
 
-function Items.spawnAll(refs: any, handlers: Handlers)
+function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 	Items.clear()
+	Mansion.setHatchOpen(false)
 	local holder = Instance.new("Folder")
 	holder.Name = "Objetos"
 	holder.Parent = workspace
@@ -256,7 +260,7 @@ function Items.spawnAll(refs: any, handlers: Handlers)
 	end
 	local allRooms = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }
 
-	for n = 1, Config.PillCount do
+	for n = 1, counts.pills do
 		spawnItem(`pill{n}`, "pill", randomSpot(allRooms), function(player)
 			if not Vitality.heal(player, Config.PillHeal) then
 				notify(player, "Tenés la vida llena")
@@ -267,7 +271,7 @@ function Items.spawnAll(refs: any, handlers: Handlers)
 		end)
 	end
 
-	for n = 1, Config.TaserSpareCount do
+	for n = 1, counts.tasers do
 		spawnItem(`taser{n}`, "taser", randomSpot(allRooms), function(player)
 			if not Taser.canPickUp((player:GetAttribute("TaserCharges") :: number?) or 0) then
 				notify(player, "Ya llevás un taser")
@@ -279,7 +283,7 @@ function Items.spawnAll(refs: any, handlers: Handlers)
 		end)
 	end
 
-	for n = 1, Config.BatteryCount do
+	for n = 1, counts.batteries do
 		spawnItem(`battery{n}`, "battery", randomSpot(allRooms), function(player)
 			local level = (player:GetAttribute("Battery") :: number?) or 0
 			if not player:GetAttribute("HasFlashlight") then

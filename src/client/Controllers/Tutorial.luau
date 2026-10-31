@@ -18,7 +18,7 @@ local PAGES = {
 	},
 	{
 		title = "Cómo sobrevivir",
-		body = "El asesino te saca 50 de vida por golpe. Las píldoras curan 50.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna gasta batería: buscá pilas para recargarla.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nSi morís, volvés a la entrada y el equipo no pierde el progreso.",
+		body = "El asesino te saca 50 de vida por golpe. Las píldoras curan 50.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna gasta batería: buscá pilas para recargarla.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
 	},
 }
 
@@ -70,20 +70,36 @@ function Tutorial.start()
 			else "ESPACIO: empezar a jugar"
 	end
 
-	local function finish()
-		if finished then
-			return
-		end
+	local function close()
 		finished = true
 		gui:Destroy()
 		Remotes.get("TutorialDone"):FireServer()
+	end
+
+	-- Después del tutorial se elige la dificultad, salvo que otro jugador ya la haya elegido.
+	local choosing = false
+	local function finish()
+		if workspace:GetAttribute("DifficultyChosen") then
+			close()
+			return
+		end
+		choosing = true
+		title.Text = "Elegí la dificultad"
+		body.Text = "N: Normal\n\nH: Difícil, con la mitad de píldoras, pilas y tasers escondidos"
+		footer.Text = "Apretá N o H para empezar"
 	end
 
 	UserInputService.InputBegan:Connect(function(input)
 		if finished then
 			return
 		end
-		if input.KeyCode == Enum.KeyCode.Q then
+		if choosing then
+			if input.KeyCode == Enum.KeyCode.N or input.KeyCode == Enum.KeyCode.H then
+				local choice = if input.KeyCode == Enum.KeyCode.H then "hard" else "normal"
+				Remotes.get("SetDifficulty"):FireServer(choice)
+				close()
+			end
+		elseif input.KeyCode == Enum.KeyCode.Q then
 			finish()
 		elseif input.KeyCode == Enum.KeyCode.Space then
 			page += 1

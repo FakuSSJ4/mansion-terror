@@ -26,10 +26,11 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 		if command == "devmode" then
 			local on = not player:GetAttribute("GodMode")
 			player:SetAttribute("GodMode", on)
+			Vitality.applyDevCollision(player)
 			Remotes.get("Notify"):FireClient(
 				player,
 				if on
-					then "Modo desarrollador: el asesino no te daña"
+					then "Modo desarrollador: sin daño y atravesás puertas"
 					else "Modo desarrollador apagado"
 			)
 		elseif command == "keys" then

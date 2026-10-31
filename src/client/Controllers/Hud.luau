@@ -96,7 +96,11 @@ function Hud.start()
 		local ladder = if player:GetAttribute("HasLadder") then "\nLlevás la escalera" else ""
 		local gold = if player:GetAttribute("HasGoldKey") then "\nLlevás la llave dorada" else ""
 		local dev = if player:GetAttribute("GodMode") then "\nMODO DESARROLLADOR" else ""
-		status.Text = `Pergaminos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}{gold}{dev}`
+		local hard = if workspace:GetAttribute("Difficulty") == "hard"
+			then "\nModo difícil"
+			else ""
+		status.Text =
+			`Pergaminos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}{gold}{hard}{dev}`
 		batteryBack.Visible = player:GetAttribute("HasFlashlight") == true
 		for n, chip in keyChips do
 			chip.BackgroundTransparency = if workspace:GetAttribute(`Key{n}`) then 0 else 0.85
@@ -106,6 +110,7 @@ function Hud.start()
 		workspace:GetAttributeChangedSignal(`Key{n}`):Connect(refreshStatus)
 	end
 	workspace:GetAttributeChangedSignal("Books"):Connect(refreshStatus)
+	workspace:GetAttributeChangedSignal("Difficulty"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("HasGoldKey"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("GodMode"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("TaserCharges"):Connect(refreshStatus)
@@ -117,9 +122,13 @@ function Hud.start()
 	refreshStatus()
 
 	local function refreshPhase()
-		local won = workspace:GetAttribute("Phase") == "Won"
-		victory.Visible = won
-		victory.BackgroundTransparency = if won then 0.15 else 1
+		local phase = workspace:GetAttribute("Phase")
+		local over = phase == "Won" or phase == "Dead"
+		victory.Text = if phase == "Dead"
+			then "El asesino te atrapó\nLa partida vuelve a empezar"
+			else "Escapaste de la mansión"
+		victory.Visible = over
+		victory.BackgroundTransparency = if over then 0.15 else 1
 	end
 	workspace:GetAttributeChangedSignal("Phase"):Connect(refreshPhase)
 	refreshPhase()

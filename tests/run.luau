@@ -12,6 +12,7 @@ local suites = {
 	Battery = require("./Battery"),
 	Routes = require("./Routes"),
 	Lore = require("./Lore"),
+	Loot = require("./Loot"),
 }
 
 local failed = 0

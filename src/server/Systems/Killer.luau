@@ -19,7 +19,6 @@ local Round = require(Systems:WaitForChild("Round"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
 
 local TICK = 0.2
-local DOOR_SWING_DISTANCE = 16
 local WAYPOINT_REACHED = 5
 
 local Killer = {}
@@ -33,6 +32,7 @@ local currentRoom = Config.KillerStartRoom
 local patrolRoom: string? = nil
 local passing: { from: string, to: string, points: { Vector3 }, index: number }? = nil
 local needsCenter = false
+local releaseAt: number? = nil
 local baseC0: { [Motor6D]: CFrame } = {}
 local lastAnimate = 0
 local lastHit = 0
@@ -76,6 +76,14 @@ function Killer.isVisibleFrom(player: Player, range: number): boolean
 	)
 end
 
+-- Solo le importan los jugadores a los que puede llegar por puertas abiertas.
+local function canReach(player: Player): boolean
+	local room = Vitality.getRoom(player)
+	return room ~= nil
+		and not MapGraph.isRefuge(graph, room)
+		and MapGraph.distance(graph, currentRoom, room, Mansion.isLinkOpen) < math.huge
+end
+
 -- Sentidos: lo ve de frente con línea de vista, o escucha a quien corre cerca.
 local function senseTarget(position: Vector3, forward: Vector3): Player?
 	local current = rig :: KillerModel.Rig
@@ -83,7 +91,7 @@ local function senseTarget(position: Vector3, forward: Vector3): Player?
 	local bestDistance = math.huge
 	for _, player in Players:GetPlayers() do
 		local root = Vitality.rootOf(player)
-		if root and not inRefuge(player) and not player:GetAttribute("InTutorial") then
+		if root and canReach(player) and not player:GetAttribute("InTutorial") then
 			local offset = root.Position - position
 			local distance = offset.Magnitude
 			local inFront = distance > 0 and forward:Dot(offset.Unit) > 0
@@ -117,8 +125,8 @@ local function nearestPlayer(): (Player?, number?)
 		local room = Vitality.getRoom(player)
 		local playing = not player:GetAttribute("InTutorial")
 		if playing and Vitality.rootOf(player) and room and not MapGraph.isRefuge(graph, room) then
-			local distance = MapGraph.distance(graph, currentRoom, room)
-			if not bestDistance or distance < bestDistance then
+			local distance = MapGraph.distance(graph, currentRoom, room, Mansion.isLinkOpen)
+			if distance < math.huge and (not bestDistance or distance < bestDistance) then
 				best, bestDistance = player, distance
 			end
 		end
@@ -159,7 +167,7 @@ local function waypointTo(dest: string, finalPoint: Vector3, position: Vector3):
 		end
 		needsCenter = false
 	end
-	local path = MapGraph.path(graph, currentRoom, dest)
+	local path = MapGraph.path(graph, currentRoom, dest, Mansion.isLinkOpen)
 	if #path < 2 or MapGraph.isRefuge(graph, path[2]) then
 		return refs.rooms[currentRoom].center
 	end
@@ -170,8 +178,21 @@ end
 
 local function patrolDestination(position: Vector3): Vector3
 	if not patrolRoom or patrolRoom == currentRoom then
-		local n = math.random(1, 12)
-		patrolRoom = `room{n}`
+		-- Patrulla lo que ya está abierto; el hall solo cuenta si no hay otra pieza adonde ir.
+		local options = {}
+		for _, room in MapGraph.reachable(graph, currentRoom, Mansion.isLinkOpen) do
+			local eligible = room ~= currentRoom
+				and room ~= "hall"
+				and room ~= "attic"
+				and not MapGraph.isRefuge(graph, room)
+			if eligible then
+				table.insert(options, room)
+			end
+		end
+		if #options == 0 then
+			table.insert(options, if currentRoom == "hall" then Config.KillerStartRoom else "hall")
+		end
+		patrolRoom = options[math.random(1, #options)]
 	end
 	local dest = patrolRoom :: string
 	return waypointTo(dest, refs.rooms[dest].center, position)
@@ -220,22 +241,13 @@ local function tryHit(position: Vector3, now: number)
 		local root = Vitality.rootOf(player)
 		if
 			root
-			and not inRefuge(player)
+			and canReach(player)
 			and (root.Position - position).Magnitude <= Config.KillerHitRange
 		then
 			lastHit = now
 			swingUntil = now + 0.4
 			Vitality.damage(player, Config.KillerDamage)
 			return
-		end
-	end
-end
-
-local function updateDoors(position: Vector3)
-	for _, door in refs.doors do
-		if not door.unlocked then
-			local near = (door.closedCFrame.Position - position).Magnitude <= DOOR_SWING_DISTANCE
-			Mansion.swingDoor(door, near)
 		end
 	end
 end
@@ -254,7 +266,9 @@ local function checkStuck(current: KillerModel.Rig, position: Vector3)
 	stuckFor = 0
 	passing = nil
 	for _, nextRoom in graph.neighbors[currentRoom] do
-		local route = Mansion.route(currentRoom, nextRoom)
+		local route = if Mansion.isLinkOpen(currentRoom, nextRoom)
+			then Mansion.route(currentRoom, nextRoom)
+			else nil
 		local doorway = route and route[1]
 		if doorway then
 			local watched = false
@@ -273,6 +287,18 @@ end
 local function tick(now: number)
 	local current = rig
 	if not current or not active then
+		return
+	end
+	-- La gracia corre desde que alguien empieza a jugar: mientras tanto se queda quieto.
+	if not releaseAt then
+		for _, player in Players:GetPlayers() do
+			if not player:GetAttribute("InTutorial") then
+				releaseAt = now + Config.KillerGraceSeconds
+				break
+			end
+		end
+	end
+	if not releaseAt or now < releaseAt then
 		return
 	end
 	brain.clock = now
@@ -310,7 +336,6 @@ local function tick(now: number)
 	end
 
 	tryHit(position, now)
-	updateDoors(position)
 	checkStuck(current, position)
 end
 
@@ -373,6 +398,7 @@ local function restart()
 	patrolRoom = nil
 	passing = nil
 	needsCenter = false
+	releaseAt = nil
 	lastHit = 0
 	stuckFor = 0
 	active = true
@@ -406,12 +432,14 @@ function Killer.start(mansionRefs: Mansion.MansionRefs)
 	restart()
 
 	Round.Reset:Connect(restart)
-	Round.Won:Connect(function()
+	local function freeze()
 		active = false
 		if rig then
 			rig.humanoid.WalkSpeed = 0
 		end
-	end)
+	end
+	Round.Won:Connect(freeze)
+	Round.Lost:Connect(freeze)
 
 	Vitality.Died:Connect(function(player: Player)
 		KillerBrain.dropTarget(brain, player.Name)

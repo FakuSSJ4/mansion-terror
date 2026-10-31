@@ -1047,7 +1047,10 @@ local function setupCollisionGroups()
 	PhysicsService:RegisterCollisionGroup("KillerBarrier")
 	PhysicsService:RegisterCollisionGroup("LockedDoor")
 	PhysicsService:CollisionGroupSetCollidable("KillerBarrier", "Default", false)
-	PhysicsService:CollisionGroupSetCollidable("LockedDoor", "Killer", false)
+	-- El modo desarrollador atraviesa puertas cerradas y barreras.
+	PhysicsService:RegisterCollisionGroup("DevPlayer")
+	PhysicsService:CollisionGroupSetCollidable("DevPlayer", "LockedDoor", false)
+	PhysicsService:CollisionGroupSetCollidable("DevPlayer", "KillerBarrier", false)
 end
 
 local function buildExterior()
@@ -1400,6 +1403,30 @@ function Mansion.route(a: string, b: string): { Vector3 }?
 end
 
 -- La trampilla del altillo no se camina: el asesino aparece del otro lado.
+-- Conexiones cerradas con llave: pieza vecina -> puerta que hay que abrir.
+local LOCKED_BY: { [string]: string } = {
+	["room1|room2"] = "room2",
+	["room2|room3"] = "room3",
+	["room3|room4"] = "room4",
+	["room4|room5"] = "room5",
+	["room5|room6"] = "room6",
+	["hall|room7"] = "room7",
+}
+local hatchOpen = false
+
+function Mansion.setHatchOpen(open: boolean)
+	hatchOpen = open
+end
+
+-- Si el asesino puede cruzar de `a` a `b`: la puerta abierta o la escalera puesta.
+function Mansion.isLinkOpen(a: string, b: string): boolean
+	if Mansion.isHatch(a, b) then
+		return hatchOpen
+	end
+	local doorKey = LOCKED_BY[`{a}|{b}`] or LOCKED_BY[`{b}|{a}`]
+	return not doorKey or refs.doors[doorKey].unlocked
+end
+
 function Mansion.isHatch(a: string, b: string): boolean
 	return (a == "room12" and b == "attic") or (a == "attic" and b == "room12")
 end

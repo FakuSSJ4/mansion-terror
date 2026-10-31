@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Loot = require(Shared:WaitForChild("Rules"):WaitForChild("Loot"))
 local Progress = require(Shared:WaitForChild("Rules"):WaitForChild("Progress"))
 
 local Systems = script.Parent
@@ -17,6 +18,8 @@ local Vitality = require(Systems:WaitForChild("Vitality"))
 local Round = {}
 
 local wonEvent = Instance.new("BindableEvent")
+local lostEvent = Instance.new("BindableEvent")
+Round.Lost = lostEvent.Event
 local resetEvent = Instance.new("BindableEvent")
 Round.Won = wonEvent.Event
 Round.Reset = resetEvent.Event
@@ -24,6 +27,8 @@ Round.Reset = resetEvent.Event
 local refs: Mansion.MansionRefs
 local progress = Progress.new(Config.BookCount)
 local phase = "Playing"
+local difficulty = "normal"
+local difficultyChosen = false
 
 local function notifyAll(text: string)
 	Remotes.get("Notify"):FireAllClients(text)
@@ -33,6 +38,8 @@ local function publish()
 	workspace:SetAttribute("Keys", progress.keyCount)
 	workspace:SetAttribute("Books", progress.bookCount)
 	workspace:SetAttribute("Phase", phase)
+	workspace:SetAttribute("Difficulty", difficulty)
+	workspace:SetAttribute("DifficultyChosen", difficultyChosen)
 	for n = 1, Config.KeyCount do
 		workspace:SetAttribute(`Key{n}`, progress.keys[n] == true)
 	end
@@ -62,7 +69,11 @@ function Round.addBook(player: Player, id: string)
 end
 
 local function spawnRoundItems()
-	Items.spawnAll(refs, { onKey = Round.addKey, onBook = Round.addBook })
+	Items.spawnAll(
+		refs,
+		{ onKey = Round.addKey, onBook = Round.addBook },
+		Loot.counts(difficulty, Config)
+	)
 end
 
 function Round.reset()
@@ -92,6 +103,34 @@ local function win()
 		if phase == "Won" then
 			Round.reset()
 		end
+	end)
+end
+
+-- Una muerte a manos del asesino reinicia la partida para todos.
+local function lose()
+	if phase ~= "Playing" then
+		return
+	end
+	phase = "Dead"
+	publish()
+	lostEvent:Fire()
+	task.delay(Config.DeathScreenSeconds, function()
+		if phase == "Dead" then
+			Round.reset()
+		end
+	end)
+end
+
+-- La elige el primero que sale del tutorial y vale hasta que se cierra el servidor.
+local function setupDifficulty()
+	Remotes.get("SetDifficulty").OnServerEvent:Connect(function(_, choice)
+		if difficultyChosen or not Loot.isValid(choice) then
+			return
+		end
+		difficultyChosen = true
+		difficulty = choice
+		spawnRoundItems()
+		publish()
 	end)
 end
 
@@ -147,6 +186,8 @@ end
 function Round.start(mansionRefs: Mansion.MansionRefs)
 	refs = mansionRefs
 	setupDoors()
+	setupDifficulty()
+	Vitality.Killed:Connect(lose)
 	Items.start(refs)
 	spawnRoundItems()
 	publish()

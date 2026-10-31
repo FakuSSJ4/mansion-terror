@@ -18,6 +18,8 @@ local Vitality = {}
 
 local diedEvent = Instance.new("BindableEvent")
 Vitality.Died = diedEvent.Event
+local killedEvent = Instance.new("BindableEvent")
+Vitality.Killed = killedEvent.Event
 
 type RunState = { wants: boolean, exhausted: boolean, stamina: number }
 local runStates: { [Player]: RunState } = {}
@@ -54,6 +56,9 @@ function Vitality.damage(player: Player, amount: number)
 	then
 		humanoid.Health = Vitals.damage(humanoid.Health, amount)
 		Remotes.get("Hit"):FireClient(player)
+		if humanoid.Health <= 0 then
+			killedEvent:Fire(player)
+		end
 	end
 end
 
@@ -67,8 +72,23 @@ function Vitality.heal(player: Player, amount: number): boolean
 	return true
 end
 
+-- El grupo de colisión del modo desarrollador atraviesa las puertas cerradas.
+function Vitality.applyDevCollision(player: Player)
+	local character = player.Character
+	if not character then
+		return
+	end
+	local group = if player:GetAttribute("GodMode") then "DevPlayer" else "Default"
+	for _, item in character:GetDescendants() do
+		if item:IsA("BasePart") then
+			item.CollisionGroup = group
+		end
+	end
+end
+
 local function setupCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+	task.delay(1, Vitality.applyDevCollision, player)
 	humanoid.MaxHealth = Config.MaxHealth
 	humanoid.Health = Config.MaxHealth
 	humanoid.WalkSpeed = Config.WalkSpeed

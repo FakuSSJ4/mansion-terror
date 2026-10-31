@@ -9,6 +9,7 @@ local NAMES = {
 	"Crow",
 	"Flashlight",
 	"TutorialDone",
+	"SetDifficulty",
 	"Notify",
 	"Run",
 	"FireTaser",

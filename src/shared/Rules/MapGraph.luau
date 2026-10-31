@@ -38,8 +38,28 @@ function MapGraph.isRefuge(g: Graph, id: string): boolean
 	return g.refuges[id] == true
 end
 
+export type LinkOpen = (a: string, b: string) -> boolean
+
+-- Piezas a las que se puede llegar desde `from` cruzando solo conexiones abiertas.
+function MapGraph.reachable(g: Graph, from: string, isOpen: LinkOpen): { string }
+	local seen = { [from] = true }
+	local rooms = { from }
+	local head = 1
+	while head <= #rooms do
+		local current = rooms[head]
+		head += 1
+		for _, nextId in g.neighbors[current] or {} do
+			if not seen[nextId] and isOpen(current, nextId) then
+				seen[nextId] = true
+				table.insert(rooms, nextId)
+			end
+		end
+	end
+	return rooms
+end
+
 -- Camino más corto de `from` a `to`, ambos incluidos; vacío si no hay.
-function MapGraph.path(g: Graph, from: string, to: string): { string }
+function MapGraph.path(g: Graph, from: string, to: string, isOpen: LinkOpen?): { string }
 	if not g.neighbors[from] or not g.neighbors[to] then
 		return {}
 	end
@@ -57,7 +77,7 @@ function MapGraph.path(g: Graph, from: string, to: string): { string }
 			return path
 		end
 		for _, nextId in g.neighbors[current] do
-			if not cameFrom[nextId] then
+			if not cameFrom[nextId] and (not isOpen or isOpen(current, nextId)) then
 				cameFrom[nextId] = current
 				table.insert(queue, nextId)
 			end
@@ -66,8 +86,8 @@ function MapGraph.path(g: Graph, from: string, to: string): { string }
 	return {}
 end
 
-function MapGraph.distance(g: Graph, from: string, to: string): number
-	local path = MapGraph.path(g, from, to)
+function MapGraph.distance(g: Graph, from: string, to: string, isOpen: LinkOpen?): number
+	local path = MapGraph.path(g, from, to, isOpen)
 	return if #path == 0 then math.huge else #path - 1
 end
 

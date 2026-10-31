@@ -9,6 +9,9 @@ Fecha: 2026-10-31
 - **Recorrido:** llaves de color (roja, azul, verde y negra en planta baja; violeta y amarilla en el sótano), cada una abre la puerta de su color. La negra abre el sótano y la amarilla la reja de la escalera del hall.
 - **Pergaminos:** son 4: uno en el sótano, uno en el altillo, uno en una pieza de planta baja con puerta de color y uno en el primer piso. Se dejan en la estatua de lobo del hall: su cajón da la llave dorada del lobo, que abre la puerta principal.
 - **Escalera de mano:** siempre en el sótano, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va, igual que la llave dorada.
+- **Puertas y asesino:** solo cruza puertas ya abiertas y sube al altillo si la escalera está puesta. Arranca en el living y espera 20 s desde que alguien empieza a jugar.
+- **Muerte:** si el asesino mata a un jugador, la partida se reinicia para todos, con la misma dificultad. Reemplaza la reaparición sin perder progreso.
+- **Dificultad:** Normal o Difícil, elegida tras el tutorial por el primer jugador. Difícil reduce a la mitad píldoras, pilas y tasers escondidos; el taser del hall no cambia.
 - **Tutorial:** al entrar, con opción de omitirlo. Mientras está abierto no se puede caminar ni recibir daño.
 - **Luz a distancia:** las velas se apagan gradualmente con la distancia, así lo lejano queda oscuro.
 - **Asesino:** cruza la trampilla apareciendo del otro lado. No acecha los refugios: si su objetivo entra a uno, lo abandona y sigue patrullando.
