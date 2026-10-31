@@ -16,6 +16,15 @@ local Round = require(Systems:WaitForChild("Round"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
 local Weather = require(Systems:WaitForChild("Weather"))
 
+-- Paradas de la tecla T: alce, rinoceronte, puma, teclado y umbral del primer piso.
+local TOUR_STOPS: { [any]: Vector3 } = {
+	tour1 = Vector3.new(94, 10, 25),
+	tour2 = Vector3.new(146, 10, 25),
+	tour3 = Vector3.new(69, 24, 64),
+	tour4 = Vector3.new(173.5, 8, 93.5),
+	tour5 = Vector3.new(98, 26, 0),
+}
+
 local DebugTools = {}
 
 function DebugTools.start(refs: Mansion.MansionRefs)
@@ -72,6 +81,11 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			local root = Vitality.rootOf(player)
 			if root then
 				root.CFrame = CFrame.new(refs.taserPedestal.Position + Vector3.new(0, 2.5, -4))
+			end
+		elseif TOUR_STOPS[command] then
+			local root = Vitality.rootOf(player)
+			if root then
+				root.CFrame = CFrame.new(TOUR_STOPS[command])
 			end
 		elseif command == "gear" then
 			Items.debugGive(player)

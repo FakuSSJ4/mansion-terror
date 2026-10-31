@@ -31,6 +31,16 @@ local function aim(direction: Vector3)
 	camera.CFrame = CFrame.lookAt(position, position + direction)
 end
 
+-- Hacia dónde mirar en cada parada de la tecla T: alce, rinoceronte, puma, teclado y umbral.
+local TOUR_AIMS = {
+	Vector3.new(1, 0.03, -1),
+	Vector3.new(-1, 0.03, -1),
+	-Vector3.zAxis,
+	Vector3.new(1, -0.8, 1),
+	Vector3.new(1, -0.25, 0),
+}
+local tourStop = 0
+
 function Debug.start()
 	if not RunService:IsStudio() then
 		return
@@ -45,6 +55,10 @@ function Debug.start()
 			if command == "stairs" or command == "pedestal" or command == "library" then
 				task.delay(0.3, aim, Vector3.zAxis)
 			end
+		elseif input.KeyCode == Enum.KeyCode.T then
+			tourStop = tourStop % #TOUR_AIMS + 1
+			Remotes.get("Debug"):FireServer(`tour{tourStop}`)
+			task.delay(0.3, aim, TOUR_AIMS[tourStop])
 		elseif input.KeyCode == Enum.KeyCode.Zero then
 			local look = workspace.CurrentCamera.CFrame.LookVector
 			aim(Vector3.new(-look.Z, 0, look.X))

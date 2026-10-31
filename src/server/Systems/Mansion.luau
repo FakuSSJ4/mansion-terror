@@ -631,38 +631,30 @@ local FURNITURE: { [string]: (CFrame) -> { Vector3 } } = {
 			)
 		end
 
-		-- Teclado: blancas con divisiones y negras dibujadas sobre una sola parte.
-		local keys = solid(
-			base,
-			"Teclas",
-			Vector3.new(8, 0.3, 1.5),
-			CFrame.new(0, 3.72, -3.35),
-			Color3.fromRGB(235, 232, 222),
-			Enum.Material.SmoothPlastic
-		)
-		local gui = Instance.new("SurfaceGui")
-		gui.Face = Enum.NormalId.Top
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 40
-		gui.LightInfluence = 1
-		gui.Parent = keys
-		local whites = 36
+		candle((base * CFrame.new(3.6, 5.6, -2.6)).Position, CANDLE_LIGHT)
+
+		-- Teclado de piezas reales: blancas separadas y negras más altas, agrupadas de a 2 y de a 3.
+		local whites = 26
+		local keyboard = 7.2
+		local pitch = keyboard / whites
 		local pattern = { true, true, false, true, true, true, false }
-		for i = 1, whites - 1 do
-			local line = Instance.new("Frame")
-			line.BorderSizePixel = 0
-			line.BackgroundColor3 = Color3.fromRGB(120, 118, 112)
-			line.Position = UDim2.fromScale(i / whites, 0)
-			line.Size = UDim2.new(0, 1, 1, 0)
-			line.Parent = gui
-			if pattern[(i - 1) % 7 + 1] then
-				local sharp = Instance.new("Frame")
-				sharp.BorderSizePixel = 0
-				sharp.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-				sharp.AnchorPoint = Vector2.new(0.5, 0)
-				sharp.Position = UDim2.fromScale(i / whites, 0)
-				sharp.Size = UDim2.fromScale(0.6 / whites, 0.6)
-				sharp.Parent = gui
+		for i = 1, whites do
+			local x = -keyboard / 2 + (i - 0.5) * pitch
+			decor({
+				Name = "TeclaBlanca",
+				Size = Vector3.new(pitch - 0.035, 0.25, 1.5),
+				CFrame = base * CFrame.new(x, 3.725, -3.35),
+				Color = Color3.fromRGB(250, 252, 255),
+				Material = Enum.Material.SmoothPlastic,
+			})
+			if i < whites and pattern[(i - 1) % 7 + 1] then
+				decor({
+					Name = "TeclaNegra",
+					Size = Vector3.new(pitch * 0.55, 0.2, 0.95),
+					CFrame = base * CFrame.new(x + pitch / 2, 3.9, -3.075),
+					Color = Color3.fromRGB(10, 10, 12),
+					Material = Enum.Material.SmoothPlastic,
+				})
 			end
 		end
 		return {
@@ -746,7 +738,328 @@ local function furnishRoom(id: string, random: Random)
 	refs.hidingSpots[id] = spots
 end
 
+-- Pieza de un animal disecado; no choca, salvo el pedestal que se arma aparte.
+local function stuffed(
+	base: CFrame,
+	name: string,
+	size: Vector3,
+	offset: CFrame,
+	color: Color3,
+	shape: Enum.PartType?,
+	material: Enum.Material?
+)
+	decor({
+		Name = name,
+		Size = size,
+		CFrame = base * offset,
+		Color = color,
+		Shape = shape or Enum.PartType.Block,
+		Material = material or Enum.Material.Fabric,
+	})
+end
+
+-- Luz tenue y fija, para distinguirlos en la penumbra sin agregar una vela a la vista.
+local function trophyLight(position: Vector3)
+	local holder = decor({
+		Name = "LuzTrofeo",
+		Size = Vector3.new(0.2, 0.2, 0.2),
+		Position = position,
+		Transparency = 1,
+	})
+	local light = Instance.new("PointLight")
+	light.Color = CANDLE_LIGHT
+	light.Range = 13
+	light.Brightness = 1.1
+	light.Shadows = false
+	light.Parent = holder
+end
+
+-- Escudo de madera donde se cuelgan las cabezas.
+local function trophyPlaque(base: CFrame)
+	trophyLight((base * CFrame.new(0, 3, -10)).Position)
+	stuffed(
+		base,
+		"Escudo",
+		Vector3.new(5, 6.5, 0.3),
+		CFrame.new(0, 0, -0.15),
+		WOOD_COLOR,
+		nil,
+		Enum.Material.Wood
+	)
+end
+
+-- `base` está sobre la pared y su -Z apunta hacia adentro de la pieza.
+local function mooseHead(base: CFrame)
+	local fur = Color3.fromRGB(62, 45, 32)
+	local face = Color3.fromRGB(96, 76, 58)
+	local nose = Color3.fromRGB(58, 44, 36)
+	local antler = Color3.fromRGB(178, 164, 138)
+	local ball = Enum.PartType.Ball
+	trophyPlaque(base)
+	stuffed(base, "Cuello", Vector3.new(5, 6.4, 4), CFrame.new(0, -1, -1.6), fur, ball)
+	stuffed(
+		base,
+		"Nuca",
+		Vector3.new(3, 3.2, 3.6),
+		CFrame.new(0, 1, -3) * CFrame.Angles(math.rad(-12), 0, 0),
+		fur
+	)
+	stuffed(
+		base,
+		"Cabeza",
+		Vector3.new(2.4, 2.2, 3.4),
+		CFrame.new(0, 1.2, -5.2) * CFrame.Angles(math.rad(-18), 0, 0),
+		face
+	)
+	stuffed(
+		base,
+		"Hocico",
+		Vector3.new(2, 1.7, 2.6),
+		CFrame.new(0, 0.1, -7.4) * CFrame.Angles(math.rad(-25), 0, 0),
+		face
+	)
+	stuffed(base, "Nariz", Vector3.new(2.1, 1.6, 1.6), CFrame.new(0, -0.5, -8.6), nose, ball)
+	stuffed(base, "Barba", Vector3.new(0.7, 1.8, 0.7), CFrame.new(0, -1.1, -5.4), fur)
+	for _, side in { -1, 1 } do
+		stuffed(
+			base,
+			"Ojo",
+			Vector3.new(0.35, 0.35, 0.35),
+			CFrame.new(side * 1.2, 1.6, -5.4),
+			Color3.new(0.02, 0.02, 0.02),
+			ball,
+			Enum.Material.SmoothPlastic
+		)
+		stuffed(
+			base,
+			"Oreja",
+			Vector3.new(0.5, 1.6, 1),
+			CFrame.new(side * 1.8, 2.5, -3.8) * CFrame.Angles(0, 0, math.rad(side * -50)),
+			fur
+		)
+		-- Asta: tronco, palma ancha y puntas hacia arriba.
+		local bone = Enum.Material.Concrete
+		stuffed(
+			base,
+			"Asta",
+			Vector3.new(3.4, 0.55, 0.7),
+			CFrame.new(side * 2.6, 3.2, -3.6) * CFrame.Angles(0, 0, math.rad(side * 15)),
+			antler,
+			nil,
+			bone
+		)
+		stuffed(
+			base,
+			"Palma",
+			Vector3.new(3.6, 2.2, 0.35),
+			CFrame.new(side * 5.2, 4.4, -3.6) * CFrame.Angles(0, 0, math.rad(side * 28)),
+			antler,
+			nil,
+			bone
+		)
+		for i = 1, 4 do
+			stuffed(
+				base,
+				"Punta",
+				Vector3.new(0.3, 1.7, 0.3),
+				CFrame.new(side * (3.7 + i * 0.75), 4.8 + i * 0.42, -3.6)
+					* CFrame.Angles(0, 0, math.rad(side * -10)),
+				antler,
+				nil,
+				bone
+			)
+		end
+	end
+end
+
+local function rhinoHead(base: CFrame)
+	local hide = Color3.fromRGB(92, 90, 86)
+	local fold = Color3.fromRGB(72, 70, 67)
+	local horn = Color3.fromRGB(150, 138, 116)
+	trophyPlaque(base)
+	stuffed(
+		base,
+		"Cuello",
+		Vector3.new(5, 5.4, 4),
+		CFrame.new(0, -0.6, -1.6),
+		hide,
+		Enum.PartType.Ball,
+		Enum.Material.Slate
+	)
+	stuffed(
+		base,
+		"Pliegue",
+		Vector3.new(4, 0.5, 3.4),
+		CFrame.new(0, 1.2, -2.6),
+		fold,
+		nil,
+		Enum.Material.Slate
+	)
+	stuffed(
+		base,
+		"Cabeza",
+		Vector3.new(3.2, 3, 4.4),
+		CFrame.new(0, 0.1, -4.8) * CFrame.Angles(math.rad(-15), 0, 0),
+		hide,
+		nil,
+		Enum.Material.Slate
+	)
+	stuffed(
+		base,
+		"Hocico",
+		Vector3.new(2.8, 2.2, 2.6),
+		CFrame.new(0, -1, -7.6) * CFrame.Angles(math.rad(-15), 0, 0),
+		hide,
+		nil,
+		Enum.Material.Slate
+	)
+	-- Cuernos hechos con tramos cada vez más finos.
+	local tilt = CFrame.Angles(math.rad(25), 0, 0)
+	for i, section in { { 1.2, 1.2, 0 }, { 0.8, 1.2, 1 }, { 0.42, 1.3, 2.1 } } do
+		stuffed(
+			base,
+			`Cuerno{i}`,
+			Vector3.new(section[1], section[2], section[1]),
+			CFrame.new(0, 0.1, -8.2) * tilt * CFrame.new(0, section[3], 0),
+			horn,
+			nil,
+			Enum.Material.Concrete
+		)
+	end
+	stuffed(
+		base,
+		"CuernoChico",
+		Vector3.new(0.7, 1.1, 0.7),
+		CFrame.new(0, 1.8, -5.8) * tilt,
+		horn,
+		nil,
+		Enum.Material.Concrete
+	)
+	for _, side in { -1, 1 } do
+		stuffed(
+			base,
+			"Ojo",
+			Vector3.new(0.3, 0.3, 0.3),
+			CFrame.new(side * 1.62, 0.3, -5.6),
+			Color3.new(0.02, 0.02, 0.02),
+			Enum.PartType.Ball,
+			Enum.Material.SmoothPlastic
+		)
+		stuffed(
+			base,
+			"Oreja",
+			Vector3.new(0.5, 1.5, 0.9),
+			CFrame.new(side * 1.9, 2.1, -3.2) * CFrame.Angles(0, 0, math.rad(side * -25)),
+			fold,
+			nil,
+			Enum.Material.Slate
+		)
+	end
+end
+
+-- Puma entero caminando sobre un pedestal; `base` está en el piso.
+local function pumaOnPlinth(base: CFrame)
+	local coat = Color3.fromRGB(170, 126, 80)
+	local pale = Color3.fromRGB(214, 190, 156)
+	local dark = Color3.fromRGB(42, 30, 22)
+	solid(base, "Pedestal", Vector3.new(9, 1.5, 3.4), CFrame.new(0, 0.75, 0), WOOD_COLOR)
+	solid(
+		base,
+		"PlacaPedestal",
+		Vector3.new(1.6, 0.5, 0.1),
+		CFrame.new(0, 0.75, -1.72),
+		GOLD_COLOR,
+		Enum.Material.Metal
+	)
+	local top = base * CFrame.new(0, 1.5, 0)
+	trophyLight((top * CFrame.new(0, 4, -6)).Position)
+	stuffed(top, "Cuerpo", Vector3.new(4.4, 1.6, 1.5), CFrame.new(0, 2.2, 0), coat)
+	stuffed(top, "Lomo", Vector3.new(1.7, 1.8, 1.6), CFrame.new(-1.9, 2.3, 0), coat)
+	stuffed(top, "Pecho", Vector3.new(1.5, 1.9, 1.5), CFrame.new(1.9, 2.2, 0), coat)
+	stuffed(top, "Panza", Vector3.new(3.2, 0.3, 1.2), CFrame.new(0, 1.35, 0), pale)
+	for _, leg in
+		{ { 2.2, -0.5, 0.5 }, { 1.6, 0.5, -0.4 }, { -2.2, -0.5, -0.4 }, { -1.6, 0.5, 0.5 } }
+	do
+		stuffed(
+			top,
+			"Pata",
+			Vector3.new(0.55, 1.7, 0.55),
+			CFrame.new(leg[1], 0.85, leg[2]) * CFrame.Angles(0, 0, math.rad(leg[3] * 16)),
+			coat
+		)
+		stuffed(
+			top,
+			"Garra",
+			Vector3.new(0.8, 0.25, 0.65),
+			CFrame.new(leg[1] + 0.1, 0.12, leg[2]),
+			pale
+		)
+	end
+	stuffed(
+		top,
+		"CuelloPuma",
+		Vector3.new(1.3, 1, 1),
+		CFrame.new(3, 2.7, 0) * CFrame.Angles(0, 0, math.rad(25)),
+		coat
+	)
+	stuffed(top, "Cabeza", Vector3.new(1.3, 1.1, 1.2), CFrame.new(3.8, 3.1, 0), coat)
+	stuffed(top, "Hocico", Vector3.new(0.6, 0.55, 0.7), CFrame.new(4.65, 2.9, 0), pale)
+	stuffed(
+		top,
+		"Nariz",
+		Vector3.new(0.12, 0.2, 0.28),
+		CFrame.new(4.98, 3.05, 0),
+		dark,
+		nil,
+		Enum.Material.SmoothPlastic
+	)
+	for _, side in { -1, 1 } do
+		stuffed(top, "Oreja", Vector3.new(0.35, 0.45, 0.3), CFrame.new(3.6, 3.8, side * 0.42), coat)
+		stuffed(
+			top,
+			"Ojo",
+			Vector3.new(0.1, 0.2, 0.2),
+			CFrame.new(4.46, 3.3, side * 0.34),
+			Color3.fromRGB(190, 150, 50),
+			nil,
+			Enum.Material.SmoothPlastic
+		)
+	end
+	-- Cola larga que baja y levanta la punta.
+	stuffed(
+		top,
+		"Cola",
+		Vector3.new(2.2, 0.35, 0.35),
+		CFrame.new(-3.5, 2, 0) * CFrame.Angles(0, 0, math.rad(40)),
+		coat
+	)
+	stuffed(
+		top,
+		"PuntaCola",
+		Vector3.new(1, 0.38, 0.38),
+		CFrame.new(-4.7, 1.45, 0) * CFrame.Angles(0, 0, math.rad(-20)),
+		dark
+	)
+end
+
+local function placeTrophies(id: string)
+	local center = cellCenter(id)
+	local function onWall(x: number, z: number, inward: Vector3): CFrame
+		local point = center + Vector3.new(x, 11, z)
+		return CFrame.lookAt(point, point + inward)
+	end
+	if id == "room1" then
+		mooseHead(onWall(HALF - 0.5, 13, -Vector3.xAxis))
+	elseif id == "room2" then
+		rhinoHead(onWall(-HALF + 0.5, 13, Vector3.xAxis))
+	elseif id == "room11" then
+		local spot = center + Vector3.new(-11, 0, -HALF + 2.4)
+		pumaOnPlinth(CFrame.lookAt(spot, spot + Vector3.zAxis))
+	end
+end
+
 local function decorateRoom(id: string, random: Random)
+	placeTrophies(id)
 	local center = cellCenter(id)
 	local inCellar = PLAN[id].y == CELLAR_Y
 	if not inCellar then
@@ -963,10 +1276,12 @@ local function buildRoom(id: string, random: Random, openings: { [string]: Openi
 		Enum.Material.Wood,
 		CEILING_HOLES[id]
 	)
-	wall(center + Vector3.new(HALF, 0, 0), Vector3.zAxis, ROOM_SIZE, LEVEL_HEIGHT, openings.E)
-	wall(center - Vector3.new(HALF, 0, 0), Vector3.zAxis, ROOM_SIZE, LEVEL_HEIGHT, openings.W)
-	wall(center + Vector3.new(0, 0, HALF), Vector3.xAxis, ROOM_SIZE, LEVEL_HEIGHT, openings.S)
-	wall(center - Vector3.new(0, 0, HALF), Vector3.xAxis, ROOM_SIZE, LEVEL_HEIGHT, openings.N)
+	-- Las paredes terminan apenas debajo del piso de arriba, para que no asomen en sus umbrales.
+	local wallTop = LEVEL_HEIGHT - 0.2
+	wall(center + Vector3.new(HALF, 0, 0), Vector3.zAxis, ROOM_SIZE, wallTop, openings.E)
+	wall(center - Vector3.new(HALF, 0, 0), Vector3.zAxis, ROOM_SIZE, wallTop, openings.W)
+	wall(center + Vector3.new(0, 0, HALF), Vector3.xAxis, ROOM_SIZE, wallTop, openings.S)
+	wall(center - Vector3.new(0, 0, HALF), Vector3.xAxis, ROOM_SIZE, wallTop, openings.N)
 
 	for _, offset in
 		{
@@ -1179,30 +1494,6 @@ local function buildLink(a: string, b: string)
 	candle(middle + across * (CORRIDOR_WIDTH / 2 - 0.5) + Vector3.new(0, 7, 0), CANDLE_LIGHT)
 	addRoute(a, b, { middle })
 
-	-- Arcos facetados en las dos bocas del pasillo: dos riostras a 45° y un zócalo a cada lado.
-	local cellarLink = ca.Y == CELLAR_Y
-	local stone = if cellarLink then Color3.fromRGB(96, 92, 84) else Color3.fromRGB(190, 190, 182)
-	for _, endSign in { -1, 1 } do
-		local mouth = middle + dir * endSign * (length / 2 - 0.5)
-		for _, side in { -1, 1 } do
-			local tilt = (across * side - Vector3.yAxis).Unit
-			local up = dir:Cross(tilt)
-			decor({
-				Name = "Arco",
-				Size = Vector3.new(4.6, 1, 1),
-				CFrame = CFrame.fromMatrix(
-					mouth
-						+ across * side * (CORRIDOR_WIDTH / 2 - 1.4)
-						+ Vector3.new(0, CORRIDOR_HEIGHT - 1.4, 0),
-					tilt,
-					up,
-					dir
-				),
-				Color = stone,
-				Material = Enum.Material.Concrete,
-			})
-		end
-	end
 	for _, side in { -1, 1 } do
 		decor({
 			Name = "Zocalo",
