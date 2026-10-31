@@ -85,7 +85,12 @@ local function win()
 	phase = "Won"
 	publish()
 	wonEvent:Fire()
-	task.delay(Config.VictorySeconds, Round.reset)
+	task.delay(Config.VictorySeconds, function()
+		-- Si el servidor quedó vacío ya se reinició; no borrar la partida nueva.
+		if phase == "Won" then
+			Round.reset()
+		end
+	end)
 end
 
 local function setupDoors()

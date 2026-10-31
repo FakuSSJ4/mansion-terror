@@ -23,6 +23,8 @@ local function canSee(camera: Camera, target: Vector3, ignore: { Instance }): bo
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
+	-- Con este grupo el rayo ignora la barrera invisible de los refugios.
+	params.CollisionGroup = "Default"
 	local origin = camera.CFrame.Position
 	return workspace:Raycast(origin, target - origin, params) == nil
 end

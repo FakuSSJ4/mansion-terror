@@ -13,6 +13,12 @@
       }
     },
     "StarterPlayer": {
+      "$properties": {
+        "EnableMouseLockOption": false
+      },
+      "StarterCharacterScripts": {
+        "$className": "StarterCharacterScripts"
+      },
       "StarterPlayerScripts": {
         "Client": {
           "$path": "src/client"

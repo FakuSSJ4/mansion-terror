@@ -32,6 +32,7 @@ local active = false
 local currentRoom = Config.KillerStartRoom
 local patrolRoom: string? = nil
 local passing: { from: string, to: string, through: boolean }? = nil
+local needsCenter = false
 local baseC0: { [Motor6D]: CFrame } = {}
 local lastAnimate = 0
 local lastHit = 0
@@ -53,6 +54,8 @@ local function hasLineOfSight(from: Vector3, to: Vector3, ignore: { Instance }):
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
+	-- Con este grupo el rayo ignora la barrera invisible de los refugios.
+	params.CollisionGroup = "Default"
 	return workspace:Raycast(from, to - from, params) == nil
 end
 
@@ -130,6 +133,7 @@ local function waypointTo(dest: string, finalPoint: Vector3, position: Vector3):
 	if passing then
 		if currentRoom == passing.to then
 			passing = nil
+			needsCenter = true
 		else
 			local doorway = Mansion.doorway(passing.from, passing.to) :: Vector3
 			local flat = Vector3.new(doorway.X - position.X, 0, doorway.Z - position.Z)
@@ -145,7 +149,17 @@ local function waypointTo(dest: string, finalPoint: Vector3, position: Vector3):
 		end
 	end
 	if currentRoom == dest then
+		needsCenter = false
 		return finalPoint
+	end
+	-- Pasa por el centro de la pieza para no cortar en diagonal por los muebles.
+	if needsCenter then
+		local center = refs.rooms[currentRoom].center
+		local toCenter = Vector3.new(center.X - position.X, 0, center.Z - position.Z)
+		if toCenter.Magnitude > WAYPOINT_REACHED then
+			return center
+		end
+		needsCenter = false
 	end
 	local path = MapGraph.path(graph, currentRoom, dest)
 	if #path < 2 or MapGraph.isRefuge(graph, path[2]) then
@@ -361,6 +375,7 @@ local function restart()
 	currentRoom = Config.KillerStartRoom
 	patrolRoom = nil
 	passing = nil
+	needsCenter = false
 	lastHit = 0
 	stuckFor = 0
 	active = true

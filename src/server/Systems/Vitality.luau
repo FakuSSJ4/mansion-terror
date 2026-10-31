@@ -89,7 +89,12 @@ end
 function Vitality.resetPlayer(player: Player)
 	player:SetAttribute("TaserCharges", 0)
 	player:SetAttribute("TaserTaken", false)
-	player:LoadCharacter()
+	-- LoadCharacter cede el hilo y falla si el jugador ya se fue.
+	task.spawn(function()
+		if player.Parent then
+			player:LoadCharacter()
+		end
+	end)
 end
 
 local function step(dt: number)
@@ -97,7 +102,8 @@ local function step(dt: number)
 		local humanoid = humanoidOf(player)
 		local root = Vitality.rootOf(player)
 		if humanoid and root then
-			local moving = humanoid.MoveDirection.Magnitude > 0.1
+			local velocity = root.AssemblyLinearVelocity
+			local moving = Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 1
 			local running = state.wants and moving and not state.exhausted and state.stamina > 0
 			if running then
 				state.stamina = math.max(state.stamina - dt, 0)

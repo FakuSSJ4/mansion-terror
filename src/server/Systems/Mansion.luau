@@ -342,8 +342,11 @@ local function buildDoor(key: string, position: Vector3, along: Vector3, actionT
 	})
 	local blocker = part({
 		Name = "BloqueoPuerta",
-		Size = size,
-		CFrame = closed,
+		-- Sella todo el pasillo, que es más ancho y alto que la hoja de la puerta.
+		Size = if math.abs(along.X) > 0
+			then Vector3.new(CORRIDOR_WIDTH, DOOR_HEIGHT + 2, 0.6)
+			else Vector3.new(0.6, DOOR_HEIGHT + 2, CORRIDOR_WIDTH),
+		CFrame = CFrame.new(position + Vector3.new(0, (DOOR_HEIGHT + 2) / 2, 0)),
 		Transparency = 1,
 		CanQuery = false,
 		CollisionGroup = "LockedDoor",
