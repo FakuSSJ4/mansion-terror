@@ -1,0 +1,16 @@
+# Roblox build artifacts
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+
+# Toolchain
+sourcemap.json
+roblox.yml
+
+# Plan workspace
+.superpowers/
+
+# OS
+.DS_Store
+Thumbs.db
