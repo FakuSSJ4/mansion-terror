@@ -8,6 +8,7 @@ local suites = {
 	Vitals = require("./Vitals"),
 	Taser = require("./Taser"),
 	KillerBrain = require("./KillerBrain"),
+	ItemClaim = require("./ItemClaim"),
 }
 
 local failed = 0
