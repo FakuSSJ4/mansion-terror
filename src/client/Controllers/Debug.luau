@@ -46,6 +46,9 @@ local TOUR_AIMS = {
 	Vector3.new(-0.6, -0.2, 1),
 	Vector3.new(-1, -0.3, -0.5),
 	-Vector3.xAxis,
+	Vector3.new(0, 0.25, -1),
+	Vector3.new(0, 0.2, 1),
+	-Vector3.zAxis,
 }
 local tourStop = 0
 

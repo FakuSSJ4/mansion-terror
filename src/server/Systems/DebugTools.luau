@@ -29,6 +29,9 @@ local TOUR_STOPS: { [any]: Vector3 } = {
 	tour9 = Vector3.new(-136, 9, -8),
 	tour10 = Vector3.new(-136, 29, 8),
 	tour11 = Vector3.new(-70, 8, 0),
+	tour12 = Vector3.new(-32, 8, -80),
+	tour13 = Vector3.new(-32, 8, -130),
+	tour14 = Vector3.new(-32, 5, -65),
 }
 
 local DebugTools = {}

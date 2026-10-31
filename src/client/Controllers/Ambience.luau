@@ -19,6 +19,7 @@ local RAIN_VOLUME_HALL = 0.5
 local RAIN_VOLUME_INSIDE = 0.2
 local STEPS_VOLUME_WALK = 0.12
 local STEPS_VOLUME_RUN = 0.65
+local DEV_LIGHT = Color3.fromRGB(170, 170, 170)
 
 local Ambience = {}
 
@@ -77,6 +78,23 @@ function Ambience.start()
 			then RAIN_VOLUME_HALL
 			else RAIN_VOLUME_INSIDE
 	end)
+
+	-- En modo desarrollador se ve todo iluminado; al salir vuelve la luz que había.
+	local normalLight: { Ambient: Color3, OutdoorAmbient: Color3 }? = nil
+	local function applyDevLight()
+		local dev = player:GetAttribute("GodMode") == true
+		if dev and not normalLight then
+			normalLight = { Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient }
+			Lighting.Ambient = DEV_LIGHT
+			Lighting.OutdoorAmbient = DEV_LIGHT
+		elseif not dev and normalLight then
+			Lighting.Ambient = normalLight.Ambient
+			Lighting.OutdoorAmbient = normalLight.OutdoorAmbient
+			normalLight = nil
+		end
+	end
+	player:GetAttributeChangedSignal("GodMode"):Connect(applyDevLight)
+	applyDevLight()
 
 	local clock = 0
 	RunService.RenderStepped:Connect(function(dt)

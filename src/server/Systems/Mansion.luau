@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Routes = require(Shared:WaitForChild("Rules"):WaitForChild("Routes"))
 
+local Courtyard = require(script.Parent:WaitForChild("Courtyard"))
 local GrandHall = require(script.Parent:WaitForChild("GrandHall"))
 
 local ROOM_SIZE = 56
@@ -2449,7 +2450,11 @@ local function buildExterior()
 	end
 	-- El hall sobresale al noroeste; las dos esquinas libres también llevan pasto.
 	local hallX0, hallZ0 = GrandHall.X0 - 2, GrandHall.Z0 - 2
-	ground(-far, far, -far, hallZ0)
+	-- Debajo del patio delantero no hay pasto: lo taparía su piso de piedra.
+	local yardX0, yardX1 = Courtyard.X0 - 2, Courtyard.X1 + 2
+	ground(-far, yardX0, -far, hallZ0)
+	ground(yardX1, far, -far, hallZ0)
+	ground(yardX0, yardX1, -far, Courtyard.Z1 - 6)
 	ground(-far, far, z1, far)
 	-- El ala oeste tiene piso propio: el pasto la rodea.
 	local wingX0 = cellCenter("gameRoom").X - HALF - 2
@@ -2472,7 +2477,15 @@ local function buildExterior()
 		local radius = random:NextNumber(70, 300)
 		local x, z = midX + math.cos(angle) * radius, midZ + math.sin(angle) * radius
 		local onWing = x > wingX0 - 14 and x < hallX0 and z > -wingZ - 14 and z < wingZ + 14
-		if (x < hallX0 - 14 or x > x1 + 14 or z < hallZ0 - 14 or z > z1 + 14) and not onWing then
+		local onCourtyard = x > Courtyard.X0 - 10
+			and x < Courtyard.X1 + 10
+			and z > Courtyard.Z1 - 12
+			and z < Courtyard.Z0
+		if
+			(x < hallX0 - 14 or x > x1 + 14 or z < hallZ0 - 14 or z > z1 + 14)
+			and not onWing
+			and not onCourtyard
+		then
 			planted += 1
 			local height = random:NextNumber(38, 70)
 			decor({
@@ -2504,8 +2517,8 @@ local function rainOutside(window: any)
 	local cloud = decor({
 		Name = "Lluvia",
 		Size = if window.horizontal
-			then Vector3.new(window.width + 26, 1, 10)
-			else Vector3.new(10, 1, window.width + 26),
+			then Vector3.new(window.width + 26, 1, window.depth or 10)
+			else Vector3.new(window.depth or 10, 1, window.width + 26),
 		CFrame = CFrame.new(window.position + window.outward * 7 - fall * top) * tilt,
 		Transparency = 1,
 	})
@@ -2831,8 +2844,9 @@ function Mansion.build(): MansionRefs
 	)
 	refs.exitZone = decor({
 		Name = "ZonaSalida",
-		Size = Vector3.new(40, 14, 8),
-		Position = Vector3.new(GrandHall.CenterX, 7, GrandHall.Z0 - 10),
+		-- Se escapa por el portón del patio delantero.
+		Size = Vector3.new(2 * Courtyard.GateHalf, 14, 4),
+		Position = Vector3.new(Courtyard.CenterX, 7, Courtyard.Z1 - 1),
 		Transparency = 1,
 	})
 	refs.exitZone.CanTouch = true
@@ -2861,6 +2875,7 @@ function Mansion.build(): MansionRefs
 
 	buildAltar(hall)
 	buildExterior()
+	Courtyard.build({ part = part, decor = decor, rainOutside = rainOutside })
 	world.Parent = workspace
 	return refs
 end
