@@ -10,6 +10,7 @@ local suites = {
 	KillerBrain = require("./KillerBrain"),
 	ItemClaim = require("./ItemClaim"),
 	Battery = require("./Battery"),
+	Routes = require("./Routes"),
 }
 
 local failed = 0

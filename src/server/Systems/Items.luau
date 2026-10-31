@@ -302,6 +302,7 @@ local function setupTaserPedestal(pedestal: BasePart)
 	prompt.ActionText = "Agarrar"
 	prompt.ObjectText = "Taser"
 	prompt.MaxActivationDistance = PICKUP_DISTANCE
+	prompt.RequiresLineOfSight = false
 	prompt.Parent = taser
 	prompt.Triggered:Connect(function(player)
 		if not canUse(player, taser.Position) then

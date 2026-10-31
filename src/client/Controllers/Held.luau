@@ -56,9 +56,9 @@ function Held.start()
 		local on = player:GetAttribute("FlashlightOn") == true
 
 		taser.Transparency = if hasTaser then 0 else 1
-		taser.CFrame = camera.CFrame * CFrame.new(1, -0.8, -1.8)
+		taser.CFrame = camera.CFrame * CFrame.new(1.6, -1.1, -2.6)
 		flashlight.Transparency = if hasFlashlight then 0 else 1
-		flashlight.CFrame = camera.CFrame * CFrame.new(-1, -0.8, -1.8)
+		flashlight.CFrame = camera.CFrame * CFrame.new(-1.6, -1.1, -2.6)
 		beam.Enabled = on
 
 		-- La luz que el servidor le pone a la cabeza es para los otros; acá manda el haz local.

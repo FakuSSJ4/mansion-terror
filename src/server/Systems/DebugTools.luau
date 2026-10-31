@@ -43,6 +43,16 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 				elseif n >= 12 then "attic"
 				else `room{n + 1}`
 			root.CFrame = CFrame.new(refs.rooms[target].center + Vector3.new(4, 4, 4))
+		elseif command == "stairs" then
+			local root = Vitality.rootOf(player)
+			if root then
+				root.CFrame = CFrame.new(refs.rooms.hall.center + Vector3.new(-20, 4, -24))
+			end
+		elseif command == "pedestal" then
+			local root = Vitality.rootOf(player)
+			if root then
+				root.CFrame = CFrame.new(refs.taserPedestal.Position + Vector3.new(0, 2.5, -4))
+			end
 		elseif command == "gear" then
 			Items.debugGive(player)
 		elseif command == "status" then

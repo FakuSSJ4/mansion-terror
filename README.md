@@ -36,6 +36,9 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `6` | Mostrar en Output el estado del asesino |
 | `7` | Traer al asesino a tu pieza |
 | `8` | Darte la linterna y la escalera |
+| `9` | Ir al pie de la gran escalera |
+| `0` | Girar la vista 90° y nivelarla |
+| `P` | Ir al pedestal del taser |
 
 ## Sonidos
 

@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Routes = require(Shared:WaitForChild("Rules"):WaitForChild("Routes"))
 
 local ROOM_SIZE = 56
 local HALF = ROOM_SIZE / 2
@@ -142,12 +143,9 @@ local function cellCenter(id: string): Vector3
 end
 
 local function addRoute(a: string, b: string, points: { Vector3 })
-	refs.routes[`{a}>{b}`] = points
-	local reversed = {}
-	for i = #points, 1, -1 do
-		table.insert(reversed, points[i])
-	end
-	refs.routes[`{b}>{a}`] = reversed
+	local forward, backward = Routes.both(points, cellCenter(a), cellCenter(b))
+	refs.routes[`{a}>{b}`] = forward
+	refs.routes[`{b}>{a}`] = backward
 end
 
 -- Pared de `length` centrada en `center` a lo largo de `along`, con un hueco central opcional.
@@ -837,7 +835,7 @@ local function buildLink(a: string, b: string)
 		wall(middle + across * side * (CORRIDOR_WIDTH / 2 + 0.5), dir, length, CORRIDOR_HEIGHT)
 	end
 	candle(middle + across * (CORRIDOR_WIDTH / 2 - 0.5) + Vector3.new(0, 7, 0), CANDLE_LIGHT)
-	addRoute(a, b, { middle, cb })
+	addRoute(a, b, { middle })
 
 	if LOCKED_LINKS[b] then
 		refs.doors[b] = buildDoor(
@@ -906,7 +904,6 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 		base + Vector3.new(xCenter, 0, STAIR.z0 - 6),
 		base + Vector3.new(xCenter, up, STAIR.z1 + 3),
 		base + Vector3.new(-6, up, STAIR.z1 + 3),
-		cellCenter(upper),
 	})
 end
 
@@ -1022,30 +1019,29 @@ local function buildExterior()
 			})
 		end
 	end
+end
 
-	-- Franjas de lluvia alrededor del edificio, visibles por los ventanales.
-	for _, strip in
-		{
-			{ Vector3.new(midX, 90, z0 - 45), Vector3.new(x1 - x0 + 170, 1, 80) },
-			{ Vector3.new(midX, 90, z1 + 45), Vector3.new(x1 - x0 + 170, 1, 80) },
-			{ Vector3.new(x0 - 45, 90, midZ), Vector3.new(80, 1, z1 - z0) },
-			{ Vector3.new(x1 + 45, 90, midZ), Vector3.new(80, 1, z1 - z0) },
-		}
-	do
-		local cloud =
-			decor({ Name = "Lluvia", Size = strip[2], Position = strip[1], Transparency = 1 })
-		local rain = Instance.new("ParticleEmitter")
-		rain.EmissionDirection = Enum.NormalId.Bottom
-		rain.Speed = NumberRange.new(110, 130)
-		rain.Lifetime = NumberRange.new(0.85)
-		rain.Rate = 450
-		rain.Size = NumberSequence.new(0.18)
-		rain.Squash = NumberSequence.new(4)
-		rain.Color = ColorSequence.new(Color3.fromRGB(170, 190, 220))
-		rain.Transparency = NumberSequence.new(0.45)
-		rain.LightInfluence = 0
-		rain.Parent = cloud
-	end
+-- Lluvia densa justo del otro lado de cada ventanal.
+local function rainOutside(window: any)
+	local cloud = decor({
+		Name = "Lluvia",
+		Size = if window.horizontal
+			then Vector3.new(window.width + 16, 1, 22)
+			else Vector3.new(22, 1, window.width + 16),
+		Position = window.position + window.outward * 14 + Vector3.new(0, 24, 0),
+		Transparency = 1,
+	})
+	local rain = Instance.new("ParticleEmitter")
+	rain.EmissionDirection = Enum.NormalId.Bottom
+	rain.Speed = NumberRange.new(95, 115)
+	rain.Lifetime = NumberRange.new(0.45)
+	rain.Rate = 500
+	rain.Size = NumberSequence.new(0.2)
+	rain.Squash = NumberSequence.new(5)
+	rain.Color = ColorSequence.new(Color3.fromRGB(190, 205, 230))
+	rain.Transparency = NumberSequence.new(0.35)
+	rain.LightInfluence = 0
+	rain.Parent = cloud
 end
 
 -- Calcula las aberturas de cada pieza y guarda dónde van los ventanales.
@@ -1088,6 +1084,7 @@ local function planOpenings(): ({ [string]: { [string]: Opening } }, { any })
 						width = hole.width,
 						height = hole.top - hole.bottom,
 						horizontal = delta[2] ~= 0,
+						outward = Vector3.new(delta[1], 0, delta[2]),
 					})
 				end
 			end
@@ -1134,6 +1131,7 @@ function Mansion.build(): MansionRefs
 			Material = Enum.Material.Glass,
 			Transparency = 0.7,
 		})
+		rainOutside(window)
 	end
 
 	for _, link in LINKS do

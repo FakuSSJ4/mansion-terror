@@ -16,11 +16,12 @@ end
 
 function Weather.start()
 	Lighting.ClockTime = 0
-	Lighting.Brightness = 0
+	-- La luna ilumina el bosque; adentro, el techo la tapa gracias a las sombras globales.
+	Lighting.Brightness = 2
 	Lighting.Ambient = Color3.fromRGB(5, 5, 8)
 	Lighting.OutdoorAmbient = Color3.fromRGB(14, 16, 24)
 	Lighting.GlobalShadows = true
-	Lighting.FogColor = Color3.fromRGB(8, 10, 16)
+	Lighting.FogColor = Color3.fromRGB(38, 46, 62)
 	Lighting.FogStart = 40
 	Lighting.FogEnd = 240
 
