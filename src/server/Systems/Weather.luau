@@ -21,7 +21,7 @@ function Weather.start()
 	Lighting.Ambient = Color3.fromRGB(5, 5, 8)
 	Lighting.OutdoorAmbient = Color3.fromRGB(14, 16, 24)
 	Lighting.GlobalShadows = true
-	Lighting.FogColor = Color3.fromRGB(38, 46, 62)
+	Lighting.FogColor = Color3.fromRGB(70, 82, 104)
 	Lighting.FogStart = 40
 	Lighting.FogEnd = 240
 

@@ -84,7 +84,7 @@ function Ambience.start()
 		for _, flame in CollectionService:GetTagged("CandleFlame") do
 			local light = flame:FindFirstChildOfClass("PointLight")
 			if light then
-				light.Brightness = 0.55 + math.noise(flame.Position.X, os.clock() * 3) * 0.4
+				light.Brightness = 0.2 + math.noise(flame.Position.X, os.clock() * 3) * 0.12
 			end
 		end
 	end)

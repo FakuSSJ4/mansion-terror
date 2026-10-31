@@ -13,7 +13,6 @@ local Config = {
 	KillerPatrolSpeed = 10,
 	KillerChaseSpeed = 15,
 	KillerSearchSpeed = 18,
-	KillerStalkSpeed = 18,
 	KillerDamage = 50,
 	KillerHitCooldown = 3,
 	KillerHitRange = 5,
@@ -25,8 +24,6 @@ local Config = {
 	KillerLoseTargetSeconds = 8,
 	SearchRoomDistance = 4,
 	SearchAfterSeconds = 120,
-	RefugeCampSeconds = 30,
-	RefugeStalkSeconds = 20,
 	KillerStuckSeconds = 10,
 
 	-- Objetos

@@ -8,7 +8,7 @@ Fecha: 2026-10-31
 - **Mapa:** planta baja (hall con gran escalera, living, comedor, sala de música, cocina), sótano de 2 piezas al que se baja desde la cocina, primer piso de 6 piezas (dormitorio incluido) y altillo ("cobertizo") de 1 pieza. Refugios junto al living, en el sótano y junto al dormitorio.
 - **Recorrido:** llaves 1 a 4 en planta baja; la 4 abre el sótano; llaves 5 y 6 en el sótano; la 6 abre la reja de la escalera del hall. Libros: 6 en el primer piso y 2 en el altillo. Con los 8 se abre la puerta principal, que es la salida.
 - **Escalera de mano:** aparece al azar en planta baja o primer piso, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va.
-- **Asesino:** cruza la trampilla apareciendo del otro lado. Velocidad en acecho: 18.
+- **Asesino:** cruza la trampilla apareciendo del otro lado. No acecha los refugios: si su objetivo entra a uno, lo abandona y sigue patrullando.
 - **Taser:** se lleva uno, con 1 descarga, y desaparece al usarlo. Uno por jugador en el hall y 4 escondidos.
 - **Linterna:** una sola, escondida; tecla `F`; 2 minutos de batería. 6 pilas de 1 minuto cada una. Se cae si el dueño muere o se va.
 - **Aspecto:** paredes blanco grisáceo, cielo raso marrón oscuro, piso rojo sangre, cuadros medievales, alfombras y candelabros. Ventanales grandes y bosque afuera.

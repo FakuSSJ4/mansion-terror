@@ -125,15 +125,6 @@ local function nearestPlayer(): (Player?, number?)
 	return best, bestDistance
 end
 
-local function refugeCamper(): Player?
-	for _, player in Players:GetPlayers() do
-		if Vitality.rootOf(player) and inRefuge(player) then
-			return player
-		end
-	end
-	return nil
-end
-
 -- Próximo punto para llegar a `dest`, avanzando de a una pieza por el grafo.
 local function waypointTo(dest: string, finalPoint: Vector3, position: Vector3): Vector3
 	if passing then
@@ -196,10 +187,6 @@ local function destination(position: Vector3): Vector3?
 		if not target or not root or not room then
 			return patrolDestination(position)
 		end
-		if MapGraph.isRefuge(graph, room) then
-			local neighbor = MapGraph.path(graph, room, currentRoom)[2]
-			return waypointTo(neighbor or currentRoom, refs.refugeDoors[room], position)
-		end
 		return waypointTo(room, root.Position, position)
 	elseif state == "Search" then
 		local target = nearestPlayer()
@@ -209,14 +196,6 @@ local function destination(position: Vector3): Vector3?
 			return patrolDestination(position)
 		end
 		return waypointTo(room, root.Position, position)
-	elseif state == "Stalk" then
-		local target = playerById(brain.target)
-		local room = target and Vitality.getRoom(target)
-		if not room or not MapGraph.isRefuge(graph, room) then
-			return patrolDestination(position)
-		end
-		local neighbor = MapGraph.path(graph, room, currentRoom)[2]
-		return waypointTo(neighbor or currentRoom, refs.refugeDoors[room], position)
 	end
 	return patrolDestination(position)
 end
@@ -226,8 +205,6 @@ local function speedFor(state: KillerBrain.State): number
 		return Config.KillerChaseSpeed
 	elseif state == "Search" then
 		return Config.KillerSearchSpeed
-	elseif state == "Stalk" then
-		return Config.KillerStalkSpeed
 	elseif state == "Stunned" then
 		return 0
 	end
@@ -264,8 +241,7 @@ end
 
 -- Si quedó trabado, reaparece en una puerta vecina donde no haya jugadores.
 local function checkStuck(current: KillerModel.Rig, position: Vector3)
-	local holding = brain.state == "Stunned" or brain.state == "Stalk"
-	if holding or (position - stuckAnchor).Magnitude > 1.5 then
+	if brain.state == "Stunned" or (position - stuckAnchor).Magnitude > 1.5 then
 		stuckAnchor = position
 		stuckFor = 0
 		return
@@ -304,13 +280,17 @@ local function tick(now: number)
 
 	local _, minDistance = nearestPlayer()
 	local visible = senseTarget(position, current.root.CFrame.LookVector)
-	local camper = refugeCamper()
+	-- Si el objetivo se metió en un refugio, lo abandona y sigue de largo.
+	local chased = playerById(brain.target)
+	if chased and inRefuge(chased) then
+		KillerBrain.dropTarget(brain, chased.Name)
+		patrolRoom = nil
+	end
 	KillerBrain.step(brain, {
 		now = now,
 		dt = TICK,
 		visibleTarget = visible and visible.Name,
 		minRoomDistance = minDistance,
-		refugeCamper = camper and camper.Name,
 	}, Config)
 
 	current.humanoid.WalkSpeed = speedFor(brain.state)

@@ -228,7 +228,7 @@ local function candle(position: Vector3, lightColor: Color3)
 	local light = Instance.new("PointLight")
 	light.Color = lightColor
 	light.Range = 26
-	light.Brightness = 0.55
+	light.Brightness = 0.3
 	light.Shadows = true
 	light.Parent = flame
 end
@@ -271,7 +271,7 @@ local function chandelier(center: Vector3)
 	local light = Instance.new("PointLight")
 	light.Color = CANDLE_LIGHT
 	light.Range = 34
-	light.Brightness = 0.6
+	light.Brightness = 0.3
 	light.Parent = core
 end
 
@@ -867,22 +867,51 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 			Color = Color3.fromRGB(70, 44, 28),
 			Material = Enum.Material.Wood,
 		})
-		-- Lateral macizo: frena el paso desde abajo y hace de baranda arriba.
+		-- Lateral macizo que acompaña los escalones y termina al nivel del piso de arriba.
+		local sideHeight = math.min(i + 4, LEVEL_HEIGHT)
 		part({
-			Name = "Baranda",
-			Size = Vector3.new(1, i + 4, run),
-			Position = base + Vector3.new(STAIR.x1 + 0.5, (i + 4) / 2, z),
+			Name = "LateralEscalera",
+			Size = Vector3.new(1, sideHeight, run),
+			Position = base + Vector3.new(STAIR.x1 + 0.5, sideHeight / 2, z),
 			Color = WOOD_COLOR,
 			Material = Enum.Material.Wood,
 		})
 	end
-	part({
-		Name = "Baranda",
-		Size = Vector3.new(width + 1, 4, 1),
-		Position = base + Vector3.new(xCenter + 0.5, LEVEL_HEIGHT + 2, STAIR.z0 - 0.5),
-		Color = WOOD_COLOR,
-		Material = Enum.Material.Wood,
-	})
+
+	-- Baranda recta alrededor del hueco; una pared invisible impide saltarla.
+	local stairLength = STAIR.z1 - STAIR.z0
+	local sideRail = Vector3.new(STAIR.x1 + 0.5, LEVEL_HEIGHT, (STAIR.z0 + STAIR.z1) / 2)
+	local endRail = Vector3.new(xCenter + 0.5, LEVEL_HEIGHT, STAIR.z0 - 0.5)
+	for _, rail in
+		{
+			{ sideRail, Vector3.new(0.6, 0.5, stairLength + 1) },
+			{ endRail, Vector3.new(width + 1, 0.5, 0.6) },
+		}
+	do
+		part({
+			Name = "Baranda",
+			Size = rail[2],
+			Position = base + rail[1] + Vector3.new(0, 3.5, 0),
+			Color = WOOD_COLOR,
+			Material = Enum.Material.Wood,
+		})
+		part({
+			Name = "ParedInvisible",
+			Size = Vector3.new(math.max(rail[2].X, 1), LEVEL_HEIGHT - 2, math.max(rail[2].Z, 1)),
+			Position = base + rail[1] + Vector3.new(0, (LEVEL_HEIGHT - 2) / 2, 0),
+			Transparency = 1,
+			CanQuery = false,
+		})
+	end
+	for offset = 0, stairLength, 8 do
+		part({
+			Name = "Baluastre",
+			Size = Vector3.new(0.5, 3.5, 0.5),
+			Position = base + Vector3.new(STAIR.x1 + 0.5, LEVEL_HEIGHT + 1.75, STAIR.z0 + offset),
+			Color = WOOD_COLOR,
+			Material = Enum.Material.Wood,
+		})
+	end
 
 	local gatePosition = if gateAtTop
 		then base + Vector3.new(xCenter, LEVEL_HEIGHT, STAIR.z1 + 0.5)
@@ -972,16 +1001,15 @@ end
 local function buildExterior()
 	-- Terreno en cuatro franjas: no tapa el agujero de la escalera del sótano.
 	local x0, x1, z0, z1 = -HALF - 2, 2 * PITCH + HALF + 2, -HALF - 2, PITCH + HALF + 2
-	local far = 900
-	local grass = Color3.fromRGB(22, 30, 20)
+	local far = 500
+	local terrain = workspace.Terrain
+	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(58, 104, 46))
 	local function ground(xa: number, xb: number, za: number, zb: number)
-		part({
-			Name = "Terreno",
-			Size = Vector3.new(xb - xa, 1, zb - za),
-			Position = Vector3.new((xa + xb) / 2, -0.6, (za + zb) / 2),
-			Color = grass,
-			Material = Enum.Material.Grass,
-		})
+		terrain:FillBlock(
+			CFrame.new((xa + xb) / 2, -2, (za + zb) / 2),
+			Vector3.new(xb - xa, 4, zb - za),
+			Enum.Material.Grass
+		)
 	end
 	ground(-far, far, -far, z0)
 	ground(-far, far, z1, far)
@@ -991,8 +1019,8 @@ local function buildExterior()
 	-- Bosque: se ven solo árboles hasta perderse en la niebla.
 	local random = Random.new(7)
 	local midX, midZ = (x0 + x1) / 2, (z0 + z1) / 2
-	local trunkColor = Color3.fromRGB(32, 24, 18)
-	local leafColor = Color3.fromRGB(14, 28, 18)
+	local trunkColor = Color3.fromRGB(62, 46, 32)
+	local leafColor = Color3.fromRGB(34, 70, 40)
 	local planted = 0
 	while planted < 170 do
 		local angle = random:NextNumber(0, 2 * math.pi)
@@ -1131,7 +1159,10 @@ function Mansion.build(): MansionRefs
 			Material = Enum.Material.Glass,
 			Transparency = 0.7,
 		})
-		rainOutside(window)
+		-- Las ventanitas del altillo dan sobre los techos: su lluvia caería dentro de los pasillos.
+		if window.width > 20 then
+			rainOutside(window)
+		end
 	end
 
 	for _, link in LINKS do
