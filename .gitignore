@@ -14,3 +14,6 @@ roblox.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# Copia local de la conversación con Claude
+conversacion-*.jsonl
