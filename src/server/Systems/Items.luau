@@ -96,9 +96,21 @@ local LOOKS = {
 		Color3.fromRGB(110, 80, 50),
 		Enum.Material.Wood
 	),
+	goldKey = look(
+		"Llave dorada del lobo",
+		Vector3.new(1.3, 0.3, 0.6),
+		Color3.fromRGB(table.unpack(Config.GoldKeyRgb)),
+		Enum.Material.Neon
+	),
 }
 
-local function spawnItem(id: string, kind: string, position: Vector3, onPicked: (Player) -> boolean)
+local function spawnItem(
+	id: string,
+	kind: string,
+	position: Vector3,
+	onPicked: (Player) -> boolean,
+	keyColor: { name: string, rgb: { number } }?
+)
 	local itemLook = LOOKS[kind]
 	local item = Instance.new("Part")
 	item.Name = id
@@ -106,14 +118,14 @@ local function spawnItem(id: string, kind: string, position: Vector3, onPicked: 
 	item.CanCollide = false
 	item.CanQuery = false
 	item.Size = itemLook.size
-	item.Color = itemLook.color
+	item.Color = if keyColor then Color3.fromRGB(table.unpack(keyColor.rgb)) else itemLook.color
 	item.Material = itemLook.material
 	item.Position = position
 	item.Parent = folder
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Agarrar"
-	prompt.ObjectText = itemLook.name
+	prompt.ObjectText = if keyColor then `Llave {keyColor.name}` else itemLook.name
 	prompt.MaxActivationDistance = PICKUP_DISTANCE
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = item
@@ -151,6 +163,15 @@ local function spawnLadder(position: Vector3)
 	end)
 end
 
+function Items.spawnGoldKey(position: Vector3)
+	dropCount += 1
+	spawnItem(`goldkey{dropCount}`, "goldKey", position, function(player)
+		player:SetAttribute("HasGoldKey", true)
+		notify(player, "Llave dorada del lobo: abrí la puerta principal")
+		return true
+	end)
+end
+
 local function dropCarried(player: Player)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -163,6 +184,10 @@ local function dropCarried(player: Player)
 	if player:GetAttribute("HasLadder") then
 		spawnLadder(position + Vector3.new(1.5, 0, 0))
 		player:SetAttribute("HasLadder", false)
+	end
+	if player:GetAttribute("HasGoldKey") then
+		Items.spawnGoldKey(position + Vector3.new(-1.5, 0, 0))
+		player:SetAttribute("HasGoldKey", false)
 	end
 end
 
@@ -200,22 +225,25 @@ function Items.spawnAll(refs: any, handlers: Handlers)
 		spawnItem(`key{n}`, "key", takeSpot(free[`room{n}`], random), function(player)
 			handlers.onKey(player, n)
 			return true
-		end)
+		end, Config.KeyColors[n])
 	end
 
-	-- Dos libros arriba de todo, en el altillo; el resto, por el primer piso.
-	local bookRooms = { "attic", "attic", "room7", "room8", "room9", "room10", "room11", "room12" }
+	-- Un pergamino en el sótano, uno en el altillo, uno en planta baja y uno en el primer piso.
+	local function pick(rooms: { string }): string
+		return rooms[random:NextInteger(1, #rooms)]
+	end
+	local scrollRooms = {
+		pick({ "room5", "room6" }),
+		"attic",
+		pick({ "room2", "room3", "room4" }),
+		pick({ "room7", "room8", "room9", "room10", "room11", "room12" }),
+	}
 	for n = 1, Config.BookCount do
 		local id = `book{n}`
-		spawnItem(
-			id,
-			if n % 2 == 0 then "scroll" else "book",
-			takeSpot(free[bookRooms[(n - 1) % #bookRooms + 1]], random),
-			function(player)
-				handlers.onBook(player, id)
-				return true
-			end
-		)
+		spawnItem(id, "scroll", takeSpot(free[scrollRooms[n]], random), function(player)
+			handlers.onBook(player, id)
+			return true
+		end)
 	end
 
 	local function randomSpot(rooms: { number }): Vector3
@@ -269,8 +297,8 @@ function Items.spawnAll(refs: any, handlers: Handlers)
 	end
 
 	spawnFlashlight(randomSpot(allRooms), 1)
-	-- La escalera nunca queda en el sótano, como se acordó en el diseño.
-	spawnLadder(randomSpot({ 1, 2, 3, 4, 7, 8, 9, 10, 11, 12 }))
+	-- La escalera de mano siempre está en el sótano.
+	spawnLadder(randomSpot({ 5, 6 }))
 end
 
 function Items.clear()
@@ -284,6 +312,7 @@ function Items.debugGive(player: Player)
 	player:SetAttribute("HasFlashlight", true)
 	player:SetAttribute("Battery", 1)
 	player:SetAttribute("HasLadder", true)
+	player:SetAttribute("HasGoldKey", true)
 end
 
 -- En el hall cada jugador agarra un taser por partida.

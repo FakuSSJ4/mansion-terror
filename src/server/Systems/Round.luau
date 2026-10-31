@@ -33,6 +33,9 @@ local function publish()
 	workspace:SetAttribute("Keys", progress.keyCount)
 	workspace:SetAttribute("Books", progress.bookCount)
 	workspace:SetAttribute("Phase", phase)
+	for n = 1, Config.KeyCount do
+		workspace:SetAttribute(`Key{n}`, progress.keys[n] == true)
+	end
 end
 
 function Round.getProgress(): Progress.State
@@ -41,9 +44,7 @@ end
 
 function Round.addKey(player: Player, n: number)
 	if Progress.addKey(progress, n) then
-		notifyAll(
-			`{player.DisplayName} encontró la llave {n} ({progress.keyCount}/{Config.KeyCount})`
-		)
+		notifyAll(`{player.DisplayName} encontró la llave {Config.KeyColors[n].name}`)
 		publish()
 	end
 end
@@ -51,10 +52,10 @@ end
 function Round.addBook(player: Player, id: string)
 	if Progress.addBook(progress, id) then
 		notifyAll(
-			`{player.DisplayName} encontró un escrito ({progress.bookCount}/{Config.BookCount})`
+			`{player.DisplayName} encontró un pergamino ({progress.bookCount}/{Config.BookCount})`
 		)
 		if Progress.isExitOpen(progress) then
-			notifyAll("¡La salida se puede abrir!")
+			notifyAll("Llevá los pergaminos a la estatua de lobo del hall")
 		end
 		publish()
 	end
@@ -70,6 +71,7 @@ function Round.reset()
 	for _, door in refs.doors do
 		Mansion.setDoorUnlocked(door, false)
 	end
+	Mansion.setDrawerOpen(false)
 	spawnRoundItems()
 	publish()
 	resetEvent:Fire()
@@ -101,12 +103,12 @@ local function setupDoors()
 				return
 			end
 			if key == "exit" then
-				if Progress.isExitOpen(progress) then
+				if player:GetAttribute("HasGoldKey") then
+					player:SetAttribute("HasGoldKey", false)
 					Mansion.setDoorUnlocked(door, true)
 					notifyAll("¡La salida está abierta! Corré")
 				else
-					local missing = Config.BookCount - progress.bookCount
-					Remotes.get("Notify"):FireClient(player, `Faltan {missing} escritos`)
+					Remotes.get("Notify"):FireClient(player, "Necesitás la llave dorada del lobo")
 				end
 				return
 			end
@@ -114,10 +116,25 @@ local function setupDoors()
 			if Progress.isDoorOpen(progress, room) then
 				Mansion.setDoorUnlocked(door, true)
 			else
-				Remotes.get("Notify"):FireClient(player, `Necesitás la llave {room - 1}`)
+				local name = Config.KeyColors[room - 1].name
+				Remotes.get("Notify"):FireClient(player, `Necesitás la llave {name}`)
 			end
 		end)
 	end
+
+	refs.altar.prompt.Triggered:Connect(function(player)
+		if not Vitality.canReach(player, refs.altar.position) then
+			return
+		end
+		if not Progress.isExitOpen(progress) then
+			local missing = Config.BookCount - progress.bookCount
+			Remotes.get("Notify"):FireClient(player, `Faltan {missing} pergaminos`)
+			return
+		end
+		Mansion.setDrawerOpen(true)
+		Items.spawnGoldKey(refs.altar.keySpot)
+		notifyAll("El cajón se abrió: agarrá la llave dorada")
+	end)
 
 	refs.exitZone.Touched:Connect(function(hit)
 		local player = Players:GetPlayerFromCharacter(hit.Parent)

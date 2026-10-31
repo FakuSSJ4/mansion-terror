@@ -55,8 +55,23 @@ function Hud.start()
 	local staminaFill = bar(gui, -28, Color3.fromRGB(170, 150, 80))
 	local batteryFill = bar(gui, -64, Color3.fromRGB(90, 150, 200))
 	local batteryBack = batteryFill.Parent :: Frame
-	local status = label(gui, UDim2.fromOffset(16, 96), UDim2.fromOffset(300, 80), 24)
+	local status = label(gui, UDim2.fromOffset(16, 122), UDim2.fromOffset(300, 100), 24)
 	status.TextYAlignment = Enum.TextYAlignment.Top
+
+	-- Una marca por llave, de su color; se enciende cuando el equipo la encuentra.
+	local keyChips: { Frame } = {}
+	for n, key in Config.KeyColors do
+		local chip = Instance.new("Frame")
+		chip.Position = UDim2.fromOffset(16 + (n - 1) * 28, 96)
+		chip.Size = UDim2.fromOffset(22, 22)
+		chip.BackgroundColor3 = Color3.fromRGB(table.unpack(key.rgb))
+		chip.BorderSizePixel = 0
+		chip.Parent = gui
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(225, 215, 195)
+		stroke.Parent = chip
+		keyChips[n] = chip
+	end
 
 	local notice = label(gui, UDim2.fromScale(0, 0.72), UDim2.new(1, 0, 0, 40), 28)
 	notice.TextXAlignment = Enum.TextXAlignment.Center
@@ -75,17 +90,24 @@ function Hud.start()
 	victory.Visible = false
 
 	local function refreshStatus()
-		local keys = workspace:GetAttribute("Keys") or 0
 		local books = workspace:GetAttribute("Books") or 0
 		local charges = (player:GetAttribute("TaserCharges") :: number?) or 0
 		local taser = if charges > 0 then "sí" else "no"
 		local ladder = if player:GetAttribute("HasLadder") then "\nLlevás la escalera" else ""
-		status.Text =
-			`Llaves: {keys}/{Config.KeyCount}\nEscritos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}`
+		local gold = if player:GetAttribute("HasGoldKey") then "\nLlevás la llave dorada" else ""
+		local dev = if player:GetAttribute("GodMode") then "\nMODO DESARROLLADOR" else ""
+		status.Text = `Pergaminos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}{gold}{dev}`
 		batteryBack.Visible = player:GetAttribute("HasFlashlight") == true
+		for n, chip in keyChips do
+			chip.BackgroundTransparency = if workspace:GetAttribute(`Key{n}`) then 0 else 0.85
+		end
 	end
-	workspace:GetAttributeChangedSignal("Keys"):Connect(refreshStatus)
+	for n = 1, Config.KeyCount do
+		workspace:GetAttributeChangedSignal(`Key{n}`):Connect(refreshStatus)
+	end
 	workspace:GetAttributeChangedSignal("Books"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("HasGoldKey"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("GodMode"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("TaserCharges"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("HasLadder"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("HasFlashlight"):Connect(refreshStatus)

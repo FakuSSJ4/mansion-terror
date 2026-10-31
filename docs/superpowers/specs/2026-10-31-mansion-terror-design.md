@@ -6,8 +6,11 @@ Fecha: 2026-10-31
 
 - **Cámara:** primera persona fija.
 - **Mapa:** planta baja (hall con gran escalera, living, comedor, sala de música, cocina), sótano de 2 piezas al que se baja desde la cocina, primer piso de 6 piezas (dormitorio incluido) y altillo ("cobertizo") de 1 pieza. Refugios junto al living, en el sótano y junto al dormitorio.
-- **Recorrido:** llaves 1 a 4 en planta baja; la 4 abre el sótano; llaves 5 y 6 en el sótano; la 6 abre la reja de la escalera del hall. Libros: 6 en el primer piso y 2 en el altillo. Con los 8 se abre la puerta principal, que es la salida.
-- **Escalera de mano:** aparece al azar en planta baja o primer piso, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va.
+- **Recorrido:** llaves de color (roja, azul, verde y negra en planta baja; violeta y amarilla en el sótano), cada una abre la puerta de su color. La negra abre el sótano y la amarilla la reja de la escalera del hall.
+- **Pergaminos:** son 4: uno en el sótano, uno en el altillo, uno en una pieza de planta baja con puerta de color y uno en el primer piso. Se dejan en la estatua de lobo del hall: su cajón da la llave dorada del lobo, que abre la puerta principal.
+- **Escalera de mano:** siempre en el sótano, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va, igual que la llave dorada.
+- **Tutorial:** al entrar, con opción de omitirlo. Mientras está abierto no se puede caminar ni recibir daño.
+- **Luz a distancia:** las velas se apagan gradualmente con la distancia, así lo lejano queda oscuro.
 - **Asesino:** cruza la trampilla apareciendo del otro lado. No acecha los refugios: si su objetivo entra a uno, lo abandona y sigue patrullando.
 - **Taser:** se lleva uno, con 1 descarga, y desaparece al usarlo. Uno por jugador en el hall y 4 escondidos.
 - **Linterna:** una sola, escondida; tecla `F`; 2 minutos de batería. 6 pilas de 1 minuto cada una. Se cae si el dueño muere o se va.

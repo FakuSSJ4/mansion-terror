@@ -47,7 +47,11 @@ end
 
 function Vitality.damage(player: Player, amount: number)
 	local humanoid = humanoidOf(player)
-	if humanoid then
+	if
+		humanoid
+		and not player:GetAttribute("GodMode")
+		and not player:GetAttribute("InTutorial")
+	then
 		humanoid.Health = Vitals.damage(humanoid.Health, amount)
 		Remotes.get("Hit"):FireClient(player)
 	end
@@ -85,6 +89,7 @@ function Vitality.resetPlayer(player: Player)
 	player:SetAttribute("HasFlashlight", false)
 	player:SetAttribute("FlashlightOn", false)
 	player:SetAttribute("HasLadder", false)
+	player:SetAttribute("HasGoldKey", false)
 	-- LoadCharacter cede el hilo y falla si el jugador ya se fue.
 	task.spawn(function()
 		if player.Parent then
@@ -110,7 +115,11 @@ local function step(dt: number)
 					Config.StaminaSeconds
 				)
 			end
-			humanoid.WalkSpeed = if running then Config.RunSpeed else Config.WalkSpeed
+			-- Durante el tutorial no se puede caminar, así estar protegido no da ventaja.
+			humanoid.WalkSpeed = if player:GetAttribute("InTutorial")
+				then 0
+				elseif running then Config.RunSpeed
+				else Config.WalkSpeed
 			player:SetAttribute("Running", running)
 			player:SetAttribute("Stamina", state.stamina / Config.StaminaSeconds)
 			local room = Mansion.roomAt(root.Position)
@@ -132,6 +141,7 @@ function Vitality.start()
 		player:SetAttribute("TaserCharges", 0)
 		player:SetAttribute("TaserTaken", false)
 		player:SetAttribute("Stamina", 1)
+		player:SetAttribute("InTutorial", true)
 		player.CharacterAdded:Connect(function(character)
 			setupCharacter(player, character)
 		end)
@@ -145,6 +155,10 @@ function Vitality.start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		runStates[player] = nil
+	end)
+
+	Remotes.get("TutorialDone").OnServerEvent:Connect(function(player)
+		player:SetAttribute("InTutorial", false)
 	end)
 
 	Remotes.get("Run").OnServerEvent:Connect(function(player, wants)

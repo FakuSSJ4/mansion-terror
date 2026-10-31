@@ -10,6 +10,8 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local LightFade = require(Shared:WaitForChild("Rules"):WaitForChild("LightFade"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Sounds = require(Shared:WaitForChild("Sounds"))
 
@@ -81,10 +83,13 @@ function Ambience.start()
 			return
 		end
 		clock = 0
+		local eye = workspace.CurrentCamera.CFrame.Position
 		for _, flame in CollectionService:GetTagged("CandleFlame") do
 			local light = flame:FindFirstChildOfClass("PointLight")
 			if light then
-				light.Brightness = 0.2 + math.noise(flame.Position.X, os.clock() * 3) * 0.12
+				local flicker = 0.2 + math.noise(flame.Position.X, os.clock() * 3) * 0.12
+				light.Brightness = flicker
+					* LightFade.factor((flame.Position - eye).Magnitude, Config)
 			end
 		end
 	end)

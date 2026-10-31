@@ -42,7 +42,17 @@ local Config = {
 
 	-- Progreso
 	KeyCount = 6,
-	BookCount = 8,
+	-- La llave N abre la puerta de la pieza N + 1.
+	KeyColors = {
+		{ name = "roja", rgb = { 190, 40, 40 } },
+		{ name = "azul", rgb = { 50, 90, 200 } },
+		{ name = "verde", rgb = { 50, 150, 70 } },
+		{ name = "negra", rgb = { 18, 18, 20 } },
+		{ name = "violeta", rgb = { 130, 60, 180 } },
+		{ name = "amarilla", rgb = { 220, 190, 50 } },
+	},
+	GoldKeyRgb = { 235, 180, 40 },
+	BookCount = 4,
 	VictorySeconds = 15,
 
 	-- Ambiente
@@ -51,6 +61,8 @@ local Config = {
 	ScareRange = 30,
 	ScareRearmSeconds = 20,
 	MaxLightsPerRoom = 6,
+	LightFadeStart = 35,
+	LightFadeEnd = 70,
 }
 
 return Config

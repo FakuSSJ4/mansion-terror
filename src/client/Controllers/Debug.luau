@@ -1,5 +1,5 @@
 --!strict
--- Atajos de QA, solo en Studio: 1 llaves, 2 escritos, 3 pieza siguiente, 4 rayo, 5 daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera, 9 ir a la gran escalera, 0 girar la vista.
+-- Atajos de QA, solo en Studio: 1 modo desarrollador, K llaves, 2 pergaminos, 3 pieza siguiente, 4 rayo, 5 daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera, 9 ir a la gran escalera, 0 girar la vista.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,8 @@ local UserInputService = game:GetService("UserInputService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 
 local KEYS = {
-	[Enum.KeyCode.One] = "keys",
+	[Enum.KeyCode.One] = "devmode",
+	[Enum.KeyCode.K] = "keys",
 	[Enum.KeyCode.Two] = "books",
 	[Enum.KeyCode.Three] = "next",
 	[Enum.KeyCode.Four] = "lightning",

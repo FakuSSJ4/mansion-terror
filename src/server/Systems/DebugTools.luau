@@ -23,7 +23,16 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 		return
 	end
 	Remotes.get("Debug").OnServerEvent:Connect(function(player, command)
-		if command == "keys" then
+		if command == "devmode" then
+			local on = not player:GetAttribute("GodMode")
+			player:SetAttribute("GodMode", on)
+			Remotes.get("Notify"):FireClient(
+				player,
+				if on
+					then "Modo desarrollador: el asesino no te daña"
+					else "Modo desarrollador apagado"
+			)
+		elseif command == "keys" then
 			for n = 1, Config.KeyCount do
 				Round.addKey(player, n)
 			end

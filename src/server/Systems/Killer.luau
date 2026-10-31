@@ -83,7 +83,7 @@ local function senseTarget(position: Vector3, forward: Vector3): Player?
 	local bestDistance = math.huge
 	for _, player in Players:GetPlayers() do
 		local root = Vitality.rootOf(player)
-		if root and not inRefuge(player) then
+		if root and not inRefuge(player) and not player:GetAttribute("InTutorial") then
 			local offset = root.Position - position
 			local distance = offset.Magnitude
 			local inFront = distance > 0 and forward:Dot(offset.Unit) > 0
@@ -115,7 +115,8 @@ local function nearestPlayer(): (Player?, number?)
 	local bestDistance: number? = nil
 	for _, player in Players:GetPlayers() do
 		local room = Vitality.getRoom(player)
-		if Vitality.rootOf(player) and room and not MapGraph.isRefuge(graph, room) then
+		local playing = not player:GetAttribute("InTutorial")
+		if playing and Vitality.rootOf(player) and room and not MapGraph.isRefuge(graph, room) then
 			local distance = MapGraph.distance(graph, currentRoom, room)
 			if not bestDistance or distance < bestDistance then
 				best, bestDistance = player, distance

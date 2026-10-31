@@ -110,6 +110,14 @@ export type MansionRefs = {
 	hatchPoint: BasePart,
 	ladderCFrame: CFrame,
 	ladderSize: Vector3,
+	altar: {
+		prompt: ProximityPrompt,
+		drawer: BasePart,
+		closedCFrame: CFrame,
+		openCFrame: CFrame,
+		position: Vector3,
+		keySpot: Vector3,
+	},
 }
 
 local Mansion = {}
@@ -756,6 +764,39 @@ local function buildRoom(id: string, random: Random, openings: { [string]: Openi
 	decorateRoom(id, random)
 end
 
+-- Ícono de llave pintado en una cara de la puerta, del color de la llave que la abre.
+local function keyIcon(door: BasePart, face: Enum.NormalId, color: Color3)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 30
+	gui.LightInfluence = 0.5
+	gui.Parent = door
+	local function piece(x: number, y: number, w: number, h: number, round: boolean)
+		local frame = Instance.new("Frame")
+		frame.AnchorPoint = Vector2.new(0.5, 0.5)
+		frame.Position = UDim2.new(0.5, x, 0.5, y)
+		frame.Size = UDim2.fromOffset(w, h)
+		frame.BackgroundColor3 = color
+		frame.BorderSizePixel = 0
+		frame.Parent = gui
+		-- El contorno claro hace que también se distinga la llave negra.
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(225, 215, 195)
+		stroke.Thickness = 2
+		stroke.Parent = frame
+		if round then
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0.5, 0)
+			corner.Parent = frame
+		end
+	end
+	piece(0, 20, 16, 80, false)
+	piece(18, 42, 22, 12, false)
+	piece(18, 18, 22, 12, false)
+	piece(0, -38, 60, 60, true)
+end
+
 local function buildDoor(
 	key: string,
 	position: Vector3,
@@ -774,11 +815,15 @@ local function buildDoor(
 	local open = CFrame.new(position - hingeOffset + Vector3.new(0, height / 2, 0))
 		* CFrame.Angles(0, math.rad(90), 0)
 		* CFrame.new(hingeOffset)
+	local keyIndex = tonumber(string.match(key, "%d+"))
+	local keyColor = if keyIndex then Config.KeyColors[keyIndex - 1] else nil
+	local emblem =
+		Color3.fromRGB(table.unpack(if keyColor then keyColor.rgb else Config.GoldKeyRgb))
 	local visual = part({
 		Name = `Puerta_{key}`,
 		Size = sized(width, height),
 		CFrame = closed,
-		Color = Color3.fromRGB(38, 22, 14),
+		Color = Color3.fromRGB(38, 22, 14):Lerp(emblem, 0.2),
 		Material = Enum.Material.WoodPlanks,
 		CanCollide = false,
 	})
@@ -793,10 +838,17 @@ local function buildDoor(
 	})
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = actionText
-	prompt.ObjectText = "Puerta"
+	prompt.ObjectText = if keyColor then `Puerta {keyColor.name}` else "Puerta principal"
 	prompt.MaxActivationDistance = Config.InteractRange
 	prompt.RequiresLineOfSight = false
-	prompt.Parent = visual
+	-- En el bloqueo, que no se mueve: la hoja se abre sola cuando pasa el asesino.
+	prompt.Parent = blocker
+	local faces = if math.abs(along.X) > 0
+		then { Enum.NormalId.Front, Enum.NormalId.Back }
+		else { Enum.NormalId.Left, Enum.NormalId.Right }
+	for _, face in faces do
+		keyIcon(visual, face, emblem)
+	end
 	return {
 		visual = visual,
 		blocker = blocker,
@@ -1121,6 +1173,87 @@ local function planOpenings(): ({ [string]: { [string]: Opening } }, { any })
 	return openings, windows
 end
 
+-- Mueble con cajón y estatua de lobo, donde se dejan los pergaminos.
+local function buildAltar(hall: Vector3)
+	local base = CFrame.lookAt(hall + Vector3.new(10, 0, 24), hall + Vector3.new(10, 0, 0))
+	local cabinet =
+		solid(base, "Mueble", Vector3.new(11, 4.5, 4), CFrame.new(0, 2.25, 0), WOOD_COLOR)
+	local closedDrawer = base * CFrame.new(0, 2.4, -2.05)
+	local drawer = solid(
+		CFrame.identity,
+		"Cajon",
+		Vector3.new(7, 1.8, 3.8),
+		closedDrawer * CFrame.new(0, 0, 1.8),
+		Color3.fromRGB(72, 46, 28)
+	)
+	drawer.CanCollide = false
+	solid(
+		closedDrawer,
+		"Manija",
+		Vector3.new(1.4, 0.3, 0.3),
+		CFrame.new(0, 0, -0.2),
+		GOLD_COLOR,
+		Enum.Material.Metal
+	)
+
+	local stone = Color3.fromRGB(112, 112, 122)
+	local top = base * CFrame.new(0, 4.5, 0)
+	local function wolf(name: string, size: Vector3, offset: CFrame)
+		solid(top, name, size, offset, stone, Enum.Material.Slate)
+	end
+	wolf("Lomo", Vector3.new(2.2, 2.2, 5), CFrame.new(0, 2.6, 0.4))
+	wolf(
+		"Pecho",
+		Vector3.new(2.5, 2.8, 2),
+		CFrame.new(0, 3, -2) * CFrame.Angles(math.rad(-15), 0, 0)
+	)
+	wolf("Cabeza", Vector3.new(2.2, 2, 2.2), CFrame.new(0, 5, -2.8))
+	wolf("Hocico", Vector3.new(1.1, 0.9, 1.6), CFrame.new(0, 4.6, -4.4))
+	wolf("OrejaIzquierda", Vector3.new(0.6, 1.2, 0.5), CFrame.new(-0.7, 6.4, -2.6))
+	wolf("OrejaDerecha", Vector3.new(0.6, 1.2, 0.5), CFrame.new(0.7, 6.4, -2.6))
+	wolf(
+		"Cola",
+		Vector3.new(0.7, 0.7, 3),
+		CFrame.new(0, 3, 3.4) * CFrame.Angles(math.rad(-25), 0, 0)
+	)
+	for _, x in { -0.8, 0.8 } do
+		for _, z in { -2, 2.4 } do
+			wolf("Pata", Vector3.new(0.7, 1.8, 0.7), CFrame.new(x, 0.9, z))
+		end
+	end
+	candle((base * CFrame.new(-4.5, 5.1, -0.8)).Position, CANDLE_LIGHT)
+	candle((base * CFrame.new(4.5, 5.1, -0.8)).Position, CANDLE_LIGHT)
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Dejar pergaminos"
+	prompt.ObjectText = "Estatua de lobo"
+	prompt.MaxActivationDistance = Config.InteractRange + 4
+	prompt.RequiresLineOfSight = false
+	-- En el mueble quedaría abajo de la vista si se mira de frente desde cerca.
+	prompt.Parent = decor({
+		Name = "PuntoEstatua",
+		Size = Vector3.one,
+		Position = (base * CFrame.new(0, 5.5, -3)).Position,
+		Transparency = 1,
+	})
+	refs.altar = {
+		prompt = prompt,
+		drawer = drawer,
+		closedCFrame = drawer.CFrame,
+		openCFrame = drawer.CFrame * CFrame.new(0, 0, -2.6),
+		position = cabinet.Position,
+		keySpot = (closedDrawer * CFrame.new(0, 1, -1)).Position,
+	}
+end
+
+function Mansion.setDrawerOpen(open: boolean)
+	local altar = refs.altar
+	TweenService:Create(altar.drawer, TweenInfo.new(0.6), {
+		CFrame = if open then altar.openCFrame else altar.closedCFrame,
+	}):Play()
+	altar.prompt.Enabled = not open
+end
+
 function Mansion.build(): MansionRefs
 	setupCollisionGroups()
 	world = Instance.new("Model")
@@ -1136,6 +1269,7 @@ function Mansion.build(): MansionRefs
 		hatchPoint = nil :: any,
 		ladderCFrame = CFrame.identity,
 		ladderSize = Vector3.one,
+		altar = nil :: any,
 	}
 
 	local openings, windows = planOpenings()
@@ -1233,11 +1367,12 @@ function Mansion.build(): MansionRefs
 	refs.taserPedestal = part({
 		Name = "PedestalTaser",
 		Size = Vector3.new(3, 3.6, 3),
-		Position = hall + Vector3.new(10, 1.8, 6),
+		Position = hall + Vector3.new(21, 1.8, -8),
 		Color = WOOD_COLOR,
 		Material = Enum.Material.Marble,
 	})
 
+	buildAltar(hall)
 	buildExterior()
 	world.Parent = workspace
 	return refs

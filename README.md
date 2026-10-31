@@ -1,6 +1,6 @@
 # Mansión de terror
 
-Juego cooperativo de terror para Roblox. Juntá 6 llaves y 8 escritos, y escapá sin que te alcance el asesino.
+Juego cooperativo de terror para Roblox. Juntá las llaves de colores y los 4 pergaminos, dejalos en la estatua de lobo y escapá con la llave dorada sin que te alcance el asesino.
 
 ## Cómo probarlo
 
@@ -28,14 +28,15 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 
 | Tecla | Acción |
 |---|---|
-| `1` | Dar todas las llaves |
-| `2` | Dar todos los escritos |
+| `1` | Modo desarrollador: el asesino no te daña |
+| `K` | Dar todas las llaves |
+| `2` | Dar todos los pergaminos |
 | `3` | Ir a la pieza siguiente |
 | `4` | Disparar un rayo |
 | `5` | Recibir un golpe |
 | `6` | Mostrar en Output el estado del asesino |
 | `7` | Traer al asesino a tu pieza |
-| `8` | Darte la linterna y la escalera |
+| `8` | Darte la linterna, la escalera y la llave dorada |
 | `9` | Ir al pie de la gran escalera |
 | `0` | Girar la vista 90° y nivelarla |
 | `P` | Ir al pedestal del taser |

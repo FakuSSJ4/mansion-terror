@@ -11,6 +11,7 @@ local suites = {
 	ItemClaim = require("./ItemClaim"),
 	Battery = require("./Battery"),
 	Routes = require("./Routes"),
+	Lore = require("./Lore"),
 }
 
 local failed = 0
