@@ -136,7 +136,7 @@ end
 
 local function setupDoors()
 	for key, door in refs.doors do
-		local position = door.closedCFrame.Position
+		local position = door.position
 		door.prompt.Triggered:Connect(function(player)
 			if door.unlocked or not Vitality.canReach(player, position) then
 				return
@@ -187,7 +187,14 @@ function Round.start(mansionRefs: Mansion.MansionRefs)
 	refs = mansionRefs
 	setupDoors()
 	setupDifficulty()
-	Vitality.Killed:Connect(lose)
+	-- La partida sigue mientras quede alguien vivo; el que murió mira a los demás.
+	Vitality.Killed:Connect(function(player: Player)
+		if Vitality.anyAlive() then
+			notifyAll(`{player.DisplayName} murió. Sus cosas quedaron donde cayó`)
+		else
+			lose()
+		end
+	end)
 	Items.start(refs)
 	spawnRoundItems()
 	publish()
@@ -196,6 +203,8 @@ function Round.start(mansionRefs: Mansion.MansionRefs)
 		task.defer(function()
 			if #Players:GetPlayers() == 0 then
 				Round.reset()
+			elseif not Vitality.anyAlive() then
+				lose()
 			end
 		end)
 	end)

@@ -10,7 +10,9 @@ Fecha: 2026-10-31
 - **Pergaminos:** son 4: uno en el sótano, uno en el altillo, uno en una pieza de planta baja con puerta de color y uno en el primer piso. Se dejan en la estatua de lobo del hall: su cajón da la llave dorada del lobo, que abre la puerta principal.
 - **Escalera de mano:** siempre en el sótano, se lleva encima y se coloca bajo la trampilla. Se cae si el dueño muere o se va, igual que la llave dorada.
 - **Puertas y asesino:** solo cruza puertas ya abiertas y sube al altillo si la escalera está puesta. Arranca en el living y espera 20 s desde que alguien empieza a jugar.
-- **Muerte:** si el asesino mata a un jugador, la partida se reinicia para todos, con la misma dificultad. Reemplaza la reaparición sin perder progreso.
+- **Muerte:** el que muere no reaparece: mira a los que siguen vivos (clic cambia de jugador) y sus objetos quedan donde cayó. Cuando mueren todos, la partida se reinicia con la misma dificultad.
+- **Hall:** doble altura, escalera imperial con dos rejas que se abren juntas, galería (primer ambiente del primer piso), columnas y ventanales. La estatua de lobo queda en el centro. Colores: los mismos de toda la casa.
+- **Puertas:** una o dos hojas que giran sobre bisagras, con paneles dibujados en la superficie y una placa del color de la llave. Las de la escalera y el sótano son rejas de hierro.
 - **Dificultad:** Normal o Difícil, elegida tras el tutorial por el primer jugador. Difícil reduce a la mitad píldoras, pilas y tasers escondidos; el taser del hall no cambia.
 - **Tutorial:** al entrar, con opción de omitirlo. Mientras está abierto no se puede caminar ni recibir daño.
 - **Luz a distancia:** las velas se apagan gradualmente con la distancia, así lo lejano queda oscuro.

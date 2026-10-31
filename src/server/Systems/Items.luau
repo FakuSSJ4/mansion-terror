@@ -156,6 +156,19 @@ local function spawnFlashlight(position: Vector3, level: number)
 	end)
 end
 
+local function spawnTaser(position: Vector3)
+	dropCount += 1
+	spawnItem(`taser{dropCount}`, "taser", position, function(player)
+		if not Taser.canPickUp((player:GetAttribute("TaserCharges") :: number?) or 0) then
+			notify(player, "Ya llevás un taser")
+			return false
+		end
+		player:SetAttribute("TaserCharges", Config.TaserStartCharges)
+		notify(player, "Agarraste un taser. Clic para disparar")
+		return true
+	end)
+end
+
 local function spawnLadder(position: Vector3)
 	dropCount += 1
 	spawnItem(`ladder{dropCount}`, "ladder", position, function(player)
@@ -190,6 +203,10 @@ local function dropCarried(player: Player)
 	if player:GetAttribute("HasGoldKey") then
 		Items.spawnGoldKey(position + Vector3.new(-1.5, 0, 0))
 		player:SetAttribute("HasGoldKey", false)
+	end
+	if ((player:GetAttribute("TaserCharges") :: number?) or 0) > 0 then
+		spawnTaser(position + Vector3.new(0, 0, 1.5))
+		player:SetAttribute("TaserCharges", 0)
 	end
 end
 
@@ -271,16 +288,8 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 		end)
 	end
 
-	for n = 1, counts.tasers do
-		spawnItem(`taser{n}`, "taser", randomSpot(allRooms), function(player)
-			if not Taser.canPickUp((player:GetAttribute("TaserCharges") :: number?) or 0) then
-				notify(player, "Ya llevás un taser")
-				return false
-			end
-			player:SetAttribute("TaserCharges", Config.TaserStartCharges)
-			notify(player, "Agarraste un taser. Clic para disparar")
-			return true
-		end)
+	for _ = 1, counts.tasers do
+		spawnTaser(randomSpot(allRooms))
 	end
 
 	for n = 1, counts.batteries do

@@ -56,7 +56,7 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 		elseif command == "stairs" then
 			local root = Vitality.rootOf(player)
 			if root then
-				root.CFrame = CFrame.new(refs.rooms.hall.center + Vector3.new(-20, 4, -24))
+				root.CFrame = CFrame.new(10, 4, -56)
 			end
 		elseif command == "pedestal" then
 			local root = Vitality.rootOf(player)

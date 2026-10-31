@@ -38,6 +38,15 @@ function Vitality.rootOf(player: Player): BasePart?
 	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
+function Vitality.anyAlive(): boolean
+	for _, player in Players:GetPlayers() do
+		if humanoidOf(player) and not player:GetAttribute("Spectating") then
+			return true
+		end
+	end
+	return false
+end
+
 function Vitality.getRoom(player: Player): string?
 	return player:GetAttribute("Room") :: string?
 end
@@ -57,6 +66,7 @@ function Vitality.damage(player: Player, amount: number)
 		humanoid.Health = Vitals.damage(humanoid.Health, amount)
 		Remotes.get("Hit"):FireClient(player)
 		if humanoid.Health <= 0 then
+			player:SetAttribute("Spectating", true)
 			killedEvent:Fire(player)
 		end
 	end
@@ -110,6 +120,7 @@ function Vitality.resetPlayer(player: Player)
 	player:SetAttribute("FlashlightOn", false)
 	player:SetAttribute("HasLadder", false)
 	player:SetAttribute("HasGoldKey", false)
+	player:SetAttribute("Spectating", false)
 	-- LoadCharacter cede el hilo y falla si el jugador ya se fue.
 	task.spawn(function()
 		if player.Parent then
@@ -151,6 +162,8 @@ local function step(dt: number)
 end
 
 function Vitality.start()
+	Players.CharacterAutoLoads = false
+
 	-- Un script vacío llamado Health anula la regeneración automática.
 	local noRegen = Instance.new("Script")
 	noRegen.Name = "Health"
@@ -165,8 +178,13 @@ function Vitality.start()
 		player.CharacterAdded:Connect(function(character)
 			setupCharacter(player, character)
 		end)
+		-- Los personajes se cargan a mano: el que muere no reaparece hasta reiniciar la partida.
 		if player.Character then
 			setupCharacter(player, player.Character)
+		else
+			task.spawn(function()
+				player:LoadCharacter()
+			end)
 		end
 	end
 	Players.PlayerAdded:Connect(onPlayer)

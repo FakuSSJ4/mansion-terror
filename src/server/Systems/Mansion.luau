@@ -9,6 +9,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Routes = require(Shared:WaitForChild("Rules"):WaitForChild("Routes"))
 
+local GrandHall = require(script.Parent:WaitForChild("GrandHall"))
+
 local ROOM_SIZE = 56
 local HALF = ROOM_SIZE / 2
 local LEVEL_HEIGHT = 20
@@ -83,24 +85,27 @@ local REFUGES = {
 	refuge3 = { room = "room8", dir = Vector3.new(0, 0, 1) },
 }
 
-local FLOOR_HOLES: { [string]: Hole } = { room7 = STAIR, room4 = STAIR, attic = HATCH }
-local CEILING_HOLES: { [string]: Hole } = { hall = STAIR, room5 = STAIR, room12 = HATCH }
-local STAIR_ROOMS = { hall = true, room4 = true, room5 = true, room7 = true }
-local CHANDELIER_ROOMS =
-	{ hall = true, room1 = true, room2 = true, room7 = true, room8 = true, room10 = true }
+local FLOOR_HOLES: { [string]: Hole } = { room4 = STAIR, attic = HATCH }
+local CEILING_HOLES: { [string]: Hole } = { room5 = STAIR, room12 = HATCH }
+local STAIR_ROOMS = { room4 = true, room5 = true }
+local CHANDELIER_ROOMS = { room1 = true, room2 = true, room8 = true, room10 = true }
+-- Los construye GrandHall.
+local GRAND_ROOMS = { hall = true, room7 = true }
 
 export type Door = {
-	visual: BasePart,
+	leaves: { { part: BasePart, closed: CFrame, open: CFrame } },
 	blocker: BasePart,
-	closedCFrame: CFrame,
-	openCFrame: CFrame,
+	position: Vector3,
+	-- La otra reja de la escalera imperial: se abren juntas.
+	twin: any,
 	unlocked: boolean,
 	swung: boolean,
 	prompt: ProximityPrompt,
 }
 
 export type MansionRefs = {
-	rooms: { [string]: { center: Vector3, size: Vector3 } },
+	-- `box` es el centro del rectángulo cuando no coincide con `center`.
+	rooms: { [string]: { center: Vector3, size: Vector3, box: Vector3? } },
 	doors: { [string]: Door },
 	routes: { [string]: { Vector3 } },
 	hidingSpots: { [string]: { Vector3 } },
@@ -241,7 +246,7 @@ local function candle(position: Vector3, lightColor: Color3)
 	light.Parent = flame
 end
 
-local function chandelier(center: Vector3)
+local function chandelier(center: Vector3, grand: boolean?)
 	local top = center + Vector3.new(0, CEILING, 0)
 	decor({
 		Name = "Cadena",
@@ -276,9 +281,11 @@ local function chandelier(center: Vector3)
 		Transparency = 1,
 	})
 	core:AddTag("CandleFlame")
+	-- El del hall alumbra un ambiente enorme: llega más lejos y no se apaga con la distancia.
+	core:SetAttribute("NoFade", grand == true)
 	local light = Instance.new("PointLight")
 	light.Color = CANDLE_LIGHT
-	light.Range = 34
+	light.Range = if grand then 60 else 34
 	light.Brightness = 0.3
 	light.Parent = core
 end
@@ -764,37 +771,66 @@ local function buildRoom(id: string, random: Random, openings: { [string]: Openi
 	decorateRoom(id, random)
 end
 
--- Ícono de llave pintado en una cara de la puerta, del color de la llave que la abre.
-local function keyIcon(door: BasePart, face: Enum.NormalId, color: Color3)
+-- Dibuja una cara de la hoja sobre la superficie, sin agregar partes: paneles de madera,
+-- picaporte y placa del color de la llave. En las rejas, barrotes de hierro.
+local function doorFace(
+	leaf: BasePart,
+	face: Enum.NormalId,
+	emblem: Color3,
+	gate: boolean,
+	hingeSide: number,
+	width: number,
+	height: number
+)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = face
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 30
-	gui.LightInfluence = 0.5
-	gui.Parent = door
-	local function piece(x: number, y: number, w: number, h: number, round: boolean)
+	gui.PixelsPerStud = 24
+	gui.LightInfluence = 1
+	gui.Parent = leaf
+	local function rect(x: number, y: number, w: number, h: number, color: Color3): Frame
 		local frame = Instance.new("Frame")
 		frame.AnchorPoint = Vector2.new(0.5, 0.5)
-		frame.Position = UDim2.new(0.5, x, 0.5, y)
-		frame.Size = UDim2.fromOffset(w, h)
+		frame.Position = UDim2.fromScale(x, y)
+		frame.Size = UDim2.fromScale(w, h)
 		frame.BackgroundColor3 = color
 		frame.BorderSizePixel = 0
 		frame.Parent = gui
-		-- El contorno claro hace que también se distinga la llave negra.
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(225, 215, 195)
-		stroke.Thickness = 2
-		stroke.Parent = frame
-		if round then
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0.5, 0)
-			corner.Parent = frame
-		end
+		return frame
 	end
-	piece(0, 20, 16, 80, false)
-	piece(18, 42, 22, 12, false)
-	piece(18, 18, 22, 12, false)
-	piece(0, -38, 60, 60, true)
+	-- El borde libre, lejos de la bisagra, cae a un lado u otro según la cara que se mira.
+	local sign = if face == Enum.NormalId.Front or face == Enum.NormalId.Right then -1 else 1
+	local freeEdge = 0.5 - hingeSide * sign * 0.5
+
+	if gate then
+		local iron = Color3.fromRGB(28, 28, 32)
+		local bars = math.max(math.floor(width / 1.2), 3)
+		for i = 1, bars do
+			rect((i - 0.5) / bars, 0.5, 0.04, 1, iron)
+		end
+		rect(0.5, 0.03, 1, 0.05, iron)
+		rect(0.5, 0.5, 1, 0.04, iron)
+		rect(0.5, 0.97, 1, 0.05, iron)
+		local badge = rect(math.abs(freeEdge - 0.12), 0.5, 2.2 / width, 1.4 / height, emblem)
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(190, 180, 150)
+		stroke.Parent = badge
+		return
+	end
+
+	local shade = Color3.fromRGB(34, 20, 12)
+	rect(0.5, 0.27, 0.74, 0.38, shade)
+	rect(0.5, 0.74, 0.74, 0.36, shade)
+	local knob = rect(math.abs(freeEdge - 0.1), 0.53, 0.5 / width, 0.5 / height, GOLD_COLOR)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = knob
+	-- Placa chica con el color de la llave; el contorno distingue también a la negra.
+	local badge = rect(0.5, 0.27, 2 / width, 1.2 / height, emblem)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(190, 180, 150)
+	stroke.Thickness = 2
+	stroke.Parent = badge
 end
 
 local function buildDoor(
@@ -805,28 +841,73 @@ local function buildDoor(
 	width: number,
 	height: number,
 	blockerWidth: number,
-	blockerHeight: number
+	blockerHeight: number,
+	style: string?
 ): Door
 	local function sized(w: number, h: number): Vector3
 		return if math.abs(along.X) > 0 then Vector3.new(w, h, 0.6) else Vector3.new(0.6, h, w)
 	end
-	local closed = CFrame.new(position + Vector3.new(0, height / 2, 0))
-	local hingeOffset = along * (width / 2)
-	local open = CFrame.new(position - hingeOffset + Vector3.new(0, height / 2, 0))
-		* CFrame.Angles(0, math.rad(90), 0)
-		* CFrame.new(hingeOffset)
 	local keyIndex = tonumber(string.match(key, "%d+"))
 	local keyColor = if keyIndex then Config.KeyColors[keyIndex - 1] else nil
 	local emblem =
 		Color3.fromRGB(table.unpack(if keyColor then keyColor.rgb else Config.GoldKeyRgb))
-	local visual = part({
-		Name = `Puerta_{key}`,
-		Size = sized(width, height),
-		CFrame = closed,
-		Color = Color3.fromRGB(38, 22, 14):Lerp(emblem, 0.2),
-		Material = Enum.Material.WoodPlanks,
-		CanCollide = false,
-	})
+	local gate = style == "gate"
+
+	-- Una o dos hojas, cada una girando sobre su propia bisagra del marco.
+	local leaves = {}
+	local double = gate or width >= 14
+	local count = if double then 2 else 1
+	local leafWidth = width / count
+	local faces = if math.abs(along.X) > 0
+		then { Enum.NormalId.Front, Enum.NormalId.Back }
+		else { Enum.NormalId.Left, Enum.NormalId.Right }
+	for i = 1, count do
+		local side = if i == 1 then -1 else 1
+		local hinge = position + along * side * (width / 2) + Vector3.new(0, height / 2, 0)
+		local center = hinge - along * side * (leafWidth / 2)
+		local closed = CFrame.new(center)
+		local angle = math.rad(side * 100)
+		local hingeFrame = CFrame.new(hinge)
+		local open = hingeFrame * CFrame.Angles(0, angle, 0) * hingeFrame:Inverse() * closed
+		local leaf = part({
+			Name = `Puerta_{key}`,
+			Size = sized(leafWidth, height),
+			CFrame = closed,
+			Color = Color3.fromRGB(52, 30, 18),
+			Material = Enum.Material.WoodPlanks,
+			Transparency = if gate then 1 else 0,
+			CanCollide = false,
+		})
+		for _, face in faces do
+			doorFace(leaf, face, emblem, gate, side, leafWidth, height)
+		end
+		table.insert(leaves, { part = leaf, closed = closed, open = open })
+	end
+
+	-- Marco fijo: rellena el resto del hueco; el dintel lleva el color de la llave.
+	local jamb = (blockerWidth - width) / 2
+	if jamb > 0 then
+		for _, side in { -1, 1 } do
+			part({
+				Name = "Marco",
+				Size = sized(jamb, blockerHeight),
+				Position = position
+					+ along * side * (width / 2 + jamb / 2)
+					+ Vector3.new(0, blockerHeight / 2, 0),
+				Color = WOOD_COLOR,
+				Material = Enum.Material.Wood,
+			})
+		end
+	end
+	if blockerHeight > height then
+		part({
+			Name = "Dintel",
+			Size = sized(blockerWidth, blockerHeight - height),
+			Position = position + Vector3.new(0, (height + blockerHeight) / 2, 0),
+			Color = emblem,
+			Material = Enum.Material.Wood,
+		})
+	end
 	-- Sella todo el hueco, aunque sea más ancho y alto que la hoja de la puerta.
 	local blocker = part({
 		Name = "BloqueoPuerta",
@@ -841,19 +922,13 @@ local function buildDoor(
 	prompt.ObjectText = if keyColor then `Puerta {keyColor.name}` else "Puerta principal"
 	prompt.MaxActivationDistance = Config.InteractRange
 	prompt.RequiresLineOfSight = false
-	-- En el bloqueo, que no se mueve: la hoja se abre sola cuando pasa el asesino.
+	-- En el bloqueo, que no se mueve con las hojas.
 	prompt.Parent = blocker
-	local faces = if math.abs(along.X) > 0
-		then { Enum.NormalId.Front, Enum.NormalId.Back }
-		else { Enum.NormalId.Left, Enum.NormalId.Right }
-	for _, face in faces do
-		keyIcon(visual, face, emblem)
-	end
 	return {
-		visual = visual,
+		leaves = leaves,
 		blocker = blocker,
-		closedCFrame = closed,
-		openCFrame = open,
+		position = position + Vector3.new(0, height / 2, 0),
+		twin = nil,
 		unlocked = false,
 		swung = false,
 		prompt = prompt,
@@ -976,7 +1051,8 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 		width,
 		DOOR_HEIGHT,
 		width,
-		CORRIDOR_HEIGHT
+		CORRIDOR_HEIGHT,
+		"gate"
 	)
 
 	local up = LEVEL_HEIGHT
@@ -1066,10 +1142,14 @@ local function buildExterior()
 			Enum.Material.Grass
 		)
 	end
-	ground(-far, far, -far, z0)
+	-- El hall sobresale al noroeste; las dos esquinas libres también llevan pasto.
+	local hallX0, hallZ0 = GrandHall.X0 - 2, GrandHall.Z0 - 2
+	ground(-far, far, -far, hallZ0)
 	ground(-far, far, z1, far)
-	ground(-far, x0, z0, z1)
-	ground(x1, far, z0, z1)
+	ground(-far, hallX0, hallZ0, z1)
+	ground(x1, far, hallZ0, z1)
+	ground(GrandHall.X1 + 2, x1, hallZ0, z0)
+	ground(hallX0, x0, GrandHall.Z1 + 2, z1)
 
 	-- Bosque: se ven solo árboles hasta perderse en la niebla.
 	local random = Random.new(7)
@@ -1081,7 +1161,7 @@ local function buildExterior()
 		local angle = random:NextNumber(0, 2 * math.pi)
 		local radius = random:NextNumber(70, 300)
 		local x, z = midX + math.cos(angle) * radius, midZ + math.sin(angle) * radius
-		if x < x0 - 14 or x > x1 + 14 or z < z0 - 14 or z > z1 + 14 then
+		if x < hallX0 - 14 or x > x1 + 14 or z < hallZ0 - 14 or z > z1 + 14 then
 			planted += 1
 			local height = random:NextNumber(38, 70)
 			decor({
@@ -1142,15 +1222,13 @@ local function planOpenings(): ({ [string]: { [string]: Opening } }, { any })
 	for _, refuge in REFUGES do
 		openings[refuge.room][sideOf(refuge.dir)] = doorHole
 	end
-	openings.hall.N = { width = 14, bottom = 0, top = 15 }
-
 	local occupied: { [string]: boolean } = { [`0,1,{GROUND_Y}`] = true }
 	for _, plan in PLAN do
 		occupied[`{plan.col},{plan.row},{plan.y}`] = true
 	end
 	local windows = {}
 	for id, plan in PLAN do
-		if plan.y ~= CELLAR_Y then
+		if plan.y ~= CELLAR_Y and not GRAND_ROOMS[id] then
 			local big = plan.y ~= ATTIC_Y
 			local hole = if big
 				then { width = 34, bottom = 2.5, top = 16 }
@@ -1178,7 +1256,9 @@ end
 
 -- Mueble con cajón y estatua de lobo, donde se dejan los pergaminos.
 local function buildAltar(hall: Vector3)
-	local base = CFrame.lookAt(hall + Vector3.new(10, 0, 24), hall + Vector3.new(10, 0, 0))
+	-- En el centro del hall, entre los dos tramos de la escalera, mirando a la entrada.
+	local midX = GrandHall.CenterX
+	local base = CFrame.lookAt(hall + Vector3.new(midX, 0, -18), hall + Vector3.new(midX, 0, -60))
 	local cabinet =
 		solid(base, "Mueble", Vector3.new(11, 4.5, 4), CFrame.new(0, 2.25, 0), WOOD_COLOR)
 	local closedDrawer = base * CFrame.new(0, 2.4, -2.05)
@@ -1278,12 +1358,27 @@ function Mansion.build(): MansionRefs
 	local openings, windows = planOpenings()
 	local random = Random.new()
 	for id in PLAN do
-		refs.rooms[id] = {
-			center = cellCenter(id),
-			size = Vector3.new(ROOM_SIZE, LEVEL_HEIGHT, ROOM_SIZE),
-		}
-		buildRoom(id, random, openings[id])
+		if not GRAND_ROOMS[id] then
+			refs.rooms[id] = {
+				center = cellCenter(id),
+				size = Vector3.new(ROOM_SIZE, LEVEL_HEIGHT, ROOM_SIZE),
+			}
+			buildRoom(id, random, openings[id])
+		end
 	end
+	local hallWidth = GrandHall.X1 - GrandHall.X0
+	local hallMidZ = (GrandHall.Z0 + GrandHall.Z1) / 2
+	local galleryMidZ = (GrandHall.GalleryZ + GrandHall.Z1) / 2
+	refs.rooms.hall = {
+		center = cellCenter("hall"),
+		size = Vector3.new(hallWidth, LEVEL_HEIGHT, GrandHall.Z1 - GrandHall.Z0),
+		box = Vector3.new(GrandHall.CenterX, GROUND_Y, hallMidZ),
+	}
+	refs.rooms.room7 = {
+		center = cellCenter("room7"),
+		size = Vector3.new(hallWidth, LEVEL_HEIGHT, GrandHall.Z1 - GrandHall.GalleryZ),
+		box = Vector3.new(GrandHall.CenterX, UPPER_Y, galleryMidZ),
+	}
 
 	for _, window in windows do
 		part({
@@ -1306,7 +1401,36 @@ function Mansion.build(): MansionRefs
 		buildLink(link[1], link[2])
 	end
 	buildStairs("room5", "room4", "room5", true)
-	buildStairs("hall", "room7", "room7", false)
+
+	-- Hall y galería tienen forma propia; sus centros siguen siendo los del plano.
+	GrandHall.build({
+		world = world,
+		refs = refs,
+		part = part,
+		decor = decor,
+		candle = candle,
+		chandelier = chandelier,
+		painting = painting,
+		rug = rug,
+		buildDoor = buildDoor,
+		rainOutside = rainOutside,
+		FURNITURE = FURNITURE,
+		WALL_COLOR = WALL_COLOR,
+		FLOOR_COLOR = FLOOR_COLOR,
+		CEILING_COLOR = CEILING_COLOR,
+		WOOD_COLOR = WOOD_COLOR,
+		GOLD_COLOR = GOLD_COLOR,
+		CANDLE_LIGHT = CANDLE_LIGHT,
+		DOOR_HEIGHT = DOOR_HEIGHT,
+		CORRIDOR_HEIGHT = CORRIDOR_HEIGHT,
+	})
+	local eastX = (GrandHall.FlightEast.x0 + GrandHall.FlightEast.x1) / 2
+	addRoute("hall", "room7", {
+		Vector3.new(-6, 0, -20),
+		Vector3.new(-6, 0, GrandHall.FlightZ0 - 6),
+		Vector3.new(eastX, 0, GrandHall.FlightZ0 - 6),
+		Vector3.new(eastX, LEVEL_HEIGHT, GrandHall.GalleryZ + 2),
+	})
 
 	-- Bajo el primer piso del ala sur no hay pieza: un bloque macizo sostiene el edificio.
 	part({
@@ -1338,7 +1462,7 @@ function Mansion.build(): MansionRefs
 	local hall = cellCenter("hall")
 	refs.doors.exit = buildDoor(
 		"exit",
-		hall + Vector3.new(0, 0, -HALF),
+		Vector3.new(GrandHall.CenterX, 0, GrandHall.Z0 - 0.5),
 		Vector3.xAxis,
 		"Abrir salida",
 		14,
@@ -1349,7 +1473,7 @@ function Mansion.build(): MansionRefs
 	refs.exitZone = decor({
 		Name = "ZonaSalida",
 		Size = Vector3.new(40, 14, 8),
-		Position = hall + Vector3.new(0, 7, -HALF - 10),
+		Position = Vector3.new(GrandHall.CenterX, 7, GrandHall.Z0 - 10),
 		Transparency = 1,
 	})
 	refs.exitZone.CanTouch = true
@@ -1363,14 +1487,15 @@ function Mansion.build(): MansionRefs
 		spawnPoint.Transparency = 1
 		spawnPoint.CanCollide = false
 		spawnPoint.Size = Vector3.new(4, 0.2, 4)
-		spawnPoint.Position = hall + Vector3.new(4 + (i - 1) * 5, 0.1, -14)
+		spawnPoint.Position =
+			Vector3.new(GrandHall.CenterX - 9 + (i - 1) * 6, 0.1, GrandHall.Z0 + 12)
 		spawnPoint.Parent = world
 	end
 
 	refs.taserPedestal = part({
 		Name = "PedestalTaser",
 		Size = Vector3.new(3, 3.6, 3),
-		Position = hall + Vector3.new(21, 1.8, -8),
+		Position = Vector3.new(GrandHall.CenterX + 12, 1.8, GrandHall.Z0 + 22),
 		Color = WOOD_COLOR,
 		Material = Enum.Material.Marble,
 	})
@@ -1384,7 +1509,7 @@ end
 -- Pieza que contiene la posición; nil en pasillos.
 function Mansion.roomAt(position: Vector3): string?
 	for id, room in refs.rooms do
-		local delta = position - room.center
+		local delta = position - (room.box or room.center)
 		if
 			math.abs(delta.X) <= room.size.X / 2
 			and math.abs(delta.Z) <= room.size.Z / 2
@@ -1431,20 +1556,17 @@ function Mansion.isHatch(a: string, b: string): boolean
 	return (a == "room12" and b == "attic") or (a == "attic" and b == "room12")
 end
 
-local SWING = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local SWING = TweenInfo.new(1.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 
 function Mansion.swingDoor(door: Door, open: boolean)
 	if door.swung == open then
 		return
 	end
 	door.swung = open
-	TweenService
-		:Create(
-			door.visual,
-			SWING,
-			{ CFrame = if open then door.openCFrame else door.closedCFrame }
-		)
-		:Play()
+	for _, leaf in door.leaves do
+		TweenService:Create(leaf.part, SWING, { CFrame = if open then leaf.open else leaf.closed })
+			:Play()
+	end
 end
 
 function Mansion.setDoorUnlocked(door: Door, unlocked: boolean)
@@ -1452,6 +1574,9 @@ function Mansion.setDoorUnlocked(door: Door, unlocked: boolean)
 	door.blocker.CanCollide = not unlocked
 	door.prompt.Enabled = not unlocked
 	Mansion.swingDoor(door, unlocked)
+	if door.twin and door.twin.unlocked ~= unlocked then
+		Mansion.setDoorUnlocked(door.twin, unlocked)
+	end
 end
 
 return Mansion

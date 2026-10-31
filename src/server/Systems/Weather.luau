@@ -22,7 +22,8 @@ function Weather.start()
 	Lighting.OutdoorAmbient = Color3.fromRGB(14, 16, 24)
 	Lighting.GlobalShadows = true
 	Lighting.FogColor = Color3.fromRGB(70, 82, 104)
-	Lighting.FogStart = 40
+	-- Empieza después del largo del hall: la niebla es para el bosque, no para el interior.
+	Lighting.FogStart = 100
 	Lighting.FogEnd = 240
 
 	task.spawn(function()

@@ -13,6 +13,7 @@ local suites = {
 	Routes = require("./Routes"),
 	Lore = require("./Lore"),
 	Loot = require("./Loot"),
+	Spectate = require("./Spectate"),
 }
 
 local failed = 0
