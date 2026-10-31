@@ -56,7 +56,7 @@ function Hud.start()
 	local status = label(gui, UDim2.fromOffset(16, 48), UDim2.fromOffset(300, 80), 24)
 	status.TextYAlignment = Enum.TextYAlignment.Top
 
-	local notice = label(gui, UDim2.new(0, 0, 0.72, 0), UDim2.new(1, 0, 0, 40), 28)
+	local notice = label(gui, UDim2.fromScale(0, 0.72), UDim2.new(1, 0, 0, 40), 28)
 	notice.TextXAlignment = Enum.TextXAlignment.Center
 
 	local hurt = Instance.new("Frame")

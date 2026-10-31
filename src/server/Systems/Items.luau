@@ -115,7 +115,7 @@ function Items.spawnAll(refs: any, handlers: Handlers)
 		free[room] = table.clone(spots)
 	end
 
-	-- Reclama antes de avisar para que dos jugadores simultáneos no cuenten doble.
+	-- Si otro jugador ya lo agarró, no vuelve a contar.
 	local function once(id: string, fn: (Player) -> ()): (Player) -> boolean
 		return function(player)
 			if claims[id] then
