@@ -394,13 +394,13 @@ function GrandHall.build(ctx: any)
 	local caseWidth, caseHeight, caseDepth = 13, 16, 2.6
 	local shelves = 5
 	local spines = {
-		Color3.fromRGB(110, 28, 26),
-		Color3.fromRGB(32, 56, 92),
-		Color3.fromRGB(40, 74, 44),
-		Color3.fromRGB(130, 96, 40),
-		Color3.fromRGB(74, 44, 28),
-		Color3.fromRGB(150, 140, 110),
-		Color3.fromRGB(30, 28, 30),
+		Color3.fromRGB(170, 45, 40),
+		Color3.fromRGB(55, 90, 150),
+		Color3.fromRGB(65, 120, 70),
+		Color3.fromRGB(195, 150, 65),
+		Color3.fromRGB(125, 80, 50),
+		Color3.fromRGB(205, 195, 160),
+		Color3.fromRGB(60, 55, 60),
 	}
 	local random = Random.new()
 	local lootSpots = {}
@@ -448,7 +448,7 @@ function GrandHall.build(ctx: any)
 		gui.Face = Enum.NormalId.Front
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		gui.PixelsPerStud = pixelsPerStud
-		gui.LightInfluence = 1
+		gui.LightInfluence = 0.8
 		gui.Parent = back
 		for row = 1, shelves do
 			-- De arriba a abajo en la pantalla; `row` 1 es la repisa superior.
@@ -504,6 +504,9 @@ function GrandHall.build(ctx: any)
 		ctx.candle(position, ctx.CANDLE_LIGHT)
 	end
 	ctx.chandelier(Vector3.new(midX, FLOOR, -38), true)
+	-- Bajo la galería no llega el candelabro central: dos más alumbran las librerías.
+	ctx.chandelier(Vector3.new(midX - 22, 0, 14), true)
+	ctx.chandelier(Vector3.new(midX + 22, 0, 14), true)
 
 	-- La galería es el primer ambiente del primer piso.
 	local spots = {}
