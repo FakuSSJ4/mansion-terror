@@ -72,6 +72,50 @@ local function attach(
 	return p
 end
 
+-- Desgaste: cada pieza grande sale con un tono algo distinto y con manchas de mugre y de sangre seca
+-- pegadas a su frente y su espalda, para que no se vea de plástico liso.
+local function weather(model: Model)
+	local random = Random.new()
+	local targets: { Part } = {}
+	for _, item in model:GetChildren() do
+		if
+			item:IsA("Part")
+			and item.Name ~= "HumanoidRootPart"
+			and item.Transparency == 0
+			and math.min(item.Size.X, item.Size.Y, item.Size.Z) >= 0.4
+		then
+			table.insert(targets, item)
+		end
+	end
+	for _, target in targets do
+		local shade = random:NextNumber(0.8, 1)
+		target.Color =
+			Color3.new(target.Color.R * shade, target.Color.G * shade, target.Color.B * shade)
+		if target.Material == Enum.Material.SmoothPlastic then
+			target.Material = Enum.Material.Fabric
+		end
+		for _ = 1, 3 do
+			local blood = random:NextNumber() < 0.4
+			local width = random:NextNumber(0.2, 0.55) * math.min(target.Size.X, 1.6)
+			local height = random:NextNumber(0.2, 0.55) * math.min(target.Size.Y, 1.6)
+			local side = if random:NextNumber() < 0.5 then -1 else 1
+			local stain = attach(
+				model,
+				target,
+				if blood then "SangreSeca" else "Mugre",
+				Vector3.new(width, height, 0.05),
+				CFrame.new(
+					random:NextNumber(-0.35, 0.35) * target.Size.X,
+					random:NextNumber(-0.35, 0.35) * target.Size.Y,
+					side * (target.Size.Z / 2 + 0.02)
+				),
+				if blood then Color3.fromRGB(78, 12, 12) else Color3.fromRGB(42, 34, 27),
+				Enum.Material.Slate
+			)
+			stain.Transparency = 0.12
+		end
+	end
+end
 function KillerModel.build(): Rig
 	local model = Instance.new("Model")
 	model.Name = "Asesino"
@@ -324,6 +368,7 @@ function KillerModel.build(): Rig
 	humanoid.RequiresNeck = false
 	humanoid.Parent = model
 
+	weather(model)
 	return {
 		model = model,
 		root = root,
@@ -505,6 +550,7 @@ function KillerModel.buildGentleman(): Rig
 	humanoid.RequiresNeck = false
 	humanoid.Parent = model
 
+	weather(model)
 	return {
 		model = model,
 		root = root,
@@ -687,6 +733,7 @@ function KillerModel.buildButcher(): Rig
 	humanoid.RequiresNeck = false
 	humanoid.Parent = model
 
+	weather(model)
 	return {
 		model = model,
 		root = root,

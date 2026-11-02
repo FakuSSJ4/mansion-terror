@@ -15,6 +15,12 @@ local NAMES = {
 	"FireTaser",
 	"TaserFx",
 	"Hit",
+	"Escape",
+	"Entrance",
+	"Keypad",
+	"Crouch",
+	"ShopBuy",
+	"Lobby",
 	"Debug",
 }
 

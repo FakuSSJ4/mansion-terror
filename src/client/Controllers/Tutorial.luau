@@ -10,15 +10,15 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("R
 local PAGES = {
 	{
 		title = "Controles",
-		body = "W A S D: moverte\nMouse: mirar\nShift izquierdo: correr (gasta la barra amarilla y se recupera al dejar de correr)\nE: agarrar objetos, abrir puertas y usar la estatua\nClic: disparar el taser\nF: prender o apagar la linterna",
+		body = "W A S D: moverte\nMouse: mirar\nShift izquierdo: correr (gasta la barra amarilla y se recupera al dejar de correr)\nC o Ctrl: agacharte (más bajo y silencioso, para esconderte detrás de los muebles)\nE: agarrar objetos, abrir puertas y usar la estatua\n1 y 2: sacar el taser o la linterna\nClic: disparar el taser\nClic derecho: prender o apagar la linterna",
 	},
 	{
 		title = "Cómo escapar",
-		body = "1. Buscá las llaves de colores: cada una abre la puerta de su mismo color.\n2. Las llaves se alternan: la roja abre la gran escalera, y cada llave siguiente te hace cambiar de piso.\n3. La llave negra es la última: abre el sótano, en la cocina. Ahí está la escalera de mano.\n4. Poné la escalera bajo la trampilla del primer piso para subir al cobertizo.\n5. Juntá los 4 pergaminos: sótano, cobertizo, planta baja y primer piso.\n6. Llevalos a la estatua de lobo del hall: te da la llave dorada.\n7. Abrí la puerta principal con la llave dorada y escapá.",
+		body = "1. Buscá las llaves de colores: cada una abre la puerta de su mismo color.\n2. Las llaves se alternan: la roja abre la gran escalera, y cada llave siguiente te hace cambiar de piso.\n3. La llave negra es la última: abre el sótano, en la cocina. Ahí está la escalera de mano.\n4. Poné la escalera bajo la trampilla del primer piso para subir al cobertizo.\n5. Los 4 pergaminos están en cajas fuertes de las paredes. Cada una pide un código de 3 cifras que está escrito en una nota escondida por la casa.\n6. Llevalos a la estatua de lobo, en la sala del fondo del sótano: te da la llave dorada.\n7. Abrí con ella la puerta del túnel, en esa misma sala, y escapá. La puerta principal se cierra al entrar: por ahí ya no se sale.",
 	},
 	{
 		title = "Cómo sobrevivir",
-		body = "El asesino te mata con 3 golpes. En el piso de arriba anda otro, de smoking: es más lento, pero con 2 golpes te mata. Abajo hay un carnicero con máscara de chancho: es más rápido, sube hasta la planta baja y te mata con 5 golpes.\nLas píldoras curan 50 de vida.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesa, al lado de la estatua de lobo. Gasta batería: buscá pilas.\nEn las 3 piezas con luz azul el asesino no puede entrar.\nSi estás lejos mucho tiempo, sale a buscarte.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
+		body = "El asesino te mata con 3 golpes. En el piso de arriba anda otro, de smoking: es más lento, pero con 2 golpes te mata. Abajo hay dos carniceros con máscara de chancho: son rápidos, recorren todo el sótano y suben por la escalera hasta la cocina (no salen de ahí) y te matan con 5 golpes.\nLas píldoras curan 50 de vida.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesita del hall, entre las escaleras. Gasta batería: buscá pilas.\nNo hay zonas seguras: el asesino puede entrar a cualquier pieza.\nEl asesino te oye si corrés cerca; agachado casi no hace ruido.\nSi estás lejos mucho tiempo, sale a buscarte.\nCada asesino ve en un cono delante suyo (se nota por su luz roja): quedate fuera del cono o agachate detrás de un mueble y no te ve.\nHay gemas escondidas: juntalas y gastalas en la tienda del lobby.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
 	},
 }
 
@@ -76,30 +76,16 @@ function Tutorial.start()
 		Remotes.get("TutorialDone"):FireServer()
 	end
 
-	-- Después del tutorial se elige la dificultad, salvo que otro jugador ya la haya elegido.
-	local choosing = false
+	-- La dificultad se elige en el lobby, antes de entrar a la mansión.
 	local function finish()
-		if workspace:GetAttribute("DifficultyChosen") then
-			close()
-			return
-		end
-		choosing = true
-		title.Text = "Elegí la dificultad"
-		body.Text = "N: Normal\n\nH: Difícil, con la mitad de píldoras, pilas y tasers escondidos"
-		footer.Text = "Apretá N o H para empezar"
+		close()
 	end
 
 	UserInputService.InputBegan:Connect(function(input)
 		if finished then
 			return
 		end
-		if choosing then
-			if input.KeyCode == Enum.KeyCode.N or input.KeyCode == Enum.KeyCode.H then
-				local choice = if input.KeyCode == Enum.KeyCode.H then "hard" else "normal"
-				Remotes.get("SetDifficulty"):FireServer(choice)
-				close()
-			end
-		elseif input.KeyCode == Enum.KeyCode.Q then
+		if input.KeyCode == Enum.KeyCode.Q then
 			finish()
 		elseif input.KeyCode == Enum.KeyCode.Space then
 			page += 1

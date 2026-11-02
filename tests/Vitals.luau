@@ -38,13 +38,18 @@ return {
 		assert(butcher.chaseSpeed > main.chaseSpeed)
 		assert(butcher.searchSpeed > main.searchSpeed)
 	end,
-	butcherClimbsOnlyOneFloor = function()
-		local rooms = Config.Killers.butcher.rooms
+	butchersStayInTheBasementAndItsStairs = function()
+		for _, spec in { Config.Killers.butcher, Config.Killers.butcher2 } do
+			local rooms = spec.rooms
+			assert(rooms.room5 and rooms.room6 and rooms.room4)
+			assert(not rooms.hall and not rooms.room1 and not rooms.room7 and not rooms.attic)
+		end
 		assert(Config.Killers.butcher.startRoom == "room6")
-		assert(rooms.room5 and rooms.room6 and rooms.room4 and rooms.hall)
-		assert(rooms.gameRoom and not rooms.bar)
 		assert(Config.Killers.gentleman.rooms.bar and not Config.Killers.gentleman.rooms.gameRoom)
-		assert(not rooms.room7 and not rooms.attic)
+	end,
+	butchersAreTwentyPercentFaster = function()
+		assert(math.abs(Config.Killers.butcher.chaseSpeed - 17 * 1.2) < 0.01)
+		assert(Config.Killers.butcher2.chaseSpeed == Config.Killers.butcher.chaseSpeed)
 	end,
 	damageSubtractsDownToZero = function()
 		assert(Vitals.damage(100, 50) == 50)

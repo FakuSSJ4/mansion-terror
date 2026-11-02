@@ -1,6 +1,7 @@
 --!strict
--- Atajos de QA, solo en Studio: 1 modo desarrollador, K llaves, 2 pergaminos, 3 pieza siguiente, 4 rayo, 5 daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera, 9 ir a la gran escalera, 0 girar la vista.
+-- Atajos de QA, solo en Studio: 5 modo desarrollador, K llaves, J pergaminos, 3 pieza siguiente, 4 rayo, H daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera, 9 ir a la gran escalera, 0 girar la vista.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -8,20 +9,47 @@ local UserInputService = game:GetService("UserInputService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 
 local KEYS = {
-	[Enum.KeyCode.One] = "devmode",
+	[Enum.KeyCode.Five] = "devmode",
 	[Enum.KeyCode.K] = "keys",
-	[Enum.KeyCode.Two] = "books",
+	[Enum.KeyCode.J] = "books",
 	[Enum.KeyCode.Three] = "next",
 	[Enum.KeyCode.Four] = "lightning",
-	[Enum.KeyCode.Five] = "damage",
+	[Enum.KeyCode.H] = "damage",
 	[Enum.KeyCode.Six] = "status",
 	[Enum.KeyCode.Seven] = "summon",
 	[Enum.KeyCode.Eight] = "gear",
 	[Enum.KeyCode.Nine] = "stairs",
+	[Enum.KeyCode.V] = "escape",
+	[Enum.KeyCode.F] = "play",
+	[Enum.KeyCode.R] = "lobbyTour",
+	[Enum.KeyCode.KeypadPlus] = "gems",
+	[Enum.KeyCode.KeypadMultiply] = "buy",
+	[Enum.KeyCode.Home] = "aerial",
+	[Enum.KeyCode.PageDown] = "soundCheck",
+	[Enum.KeyCode.Insert] = "linkTest",
+	[Enum.KeyCode.KeypadZero] = "wolfRoom",
+	[Enum.KeyCode.KeypadOne] = "vault",
+	[Enum.KeyCode.KeypadPeriod] = "diffMenu",
+	[Enum.KeyCode.KeypadDivide] = "coneChase",
+	[Enum.KeyCode.KeypadMinus] = "shop",
+	[Enum.KeyCode.N] = "lobby",
+	[Enum.KeyCode.U] = "nextAnimal",
+	[Enum.KeyCode.Y] = "nextHead",
+	[Enum.KeyCode.G] = "viewArcade",
+	[Enum.KeyCode.Z] = "viewBar",
+	[Enum.KeyCode.X] = "viewSeal",
 	[Enum.KeyCode.P] = "pedestal",
 	[Enum.KeyCode.L] = "library",
 	[Enum.KeyCode.M] = "summon2",
 	[Enum.KeyCode.B] = "summon3",
+}
+
+-- Hacia dónde mirar tras U (animal), Y (cabeza) y G (arcades).
+local VIEW_AIMS = {
+	nextAnimal = Vector3.new(1, -0.12, 0),
+	nextHead = Vector3.new(1, 0.05, 1),
+	viewArcade = Vector3.new(0, -0.12, -1),
+	viewBar = Vector3.new(-1, -0.1, 0),
 }
 
 local Debug = {}
@@ -65,6 +93,22 @@ function Debug.start()
 			Remotes.get("Debug"):FireServer(command)
 			if command == "stairs" or command == "pedestal" or command == "library" then
 				task.delay(0.3, aim, Vector3.zAxis)
+			elseif
+				command == "viewSeal"
+				or command == "wolfRoom"
+				or command == "vault"
+				or command == "lobbyTour"
+				or command == "shop"
+				or command == "aerial"
+			then
+				task.delay(0.3, function()
+					local look = Players.LocalPlayer:GetAttribute("QAAim")
+					if typeof(look) == "Vector3" then
+						aim(look)
+					end
+				end)
+			elseif VIEW_AIMS[command] then
+				task.delay(0.3, aim, VIEW_AIMS[command])
 			end
 		elseif input.KeyCode == Enum.KeyCode.T then
 			tourStop = tourStop % #TOUR_AIMS + 1

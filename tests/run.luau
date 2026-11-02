@@ -14,6 +14,10 @@ local suites = {
 	Lore = require("./Lore"),
 	Loot = require("./Loot"),
 	Spectate = require("./Spectate"),
+	EscapePath = require("./EscapePath"),
+	Placement = require("./Placement"),
+	MapDef = require("./MapDef"),
+	Storm = require("./Storm"),
 }
 
 local failed = 0

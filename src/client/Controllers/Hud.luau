@@ -76,6 +76,76 @@ function Hud.start()
 	local notice = label(gui, UDim2.fromScale(0, 0.72), UDim2.new(1, 0, 0, 40), 28)
 	notice.TextXAlignment = Enum.TextXAlignment.Center
 
+	-- Qué hacer ahora, según lo que ya tenés: sin sonido ni mapa, es la única guía.
+	local objective = label(gui, UDim2.fromScale(0.2, 0.012), UDim2.fromScale(0.6, 0.06), 24)
+	objective.TextXAlignment = Enum.TextXAlignment.Center
+	local function refreshObjective()
+		local phase = workspace:GetAttribute("Phase")
+		local playing = (phase == "Playing" or phase == "Escaping")
+			and player:GetAttribute("InLobby") ~= true
+		objective.Visible = playing
+		if not playing then
+			return
+		end
+		local books = (workspace:GetAttribute("Books") :: number?) or 0
+		if not player:GetAttribute("HasFlashlight") then
+			objective.Text =
+				"Buscá la linterna: está sobre la mesita del hall, entre las escaleras"
+		elseif workspace:GetAttribute("ExitOpen") then
+			objective.Text = "¡La salida está abierta! Corré por la puerta del túnel"
+		elseif books < Config.BookCount then
+			objective.Text =
+				`Explorá: buscá llaves y notas con códigos; cada pergamino ({books}/{Config.BookCount}) está en una caja fuerte con código`
+		elseif not player:GetAttribute("HasGoldKey") then
+			objective.Text =
+				"Llevá los pergaminos a la estatua del lobo, en la sala del fondo del sótano"
+		else
+			objective.Text = "Abrí la puerta del túnel con la llave dorada y escapá"
+		end
+	end
+	workspace:GetAttributeChangedSignal("Books"):Connect(refreshObjective)
+	workspace:GetAttributeChangedSignal("Phase"):Connect(refreshObjective)
+	workspace:GetAttributeChangedSignal("ExitOpen"):Connect(refreshObjective)
+	player:GetAttributeChangedSignal("HasFlashlight"):Connect(refreshObjective)
+	player:GetAttributeChangedSignal("HasGoldKey"):Connect(refreshObjective)
+	player:GetAttributeChangedSignal("InLobby"):Connect(refreshObjective)
+	refreshObjective()
+
+	-- Aviso de peligro: los bordes de la pantalla se ponen rojos y laten más rápido cuanto más cerca
+	-- está un asesino.
+	local edges: { Frame } = {}
+	for _, spec in
+		{
+			{ UDim2.fromScale(0, 0), UDim2.fromScale(1, 0.24), 90 },
+			{ UDim2.fromScale(0, 0.76), UDim2.fromScale(1, 0.24), 270 },
+			{ UDim2.fromScale(0, 0), UDim2.fromScale(0.16, 1), 0 },
+			{ UDim2.fromScale(0.84, 0), UDim2.fromScale(0.16, 1), 180 },
+		}
+	do
+		local edge = Instance.new("Frame")
+		edge.Position = spec[1]
+		edge.Size = spec[2]
+		edge.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+		edge.BackgroundTransparency = 1
+		edge.BorderSizePixel = 0
+		edge.ZIndex = 0
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = spec[3]
+		gradient.Transparency = NumberSequence.new(0, 1)
+		gradient.Parent = edge
+		edge.Parent = gui
+		table.insert(edges, edge)
+	end
+	RunService.RenderStepped:Connect(function()
+		local danger = (player:GetAttribute("Danger") :: number?) or 0
+		local pulse = 0.55 + 0.45 * math.sin(os.clock() * (3 + danger * 6))
+		-- Desde que hay peligro se nota (0,2) y llega casi al máximo (0,9) con el asesino encima.
+		local alpha = if danger <= 0 then 0 else math.clamp((0.2 + 0.8 * danger) * pulse, 0, 0.9)
+		local transparency = 1 - alpha
+		for _, edge in edges do
+			edge.BackgroundTransparency = transparency
+		end
+	end)
 	local hurt = Instance.new("Frame")
 	hurt.Size = UDim2.fromScale(1, 1)
 	hurt.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
@@ -96,11 +166,19 @@ function Hud.start()
 		local ladder = if player:GetAttribute("HasLadder") then "\nLlevás la escalera" else ""
 		local gold = if player:GetAttribute("HasGoldKey") then "\nLlevás la llave dorada" else ""
 		local dev = if player:GetAttribute("GodMode") then "\nMODO DESARROLLADOR" else ""
-		local hard = if workspace:GetAttribute("Difficulty") == "hard"
-			then "\nModo difícil"
+		local crouch = if player:GetAttribute("Crouching") then "\nAgachado" else ""
+		local gems = `\nGemas: {(player:GetAttribute("Gems") :: number?) or 0}`
+		-- Los códigos que el equipo ya encontró (habitación: código); el resto, con signos.
+		local codes = ""
+		for n = 1, Config.BookCount do
+			codes ..= `\nCaja fuerte {n}: {workspace:GetAttribute(`Code{n}`) or "???"}`
+		end
+		local setting = Config.Difficulties[workspace:GetAttribute("Difficulty")]
+		local hard = if setting and setting ~= Config.Difficulties.normal
+			then `\nModo {setting.name}`
 			else ""
 		status.Text =
-			`Pergaminos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}{gold}{hard}{dev}`
+			`Pergaminos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}{gold}{hard}{crouch}{gems}{codes}{dev}`
 		batteryBack.Visible = player:GetAttribute("HasFlashlight") == true
 		for n, chip in keyChips do
 			chip.BackgroundTransparency = if workspace:GetAttribute(`Key{n}`) then 0 else 0.85
@@ -109,10 +187,15 @@ function Hud.start()
 	for n = 1, Config.KeyCount do
 		workspace:GetAttributeChangedSignal(`Key{n}`):Connect(refreshStatus)
 	end
+	for n = 1, Config.BookCount do
+		workspace:GetAttributeChangedSignal(`Code{n}`):Connect(refreshStatus)
+	end
 	workspace:GetAttributeChangedSignal("Books"):Connect(refreshStatus)
 	workspace:GetAttributeChangedSignal("Difficulty"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("HasGoldKey"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("GodMode"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("Crouching"):Connect(refreshStatus)
+	player:GetAttributeChangedSignal("Gems"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("TaserCharges"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("HasLadder"):Connect(refreshStatus)
 	player:GetAttributeChangedSignal("HasFlashlight"):Connect(refreshStatus)
@@ -123,7 +206,7 @@ function Hud.start()
 
 	local function refreshPhase()
 		local phase = workspace:GetAttribute("Phase")
-		local over = phase == "Won" or phase == "Dead"
+		local over = (phase == "Won" or phase == "Dead") and player:GetAttribute("InLobby") ~= true
 		victory.Text = if phase == "Dead"
 			then "El asesino te atrapó\nLa partida vuelve a empezar"
 			else "Escapaste de la mansión"
@@ -131,6 +214,11 @@ function Hud.start()
 		victory.BackgroundTransparency = if over then 0.15 else 1
 	end
 	workspace:GetAttributeChangedSignal("Phase"):Connect(refreshPhase)
+	player:GetAttributeChangedSignal("InLobby"):Connect(function()
+		gui.Enabled = player:GetAttribute("InLobby") ~= true
+		refreshPhase()
+	end)
+	gui.Enabled = player:GetAttribute("InLobby") ~= true
 	refreshPhase()
 
 	local noticeId = 0

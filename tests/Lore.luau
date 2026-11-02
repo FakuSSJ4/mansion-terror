@@ -5,7 +5,6 @@ local Lighting = require("../src/shared/Rules/LightFade")
 return {
 	sixColoredKeys = function()
 		assert(#Config.KeyColors == 6 and Config.KeyCount == 6)
-		assert(#Config.KeyRooms == 6)
 	end,
 	fourScrolls = function()
 		assert(Config.BookCount == 4)

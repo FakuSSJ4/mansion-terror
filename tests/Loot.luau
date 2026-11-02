@@ -9,12 +9,17 @@ return {
 		assert(c.batteries == Config.BatteryCount)
 		assert(c.tasers == Config.TaserSpareCount)
 	end,
-	hardHalvesEverything = function()
-		local c = Loot.counts("hard", Config)
+	nightmareHalvesEverything = function()
+		local c = Loot.counts("nightmare", Config)
 		assert(c.pills == 4 and c.batteries == 3 and c.tasers == 2)
 	end,
 	onlyKnownDifficulties = function()
-		assert(Loot.isValid("normal") and Loot.isValid("hard"))
+		assert(
+			Loot.isValid("normal")
+				and Loot.isValid("nightmare")
+				and Loot.isValid("easy")
+				and not Loot.isValid("hard")
+		)
 		assert(not Loot.isValid("facil") and not Loot.isValid(3))
 	end,
 }

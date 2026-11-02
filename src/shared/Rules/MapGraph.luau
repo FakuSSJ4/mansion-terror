@@ -6,6 +6,12 @@ export type Graph = {
 	refuges: { [string]: boolean },
 }
 
+-- Lo que hace falta de MapDef para armar el grafo.
+export type Def = {
+	Edges: { { a: string, b: string } },
+	Refuges: { [string]: string },
+}
+
 local MapGraph = {}
 
 local function connect(g: Graph, a: string, b: string)
@@ -15,22 +21,17 @@ local function connect(g: Graph, a: string, b: string)
 	table.insert(g.neighbors[b], a)
 end
 
-function MapGraph.default(): Graph
+-- El grafo sale de un MapDef: pasillos, escaleras y trampilla, más los refugios.
+-- sealed (opcional): pasillos tapiados (clave |b) que no entran al grafo.
+function MapGraph.fromDef(def: Def, sealed: { [string]: boolean }?): Graph
 	local g: Graph = { neighbors = {}, refuges = {} }
-	-- Planta baja (1 a 4), sótano (5 y 6) y primer piso (7 a 12), con el altillo arriba.
-	connect(g, "hall", "room1")
-	for i = 1, 5 do
-		connect(g, `room{i}`, `room{i + 1}`)
+	for _, edge in def.Edges do
+		local skipped = sealed and (sealed[`{edge.a}|{edge.b}`] or sealed[`{edge.b}|{edge.a}`])
+		if not skipped then
+			connect(g, edge.a, edge.b)
+		end
 	end
-	connect(g, "hall", "room7")
-	for i = 7, 11 do
-		connect(g, `room{i}`, `room{i + 1}`)
-	end
-	connect(g, "room12", "attic")
-	-- Ala oeste, a la derecha de la entrada: sala de juegos abajo y bar arriba.
-	connect(g, "hall", "gameRoom")
-	connect(g, "room7", "bar")
-	for refuge, room in { refuge1 = "room1", refuge2 = "room6", refuge3 = "room8" } do
+	for refuge, room in def.Refuges do
 		connect(g, room, refuge)
 		g.refuges[refuge] = true
 	end

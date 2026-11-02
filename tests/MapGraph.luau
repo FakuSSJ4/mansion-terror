@@ -1,7 +1,9 @@
 --!strict
 local MapGraph = require("../src/shared/Rules/MapGraph")
 
-local g = MapGraph.default()
+local MapDef = require("../src/shared/Rules/MapDef")
+
+local g = MapGraph.fromDef(MapDef, MapDef.DefaultLayout.sealed)
 
 return {
 	distanceAlongRooms = function()
@@ -25,17 +27,7 @@ return {
 		assert(MapGraph.distance(g, "room7", "bar") == 1)
 		assert(MapGraph.distance(g, "gameRoom", "bar") == 3)
 	end,
-	refugesHangFromTheirRooms = function()
-		assert(MapGraph.distance(g, "room1", "refuge1") == 1)
-		assert(MapGraph.distance(g, "room6", "refuge2") == 1)
-		assert(MapGraph.distance(g, "room8", "refuge3") == 1)
-	end,
-	identifiesRefuges = function()
-		assert(MapGraph.isRefuge(g, "refuge2"))
-		assert(not MapGraph.isRefuge(g, "room5"))
-	end,
-	killerPathAvoidsRefuges = function()
-		assert(MapGraph.isRefuge(g, "refuge1"))
+	shortestPathGoesThroughTheDiningRoom = function()
 		local path = MapGraph.path(g, "room1", "room3")
 		assert(#path == 3 and path[2] == "room2")
 	end,

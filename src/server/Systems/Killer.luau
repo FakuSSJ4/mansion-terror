@@ -2,6 +2,7 @@
 -- Conecta KillerBrain con el mundo: sentidos, movimiento por el grafo de piezas y golpes.
 -- Cada asesino es una instancia con sus datos de Config.Killers y su propio modelo.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -10,7 +11,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Rules = Shared:WaitForChild("Rules")
 local Config = require(Shared:WaitForChild("Config"))
 local KillerBrain = require(Rules:WaitForChild("KillerBrain"))
+local MapDef = require(Rules:WaitForChild("MapDef"))
 local MapGraph = require(Rules:WaitForChild("MapGraph"))
+local Sounds = require(Shared:WaitForChild("Sounds"))
 local Taser = require(Rules:WaitForChild("Taser"))
 
 local Systems = script.Parent
@@ -20,11 +23,13 @@ local Round = require(Systems:WaitForChild("Round"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
 
 local TICK = 0.2
+-- A esta distancia o menos del asesino empieza a sonar el aviso de peligro.
+local DANGER_RANGE = 36
 local WAYPOINT_REACHED = 5
 
 local Killer = {}
 
-local graph = MapGraph.default()
+local graph = MapGraph.fromDef(MapDef)
 local refs: Mansion.MansionRefs
 
 local function playerById(id: string?): Player?
@@ -45,6 +50,49 @@ local function hasLineOfSight(from: Vector3, to: Vector3, ignore: { Instance }):
 	return workspace:Raycast(from, to - from, params) == nil
 end
 
+-- Un lugar libre cerca de `center` (a nivel del piso) donde cabe un asesino parado: sin muebles,
+-- cuerpos colgados ni paredes encima y con piso debajo. Así nunca aparece atrapado.
+function Killer.safeSpot(center: Vector3): Vector3
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local ignore: { Instance } = {}
+	for _, tagged in CollectionService:GetTagged("Killer") do
+		table.insert(ignore, tagged)
+	end
+	params.FilterDescendantsInstances = ignore
+	local floorParams = RaycastParams.new()
+	floorParams.FilterDescendantsInstances = ignore
+	floorParams.FilterType = Enum.RaycastFilterType.Exclude
+	for radius = 0, 36, 4 do
+		local steps = if radius == 0 then 1 else 10
+		for step = 0, steps - 1 do
+			local angle = step / steps * math.pi * 2
+			local at = center + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+			local blocked = false
+			for _, part in
+				workspace:GetPartBoundsInBox(
+					CFrame.new(at + Vector3.new(0, 4.6, 0)),
+					Vector3.new(5, 7, 5),
+					params
+				)
+			do
+				if part.CanCollide then
+					blocked = true
+					break
+				end
+			end
+			if not blocked then
+				local floor =
+					workspace:Raycast(at + Vector3.new(0, 2, 0), Vector3.new(0, -6, 0), floorParams)
+				if floor then
+					return Vector3.new(at.X, floor.Position.Y + 4, at.Z)
+				end
+			end
+		end
+	end
+	return center + Vector3.new(0, 5, 0)
+end
+
 local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig): any
 	local self: any = { name = name }
 
@@ -59,10 +107,19 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 	local baseC0: { [Motor6D]: CFrame } = {}
 	local lastAnimate = 0
 	local lastHit = 0
+	local lastGrowl = 0
+	local lastState = "Patrol"
 	local stuckAnchor = Vector3.zero
 	local stuckFor = 0
 	local sparks: ParticleEmitter? = nil
 	local swingUntil = 0
+	-- En una escena guionada (la fuga) lo mueve la escena, no el cerebro ni animate.
+	local scripted = false
+	-- Dónde y en qué pieza vio por última vez a su objetivo: si lo pierde de vista (se agachó
+	-- detrás de un mueble, salió del cono), va hasta ahí y se rinde en vez de seguirlo a ciegas.
+	local seeingTarget = false
+	local lastSeenPosition: Vector3? = nil
+	local lastSeenRoom: string? = nil
 
 	-- Puertas abiertas y, si tiene zona propia, solo dentro de ella.
 	local function isOpen(a: string, b: string): boolean
@@ -80,32 +137,43 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			and MapGraph.distance(graph, currentRoom, room, isOpen) < math.huge
 	end
 
-	-- Sentidos: lo ve de frente con línea de vista, o escucha a quien corre cerca.
+	-- Sentidos: lo ve si está dentro de su cono de visión y alguna parte del cuerpo tiene línea de
+	-- vista (la cabeza asoma sobre los muebles bajos, pero agachado se esconde detrás), escucha a
+	-- quien corre cerca y siente a quien tiene pegado, incluso fuera del cono.
 	local function senseTarget(position: Vector3, forward: Vector3): Player?
 		local current = rig :: KillerModel.Rig
 		local best: Player? = nil
 		local bestDistance = math.huge
+		local cosHalfFov = math.cos(math.rad(Config.KillerFov / 2))
 		for _, player in Players:GetPlayers() do
 			local root = Vitality.rootOf(player)
-			if root and canReach(player) and not player:GetAttribute("InTutorial") then
+			if root and canReach(player) and Vitality.isPlaying(player) then
+				local crouching = player:GetAttribute("Crouching") == true
 				local offset = root.Position - position
 				local distance = offset.Magnitude
-				local inFront = distance > 0 and forward:Dot(offset.Unit) > 0
-				local seen = distance <= Config.KillerSightRange
-					and inFront
-					and hasLineOfSight(
-						position,
-						root.Position,
-						{ current.model, player.Character :: Model }
-					)
-				local heard = distance <= Config.KillerHearRange
-					and player:GetAttribute("Running") == true
-				local sensed = distance <= Config.KillerSenseRange
-					and hasLineOfSight(
-						position,
-						root.Position,
-						{ current.model, player.Character :: Model }
-					)
+				local ignore = { current.model, player.Character :: Model }
+				-- Dos puntos del cuerpo: la cintura y la cabeza (más baja si está agachado).
+				local head = root.Position + Vector3.new(0, if crouching then 1.2 else 2.3, 0)
+				local function visible(): boolean
+					return hasLineOfSight(position, root.Position, ignore)
+						or hasLineOfSight(position, head, ignore)
+				end
+				local inCone = distance > 0 and forward:Dot(offset.Unit) >= cosHalfFov
+				local seen = distance <= Config.KillerSightRange and inCone and visible()
+				-- El oído: correr se oye de lejos y a través de las paredes, caminar apenas de cerca y agachado
+				-- o quieto no hace ruido.
+				local velocity = root.AssemblyLinearVelocity
+				local moving = Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 1
+				local hearRange = if crouching or not moving
+					then 0
+					elseif player:GetAttribute("Running") == true then Config.KillerHearRange
+					else Config.KillerHearWalkRange
+				local heard = distance <= hearRange
+				local senseRange = if crouching
+					then Config.KillerSenseRange * 0.4
+					else Config.KillerSenseRange
+				local sensed = distance <= senseRange
+					and hasLineOfSight(position, root.Position, ignore)
 				if (seen or heard or sensed) and distance < bestDistance then
 					best, bestDistance = player, distance
 				end
@@ -113,13 +181,12 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		end
 		return best
 	end
-
 	local function nearestPlayer(): (Player?, number?)
 		local best: Player? = nil
 		local bestDistance: number? = nil
 		for _, player in Players:GetPlayers() do
 			local room = Vitality.getRoom(player)
-			local playing = not player:GetAttribute("InTutorial")
+			local playing = Vitality.isPlaying(player)
 			if
 				playing
 				and Vitality.rootOf(player)
@@ -214,7 +281,20 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			if not target or not root or not room then
 				return patrolDestination(position)
 			end
-			return waypointTo(room, root.Position, position)
+			if seeingTarget then
+				return waypointTo(room, root.Position, position)
+			end
+			-- Sin verlo: va a donde lo vio por última vez. Si llega y no hay nadie, se rinde.
+			local spot, spotRoom = lastSeenPosition, lastSeenRoom
+			if not spot or not spotRoom then
+				return patrolDestination(position)
+			end
+			local flat = Vector3.new(spot.X - position.X, 0, spot.Z - position.Z)
+			if flat.Magnitude < 4 then
+				brain.lostFor = Config.KillerLoseTargetSeconds
+				return patrolDestination(position)
+			end
+			return waypointTo(spotRoom, spot, position)
 		elseif state == "Search" then
 			local target = nearestPlayer()
 			local room = target and Vitality.getRoom(target)
@@ -227,15 +307,22 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		return patrolDestination(position)
 	end
 
+	-- La dificultad de la partida escala la velocidad y el daño de todos los asesinos.
+	local function difficulty(): any
+		return Config.Difficulties[workspace:GetAttribute("Difficulty")]
+			or Config.Difficulties.normal
+	end
+
 	local function speedFor(state: KillerBrain.State): number
+		local scale = difficulty().speed
 		if state == "Chase" then
-			return spec.chaseSpeed
+			return spec.chaseSpeed * scale
 		elseif state == "Search" then
-			return spec.searchSpeed
+			return spec.searchSpeed * scale
 		elseif state == "Stunned" then
 			return 0
 		end
-		return spec.patrolSpeed
+		return spec.patrolSpeed * scale
 	end
 
 	local function tryHit(position: Vector3, now: number)
@@ -244,15 +331,27 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		end
 		for _, player in Players:GetPlayers() do
 			local root = Vitality.rootOf(player)
+			-- No pega a través de un mueble: tiene que haber línea de vista a la cintura o la cabeza.
+			local character = player.Character
 			if
 				root
+				and character
 				and canReach(player)
+				and Vitality.isPlaying(player)
 				and (root.Position - position).Magnitude <= Config.KillerHitRange
+				and (
+					hasLineOfSight(position, root.Position, { character })
+					or hasLineOfSight(
+						position,
+						root.Position + Vector3.new(0, 1.2, 0),
+						{ character }
+					)
+				)
 			then
 				lastHit = now
 				swingUntil = now + 0.4
 				KillerBrain.registerHit(brain, now, Config)
-				Vitality.damage(player, spec.damage, position)
+				Vitality.damage(player, spec.damage * difficulty().damage, position)
 				return
 			end
 		end
@@ -298,7 +397,7 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		-- La gracia corre desde que alguien empieza a jugar: mientras tanto se queda quieto.
 		if not releaseAt then
 			for _, player in Players:GetPlayers() do
-				if not player:GetAttribute("InTutorial") then
+				if Vitality.isPlaying(player) then
 					releaseAt = now + Config.KillerGraceSeconds
 					break
 				end
@@ -313,6 +412,12 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 
 		local _, minDistance = nearestPlayer()
 		local visible = senseTarget(position, current.root.CFrame.LookVector)
+		seeingTarget = visible ~= nil
+		local visibleRoot = visible and Vitality.rootOf(visible)
+		if visible and visibleRoot then
+			lastSeenPosition = visibleRoot.Position
+			lastSeenRoom = Vitality.getRoom(visible)
+		end
 		-- Si el objetivo se metió en un refugio, lo abandona y sigue de largo.
 		local chased = playerById(brain.target)
 		if chased and inRefuge(chased) then
@@ -325,6 +430,22 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			visibleTarget = visible and visible.Name,
 			minRoomDistance = minDistance,
 		}, Config)
+
+		-- Al empezar una persecución ruge (o gruñe, el carnicero), con su propia voz en el espacio.
+		if brain.state == "Chase" and lastState ~= "Chase" and now - lastGrowl > 10 then
+			lastGrowl = now
+			local growl = Instance.new("Sound")
+			growl.SoundId = if string.find(name, "carnicero") then Sounds.PigGrunt else Sounds.Growl
+			growl.Volume = 1.6
+			growl.RollOffMinDistance = 15
+			growl.RollOffMaxDistance = 110
+			growl.Parent = current.root
+			growl.Ended:Once(function()
+				growl:Destroy()
+			end)
+			growl:Play()
+		end
+		lastState = brain.state
 
 		if sparks then
 			sparks.Enabled = brain.state == "Stunned"
@@ -352,7 +473,7 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 
 	local function animate(current: KillerModel.Rig, now: number)
 		-- Se anima con C0 porque Transform no replica a los clientes.
-		if now - lastAnimate < 0.05 then
+		if scripted or now - lastAnimate < 0.05 then
 			return
 		end
 		lastAnimate = now
@@ -366,7 +487,7 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 
 	local function spawnModel()
 		local built = buildModel()
-		built.model:PivotTo(CFrame.new(refs.rooms[spec.startRoom].center + Vector3.new(0, 5, 0)))
+		built.model:PivotTo(CFrame.new(Killer.safeSpot(refs.rooms[spec.startRoom].center)))
 		built.model.Parent = workspace
 		built.root:SetNetworkOwner(nil)
 
@@ -390,6 +511,18 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		glow.Shadows = false
 		glow.Parent = built.glowPart
 
+		-- El cono de visión se ve: una luz tenue que sale de su frente. Donde hay sombra detrás de un
+		-- mueble, no ve.
+		local cone = Instance.new("SpotLight")
+		cone.Name = "ConoDeVision"
+		cone.Color = Color3.fromRGB(255, 120, 100)
+		cone.Face = Enum.NormalId.Front
+		cone.Angle = Config.KillerFov
+		cone.Range = 44
+		cone.Brightness = 0.9
+		cone.Shadows = true
+		cone.Parent = built.root
+
 		baseC0 = {
 			[built.leftHip] = built.leftHip.C0,
 			[built.rightHip] = built.rightHip.C0,
@@ -411,6 +544,10 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		lastHit = 0
 		stuckFor = 0
 		active = true
+		scripted = false
+		seeingTarget = false
+		lastSeenPosition = nil
+		lastSeenRoom = nil
 		spawnModel()
 		stuckAnchor = (rig :: KillerModel.Rig).root.Position
 	end
@@ -419,6 +556,99 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		active = false
 		if rig then
 			rig.humanoid.WalkSpeed = 0
+		end
+	end
+
+	-- Fuga del jugador: aparece en `from`, espera `delay`, corre hasta `to` y golpea la puerta
+	-- cerrada con el hacha cada `strikeEvery` s. `onStrike` avisa cada golpe a la escena.
+	function self.escapeScene(
+		from: Vector3,
+		to: Vector3,
+		delay: number,
+		speed: number,
+		strikeEvery: number,
+		onStrike: () -> (),
+		floorY: number?
+	)
+		local current = rig
+		if not current then
+			return
+		end
+		active = false
+		scripted = true
+		passing = nil
+		current.humanoid.WalkSpeed = 0
+		local direction = Vector3.new(to.X - from.X, 0, to.Z - from.Z).Unit
+		-- Con HipHeight = largo de pierna, la raíz queda a pierna + media altura del torso.
+		local rootY = (floorY or 0) + 0.1 + current.humanoid.HipHeight + current.root.Size.Y / 2
+		local function place(position: Vector3, lean: number, bob: number)
+			local at = Vector3.new(position.X, rootY + bob, position.Z)
+			current.root.CFrame = CFrame.lookAt(at, at + direction) * CFrame.Angles(lean, 0, 0)
+		end
+		current.root.Anchored = true
+		place(from, 0, 0)
+		current.leftHip.C0 = baseC0[current.leftHip]
+		current.rightHip.C0 = baseC0[current.rightHip]
+		-- Brazo del hacha en alto desde que se queda quieto.
+		current.shoulder.C0 = baseC0[current.shoulder] * CFrame.Angles(0.3, 0, 0)
+
+		local distance = (Vector3.new(to.X, 0, to.Z) - Vector3.new(from.X, 0, from.Z)).Magnitude
+		local startedAt = os.clock()
+		local lastStrike = -1
+		local connection: RBXScriptConnection
+		connection = RunService.Heartbeat:Connect(function()
+			if not current.model.Parent or not scripted then
+				connection:Disconnect()
+				return
+			end
+			local t = os.clock() - startedAt - delay
+			if t < 0 then
+				return
+			end
+			local travelled = t * speed
+			if travelled < distance then
+				-- Carrera: cuerpo inclinado, paso largo y el hacha al frente.
+				local stride = math.sin(t * 15) * 0.9
+				current.leftHip.C0 = baseC0[current.leftHip] * CFrame.Angles(stride, 0, 0)
+				current.rightHip.C0 = baseC0[current.rightHip] * CFrame.Angles(-stride, 0, 0)
+				current.shoulder.C0 = baseC0[current.shoulder]
+					* CFrame.Angles(1.3 + math.sin(t * 15) * 0.25, 0, 0)
+				local at = from + direction * travelled
+				place(at, -0.22, math.abs(math.sin(t * 15)) * 0.35)
+				return
+			end
+			-- Contra la puerta: patas quietas y hachazos ritmados.
+			current.leftHip.C0 = baseC0[current.leftHip]
+			current.rightHip.C0 = baseC0[current.rightHip]
+			local sinceArrival = t - distance / speed
+			local strike = math.floor(sinceArrival / strikeEvery)
+			local phase = (sinceArrival % strikeEvery) / strikeEvery
+			-- Sube lento (0 a 0.6) y cae rápido (0.6 a 1).
+			local raise = if phase < 0.6 then phase / 0.6 else 1 - (phase - 0.6) / 0.4
+			current.shoulder.C0 = baseC0[current.shoulder] * CFrame.Angles(0.4 + raise * 2.3, 0, 0)
+			local lunge = if phase > 0.6 then 0.5 * (phase - 0.6) / 0.4 else 0
+			place(to, -0.1 - lunge * 0.3, 0)
+			current.root.CFrame = current.root.CFrame * CFrame.new(0, 0, -lunge)
+			if phase > 0.6 and strike > lastStrike then
+				lastStrike = strike
+				onStrike()
+			end
+		end)
+	end
+
+	-- Solo para QA: a quién ve ahora, con los mismos sentidos que usa de verdad.
+	function self.debugSense(): Player?
+		local current = rig
+		if not current then
+			return nil
+		end
+		return senseTarget(current.root.Position, current.root.CFrame.LookVector)
+	end
+
+	function self.debugPlace(position: Vector3, lookAt: Vector3)
+		if rig then
+			passing = nil
+			rig.root.CFrame = CFrame.lookAt(position, Vector3.new(lookAt.X, position.Y, lookAt.Z))
 		end
 	end
 
@@ -507,6 +737,27 @@ function Killer.debugStatus(): string
 	return table.concat(lines, " | ")
 end
 
+-- Escena de la fuga con el asesino principal.
+function Killer.playEscape(
+	from: Vector3,
+	to: Vector3,
+	delay: number,
+	speed: number,
+	strikeEvery: number,
+	onStrike: () -> (),
+	floorY: number?
+)
+	killers[1].escapeScene(from, to, delay, speed, strikeEvery, onStrike, floorY)
+end
+
+function Killer.debugSense(index: number): Player?
+	return killers[index].debugSense()
+end
+
+function Killer.debugPlace(index: number, position: Vector3, lookAt: Vector3)
+	killers[index].debugPlace(position, lookAt)
+end
+
 function Killer.debugTeleport(index: number, position: Vector3)
 	killers[index].debugTeleport(position)
 end
@@ -517,6 +768,7 @@ function Killer.start(mansionRefs: Mansion.MansionRefs)
 		create("asesino", Config.Killers.main, KillerModel.build),
 		create("smoking", Config.Killers.gentleman, KillerModel.buildGentleman),
 		create("carnicero", Config.Killers.butcher, KillerModel.buildButcher),
+		create("carnicero2", Config.Killers.butcher2, KillerModel.buildButcher),
 	}
 
 	local function forEach(action: (any) -> ())
@@ -538,6 +790,7 @@ function Killer.start(mansionRefs: Mansion.MansionRefs)
 			killer.freeze()
 		end)
 	end
+	Round.Escaping:Connect(freezeAll)
 	Round.Won:Connect(freezeAll)
 	Round.Lost:Connect(freezeAll)
 
@@ -561,6 +814,25 @@ function Killer.start(mansionRefs: Mansion.MansionRefs)
 			forEach(function(killer)
 				killer.tick(now)
 			end)
+			-- Aviso de peligro para el cliente: 0 lejos, 1 pegado al asesino más cercano.
+			for _, player in Players:GetPlayers() do
+				local root = Vitality.rootOf(player)
+				local danger = 0
+				if root and Vitality.isPlaying(player) then
+					local nearest = math.huge
+					for _, killer in killers do
+						local position = killer.getPosition()
+						if position then
+							nearest = math.min(nearest, (position - root.Position).Magnitude)
+						end
+					end
+					danger = math.clamp(1 - nearest / DANGER_RANGE, 0, 1)
+				end
+				danger = math.floor(danger * 10) / 10
+				if player:GetAttribute("Danger") ~= danger then
+					player:SetAttribute("Danger", danger)
+				end
+			end
 		end
 	end)
 end

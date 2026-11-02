@@ -20,6 +20,9 @@ local TOP = 40
 local FLOOR = 20
 local WINDOW_BOTTOM = 4
 local WINDOW_TOP = 34
+-- Vidrio de niebla: casi opaco, no se ve el fondo.
+local FOG_GLASS = Color3.fromRGB(122, 134, 152)
+local FOG_TRANSPARENCY = 0.06
 
 function GrandHall.build(ctx: any)
 	local X0, X1, Z0, Z1 = GrandHall.X0, GrandHall.X1, GrandHall.Z0, GrandHall.Z1
@@ -82,6 +85,8 @@ function GrandHall.build(ctx: any)
 	-- Ventanal alto con parteluz y remate redondo, que simula un arco con dos discos.
 	local function tallWindow(center: Vector3, outward: Vector3, width: number)
 		local horizontal = outward.Z ~= 0
+		-- Solo los ventanales de la puerta principal (norte) dejan ver afuera; los demás dan a la niebla.
+		local foggy = not (horizontal and outward.Z < 0)
 		local height = WINDOW_TOP - WINDOW_BOTTOM
 		local middle = center + Vector3.new(0, (WINDOW_BOTTOM + WINDOW_TOP) / 2, 0)
 		ctx.part({
@@ -90,10 +95,10 @@ function GrandHall.build(ctx: any)
 				then Vector3.new(width, height, 0.3)
 				else Vector3.new(0.3, height, width),
 			Position = middle,
-			Color = Color3.fromRGB(90, 110, 140),
+			Color = if foggy then FOG_GLASS else Color3.fromRGB(90, 110, 140),
 			-- El material Glass oculta las partículas que hay detrás: la lluvia no se vería.
 			Material = Enum.Material.SmoothPlastic,
-			Transparency = 0.88,
+			Transparency = if foggy then FOG_TRANSPARENCY else 0.88,
 		})
 		local along = if horizontal then Vector3.xAxis else Vector3.zAxis
 		for _, offset in { -width / 6, width / 6 } do
@@ -122,8 +127,9 @@ function GrandHall.build(ctx: any)
 			Shape = Enum.PartType.Cylinder,
 			Size = Vector3.new(0.4, width, width),
 			CFrame = CFrame.new(head - outward * 0.1) * turn,
-			Color = Color3.fromRGB(38, 48, 68),
-			Material = Enum.Material.Glass,
+			Color = if foggy then FOG_GLASS else Color3.fromRGB(38, 48, 68),
+			Material = if foggy then Enum.Material.SmoothPlastic else Enum.Material.Glass,
+			Transparency = if foggy then FOG_TRANSPARENCY else 0,
 		})
 		ctx.rainOutside({
 			position = middle,
@@ -214,8 +220,8 @@ function GrandHall.build(ctx: any)
 		end
 	end
 	for _, x in { midX - 24, midX - 8, midX + 8, midX + 24 } do
-		column(x, galleryZ, 0, FLOOR - 2, 2.2)
-		column(x, galleryZ - 1, FLOOR, TOP, 1.8)
+		column(x, galleryZ + 3, 0, FLOOR - 2, 2.2)
+		column(x, galleryZ + 3, FLOOR, TOP, 1.8)
 	end
 	column(midX - 18, Z0 + 8, 0, TOP, 3)
 	column(midX + 18, Z0 + 8, 0, TOP, 3)

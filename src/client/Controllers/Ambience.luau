@@ -15,8 +15,9 @@ local LightFade = require(Shared:WaitForChild("Rules"):WaitForChild("LightFade")
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Sounds = require(Shared:WaitForChild("Sounds"))
 
-local RAIN_VOLUME_HALL = 0.5
-local RAIN_VOLUME_INSIDE = 0.2
+local RAIN_VOLUME_HALL = 0.13
+local RAIN_VOLUME_INSIDE = 0.048
+local RAIN_VOLUME_LOBBY = 0.03
 local STEPS_VOLUME_WALK = 0.12
 local STEPS_VOLUME_RUN = 0.65
 local DEV_LIGHT = Color3.fromRGB(170, 170, 170)
@@ -32,30 +33,47 @@ local function makeSound(id: string, looped: boolean, volume: number): Sound
 	return sound
 end
 
+-- Un rayo ilumina todo, también adentro: sube la luz ambiente y la exposición un instante, con dos
+-- destellos seguidos, y vuelve a la penumbra.
 local function flash()
 	local correction = Instance.new("ColorCorrectionEffect")
-	correction.Brightness = 0.9
+	correction.Brightness = 0.6
 	correction.Contrast = 0.3
 	correction.Parent = Lighting
-	local outdoor = Lighting.OutdoorAmbient
-	Lighting.OutdoorAmbient = Color3.fromRGB(190, 200, 240)
+	local ambient, outdoor = Lighting.Ambient, Lighting.OutdoorAmbient
+	local exposure, brightness = Lighting.ExposureCompensation, Lighting.Brightness
+	local function lit(amount: number)
+		Lighting.Ambient = ambient:Lerp(Color3.fromRGB(215, 222, 255), amount)
+		Lighting.OutdoorAmbient = outdoor:Lerp(Color3.fromRGB(215, 222, 255), amount)
+		Lighting.ExposureCompensation = exposure + amount * 1.4
+		Lighting.Brightness = brightness + amount * 2
+		correction.Brightness = amount * 0.55
+	end
+	lit(1)
 	task.delay(0.12, function()
-		correction.Brightness = 0.1
+		lit(0.15)
 	end)
 	task.delay(0.22, function()
-		correction.Brightness = 0.7
+		lit(0.85)
 	end)
-	task.delay(0.35, function()
-		Lighting.OutdoorAmbient = outdoor
+	task.delay(0.45, function()
 		local fade =
-			TweenService:Create(correction, TweenInfo.new(0.5), { Brightness = 0, Contrast = 0 })
+			TweenService:Create(correction, TweenInfo.new(0.7), { Brightness = 0, Contrast = 0 })
 		fade:Play()
 		fade.Completed:Once(function()
 			correction:Destroy()
 		end)
+		for step = 1, 14 do
+			task.delay(step * 0.05, function()
+				lit(0.85 * (1 - step / 14))
+			end)
+		end
+		task.delay(0.75, function()
+			Lighting.Ambient, Lighting.OutdoorAmbient = ambient, outdoor
+			Lighting.ExposureCompensation, Lighting.Brightness = exposure, brightness
+		end)
 	end)
 end
-
 function Ambience.start()
 	local rain = makeSound(Sounds.Rain, true, RAIN_VOLUME_HALL)
 	rain:Play()
@@ -66,6 +84,9 @@ function Ambience.start()
 	end)
 
 	Remotes.get("Lightning").OnClientEvent:Connect(function()
+		if Players.LocalPlayer:GetAttribute("InLobby") then
+			return
+		end
 		flash()
 		task.delay(0.6, function()
 			thunder:Play()
@@ -74,8 +95,11 @@ function Ambience.start()
 
 	local player = Players.LocalPlayer
 	player:GetAttributeChangedSignal("Room"):Connect(function()
-		rain.Volume = if player:GetAttribute("Room") == "hall"
-			then RAIN_VOLUME_HALL
+		-- En el patio del lobby la lluvia es apenas un fondo: se escucha la música.
+		local room = player:GetAttribute("Room")
+		rain.Volume = if room == "lobby"
+			then RAIN_VOLUME_LOBBY
+			elseif room == "hall" then RAIN_VOLUME_HALL
 			else RAIN_VOLUME_INSIDE
 	end)
 

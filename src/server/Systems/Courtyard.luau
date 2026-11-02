@@ -1,6 +1,6 @@
 --!strict
--- Patio delantero, frente a la puerta principal: fuente con ángel, faroles, canteros y portón.
--- Se ve por los ventanales del hall y se cruza al escapar: la salida es el portón del fondo.
+-- Patio delantero, frente a la puerta principal: fuente con Ã¡ngel, faroles, canteros y portÃ³n.
+-- Se ve por los ventanales del hall y se cruza al escapar: la salida es el portÃ³n del fondo.
 
 local Courtyard = {}
 
@@ -10,10 +10,10 @@ Courtyard.X1 = 14
 Courtyard.Z0 = -71
 Courtyard.Z1 = -138
 Courtyard.GateHalf = 8
+Courtyard.CenterZ = (Courtyard.Z0 + Courtyard.Z1) / 2
 
 local STONE = Color3.fromRGB(72, 68, 62)
 local MARBLE = Color3.fromRGB(176, 174, 166)
-local BRICK = Color3.fromRGB(78, 62, 52)
 local IRON = Color3.fromRGB(18, 18, 20)
 local LEAF = Color3.fromRGB(34, 66, 32)
 local LAMP = Color3.fromRGB(255, 226, 170)
@@ -123,21 +123,6 @@ function Courtyard.build(ctx: any)
 			LEAF,
 			Enum.Material.Grass
 		)
-		-- Muro lateral con remate.
-		block(
-			"MuroPatio",
-			Vector3.new(2, 15, depth),
-			CFrame.new(midX + side * (width / 2 + 1), 7.5, midZ),
-			BRICK,
-			Enum.Material.Brick
-		)
-		deco(
-			"RemateMuro",
-			Vector3.new(3, 0.8, depth),
-			CFrame.new(midX + side * (width / 2 + 1), 15.4, midZ),
-			STONE,
-			Enum.Material.Concrete
-		)
 		for _ = 1, 15 do
 			local size = random:NextNumber(3.5, 7.5)
 			deco(
@@ -151,63 +136,6 @@ function Courtyard.build(ctx: any)
 				Color3.fromRGB(30, random:NextInteger(58, 84), 32),
 				Enum.Material.Grass,
 				Enum.PartType.Ball
-			)
-		end
-	end
-
-	-- Muro del fondo y portón abierto, con pilares, faroles y hojas de hierro.
-	local gateHalf = Courtyard.GateHalf
-	for _, side in { -1, 1 } do
-		local length = width / 2 + 2 - gateHalf
-		local centerX = midX + side * (gateHalf + length / 2)
-		block(
-			"MuroPatio",
-			Vector3.new(length, 15, 2),
-			CFrame.new(centerX, 7.5, z1 - 1),
-			BRICK,
-			Enum.Material.Brick
-		)
-		deco(
-			"RemateMuro",
-			Vector3.new(length, 0.8, 3),
-			CFrame.new(centerX, 15.4, z1 - 1),
-			STONE,
-			Enum.Material.Concrete
-		)
-		local pillarX = midX + side * (gateHalf + 1.5)
-		block(
-			"PilarPorton",
-			Vector3.new(3.4, 19, 3.4),
-			CFrame.new(pillarX, 9.5, z1 - 1),
-			STONE,
-			Enum.Material.Concrete
-		)
-		deco(
-			"BolaPilar",
-			Vector3.one * 2.8,
-			CFrame.new(pillarX, 20.2, z1 - 1),
-			MARBLE,
-			Enum.Material.Marble,
-			Enum.PartType.Ball
-		)
-		-- Hoja abierta hacia adentro, contra el cantero.
-		local hinge = CFrame.new(midX + side * gateHalf, 0, z1 + 0.5)
-		for i = 0, 7 do
-			deco(
-				"BarrotePorton",
-				Vector3.new(0.22, 13, 0.22),
-				hinge * CFrame.new(0, 6.5, i * 1),
-				IRON,
-				Enum.Material.Metal
-			)
-		end
-		for _, y in { 1, 7, 12.6 } do
-			deco(
-				"TravesanoPorton",
-				Vector3.new(0.2, 0.3, 7.6),
-				hinge * CFrame.new(0, y, 3.5),
-				IRON,
-				Enum.Material.Metal
 			)
 		end
 	end
@@ -256,12 +184,12 @@ function Courtyard.build(ctx: any)
 		)
 	end
 
-	-- Ángel de túnica sobre el pedestal, mirando a la puerta de la casa, con las alas abiertas.
+	-- Ãngel de tÃºnica sobre el pedestal, mirando a la puerta de la casa, con las alas abiertas.
 	local angel = CFrame.lookAt(fountain + Vector3.new(0, 13, 0), fountain + Vector3.new(0, 13, 1))
 	local function stone(name: string, size: Vector3, offset: CFrame, shape: Enum.PartType?)
 		deco(name, size, angel * offset, MARBLE, Enum.Material.Marble, shape)
 	end
-	-- Túnica que se angosta hacia los hombros.
+	-- TÃºnica que se angosta hacia los hombros.
 	for i, section in { { 6.4, 0 }, { 5.4, 3 }, { 4.5, 6 }, { 3.8, 9 } } do
 		stone(
 			`Tunica{i}`,
@@ -280,14 +208,14 @@ function Courtyard.build(ctx: any)
 		CFrame.new(0, 17.6, 0.3) * cylinderUp,
 		Enum.PartType.Cylinder
 	)
-	-- Brazos juntos adelante, en oración.
+	-- Brazos juntos adelante, en oraciÃ³n.
 	for _, side in { -1, 1 } do
 		stone(
 			"BrazoAngel",
 			Vector3.new(0.9, 3.6, 0.9),
 			CFrame.new(side * 1.2, 11, -1.9) * CFrame.Angles(math.rad(50), 0, math.rad(side * 28))
 		)
-		-- Ala: plumas cada vez más largas y abiertas hacia afuera.
+		-- Ala: plumas cada vez mÃ¡s largas y abiertas hacia afuera.
 		for i = 1, 6 do
 			stone(
 				"Pluma",

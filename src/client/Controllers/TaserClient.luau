@@ -1,5 +1,5 @@
 --!strict
--- Clic para disparar el taser y efecto del rayo eléctrico.
+-- Clic para disparar el taser (si está en la mano) y efecto del rayo eléctrico.
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -24,7 +24,7 @@ function TaserClient.start()
 			return
 		end
 		local charges = (player:GetAttribute("TaserCharges") :: number?) or 0
-		if charges > 0 then
+		if charges > 0 and player:GetAttribute("Equipped") == "taser" then
 			Remotes.get("FireTaser"):FireServer()
 		end
 	end)
