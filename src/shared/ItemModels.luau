@@ -14,6 +14,8 @@ export type Piece = {
 	shape: Enum.PartType?,
 	reflectance: number?,
 	transparency: number?,
+	-- Texto dibujado sobre una cara (la pieza queda invisible): dos renglones en vertical.
+	label: { face: Enum.NormalId, lines: { string } }?,
 }
 
 local function piece(
@@ -22,7 +24,12 @@ local function piece(
 	offset: CFrame,
 	color: Color3,
 	material: Enum.Material,
-	extra: { shape: Enum.PartType?, reflectance: number?, transparency: number? }?
+	extra: {
+		shape: Enum.PartType?,
+		reflectance: number?,
+		transparency: number?,
+		label: { face: Enum.NormalId, lines: { string } }?,
+	}?
 ): Piece
 	return {
 		name = name,
@@ -33,6 +40,7 @@ local function piece(
 		shape = if extra then extra.shape else nil,
 		reflectance = if extra then extra.reflectance else nil,
 		transparency = if extra then extra.transparency else nil,
+		label = if extra then extra.label else nil,
 	}
 end
 
@@ -238,6 +246,231 @@ local function setup(part: Part, spec: Piece)
 	part.Material = spec.material
 	part.Reflectance = spec.reflectance or 0
 	part.Transparency = spec.transparency or 0
+	local label = spec.label
+	if label then
+		-- Lienzo de 72 x 116 px: los renglones van de abajo hacia arriba, uno al lado del otro.
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = label.face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+		gui.CanvasSize = Vector2.new(72, 116)
+		gui.LightInfluence = 1
+		gui.Parent = part
+		local flip = label.face == Enum.NormalId.Left
+		for index, line in label.lines do
+			local text = Instance.new("TextLabel")
+			text.AnchorPoint = Vector2.new(0.5, 0.5)
+			text.Position = UDim2.fromOffset(if index == 1 then 26 else 51, 58)
+			text.Size = UDim2.fromOffset(112, 28)
+			text.Rotation = if flip then 90 else -90
+			text.BackgroundTransparency = 1
+			text.Font = Enum.Font.GothamBlack
+			text.TextSize = if index == 1 then 24 else 16
+			text.TextColor3 = Color3.new(1, 1, 1)
+			text.Text = line
+			text.Parent = gui
+		end
+	end
+end
+
+local WHITE = Color3.fromRGB(252, 252, 252)
+local RED = Color3.fromRGB(200, 34, 40)
+
+-- Botiquín rojo con cruz blanca, cierres plateados y asa. Mira a -Z; la tapa va hacia arriba.
+function ItemModels.medkit(): { Piece }
+	local pieces = {
+		piece(
+			"Caja",
+			Vector3.new(1, 0.62, 0.54),
+			CFrame.new(),
+			RED,
+			Enum.Material.SmoothPlastic,
+			{ reflectance = 0.06 }
+		),
+		piece(
+			"Tapa",
+			Vector3.new(1.04, 0.09, 0.58),
+			CFrame.new(0, 0.155, 0),
+			Color3.fromRGB(165, 22, 28),
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"CruzVertical",
+			Vector3.new(0.14, 0.38, 0.03),
+			CFrame.new(0, 0, -0.285),
+			WHITE,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"CruzHorizontal",
+			Vector3.new(0.38, 0.14, 0.03),
+			CFrame.new(0, 0, -0.285),
+			WHITE,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"CruzArribaA",
+			Vector3.new(0.14, 0.03, 0.38),
+			CFrame.new(0, 0.215, 0),
+			WHITE,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"CruzArribaB",
+			Vector3.new(0.38, 0.03, 0.14),
+			CFrame.new(0, 0.215, 0),
+			WHITE,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"Asa",
+			Vector3.new(0.46, 0.05, 0.09),
+			CFrame.new(0, 0.25, 0.19),
+			RUBBER,
+			Enum.Material.SmoothPlastic
+		),
+	}
+	for _, x in { -0.34, 0.34 } do
+		table.insert(
+			pieces,
+			piece(
+				"Cierre",
+				Vector3.new(0.1, 0.1, 0.04),
+				CFrame.new(x, 0.13, -0.29),
+				STEEL,
+				Enum.Material.Metal
+			)
+		)
+	end
+	return pieces
+end
+
+-- Vendas, todo blanco: un rollo con la punta suelta y un parche con gasa al lado. Acostado.
+function ItemModels.bandage(): { Piece }
+	local paper = Color3.fromRGB(246, 246, 246)
+	return {
+		piece(
+			"Rollo",
+			Vector3.new(0.5, 0.7, 0.7),
+			CFrame.new(0, 0, 0),
+			WHITE,
+			Enum.Material.SmoothPlastic,
+			CYLINDER
+		),
+		piece(
+			"Centro",
+			Vector3.new(0.52, 0.24, 0.24),
+			CFrame.new(0, 0, 0),
+			Color3.fromRGB(214, 214, 218),
+			Enum.Material.SmoothPlastic,
+			CYLINDER
+		),
+		piece(
+			"PuntaSuelta",
+			Vector3.new(0.5, 0.04, 0.8),
+			CFrame.new(0, -0.35, -0.42),
+			WHITE,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"Parche",
+			Vector3.new(0.5, 0.06, 0.5),
+			CFrame.new(0.7, -0.32, 0.05),
+			paper,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"Gasa",
+			Vector3.new(0.3, 0.08, 0.3),
+			CFrame.new(0.7, -0.29, 0.05),
+			WHITE,
+			Enum.Material.SmoothPlastic
+		),
+		piece(
+			"Cinta",
+			Vector3.new(0.5, 0.05, 0.1),
+			CFrame.new(0.7, -0.3, 0.05),
+			paper,
+			Enum.Material.SmoothPlastic
+		),
+	}
+end
+
+-- Pila alcalina grande (tipo Rayovac): cuerpo azul con "RAYOVAC ALCALINA", banda roja con filete
+-- blanco, parte de arriba plateada con el polo. Parada; los cilindros giran para quedar a lo largo de Y.
+function ItemModels.battery(): { Piece }
+	local upright = CFrame.Angles(0, 0, math.rad(90))
+	local blue = Color3.fromRGB(26, 62, 150)
+	local silver = Color3.fromRGB(204, 207, 214)
+	local pieces = {
+		piece(
+			"Cuerpo",
+			Vector3.new(0.62, 0.6, 0.6),
+			CFrame.new(0, -0.19, 0) * upright,
+			blue,
+			Enum.Material.SmoothPlastic,
+			{ shape = Enum.PartType.Cylinder, reflectance = 0.1 }
+		),
+		piece(
+			"Plata",
+			Vector3.new(0.36, 0.6, 0.6),
+			CFrame.new(0, 0.3, 0) * upright,
+			silver,
+			Enum.Material.Metal,
+			{ shape = Enum.PartType.Cylinder, reflectance = 0.35 }
+		),
+		piece(
+			"Banda",
+			Vector3.new(0.07, 0.606, 0.606),
+			CFrame.new(0, 0.12, 0) * upright,
+			Color3.fromRGB(208, 30, 54),
+			Enum.Material.SmoothPlastic,
+			CYLINDER
+		),
+		piece(
+			"Filete",
+			Vector3.new(0.018, 0.608, 0.608),
+			CFrame.new(0, 0.073, 0) * upright,
+			WHITE,
+			Enum.Material.SmoothPlastic,
+			CYLINDER
+		),
+		piece(
+			"Polo",
+			Vector3.new(0.07, 0.22, 0.22),
+			CFrame.new(0, 0.515, 0) * upright,
+			Color3.fromRGB(190, 192, 198),
+			Enum.Material.Metal,
+			{ shape = Enum.PartType.Cylinder, reflectance = 0.3 }
+		),
+		piece(
+			"Base",
+			Vector3.new(0.03, 0.58, 0.58),
+			CFrame.new(0, -0.485, 0) * upright,
+			Color3.fromRGB(14, 30, 70),
+			Enum.Material.SmoothPlastic,
+			CYLINDER
+		),
+	}
+	-- El texto, a los dos lados del cuerpo.
+	for _, side in
+		{ { x = 0.305, face = Enum.NormalId.Right }, { x = -0.305, face = Enum.NormalId.Left } }
+	do
+		table.insert(
+			pieces,
+			piece(
+				"Etiqueta",
+				Vector3.new(0.02, 0.58, 0.36),
+				CFrame.new(side.x, -0.19, 0),
+				WHITE,
+				Enum.Material.SmoothPlastic,
+				{
+					transparency = 1,
+					label = { face = side.face, lines = { "RAYOVAC", "ALCALINA" } },
+				}
+			)
+		)
+	end
+	return pieces
 end
 
 -- Convierte `item` en la pieza principal y le cuelga el resto; queda donde estaba.

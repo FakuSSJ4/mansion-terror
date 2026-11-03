@@ -78,10 +78,16 @@ local LOOKS = {
 		Color3.fromRGB(226, 214, 184),
 		Enum.Material.Fabric
 	),
-	pill = look(
-		"Píldoras",
-		Vector3.new(0.8, 0.5, 0.5),
-		Color3.fromRGB(215, 215, 225),
+	bandage = look(
+		"Vendas",
+		Vector3.new(0.5, 0.7, 0.7),
+		Color3.fromRGB(236, 232, 222),
+		Enum.Material.Fabric
+	),
+	medkit = look(
+		"Botiquín",
+		Vector3.new(1.3, 0.8, 0.7),
+		Color3.fromRGB(236, 232, 222),
 		Enum.Material.SmoothPlastic
 	),
 	taser = look(
@@ -269,7 +275,7 @@ local function spawnItem(
 	onPicked: (Player) -> boolean,
 	keyColor: { name: string, rgb: { number } }?,
 	label: string?
-)
+): ProximityPrompt
 	local itemLook = LOOKS[kind]
 	local item = Instance.new("Part")
 	item.Name = id
@@ -295,6 +301,18 @@ local function spawnItem(
 		glow.Brightness = 0.7
 		glow.Shadows = false
 		glow.Parent = item
+	elseif kind == "medkit" or kind == "bandage" or kind == "battery" then
+		-- Apoyados en el piso, cada uno con su giro; la pila va parada.
+		local lift = if kind == "battery" then 0.2 else 0.12
+		item.CFrame = CFrame.new(position + Vector3.new(0, lift, 0))
+			* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+		ItemModels.apply(
+			item,
+			if kind == "medkit"
+				then ItemModels.medkit()
+				elseif kind == "bandage" then ItemModels.bandage()
+				else ItemModels.battery()
+		)
 	elseif kind == "taser" or kind == "flashlight" then
 		-- Un resplandor suave, para que se encuentren en la oscuridad.
 		local beacon = Instance.new("PointLight")
@@ -327,6 +345,7 @@ local function spawnItem(
 			item:Destroy()
 		end
 	end)
+	return prompt
 end
 
 local function takeSpot(spots: { Vector3 }, random: Random): Vector3
@@ -479,9 +498,23 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 	-- Un pergamino en cada habitación con código, sobre su pedestal.
 	for n = 1, Config.BookCount do
 		local id = `book{n}`
-		spawnItem(id, "scroll", refs.vaults[n].scrollSpot, function(player)
+		local vaultDoor = refs.vaults[n].door
+		-- Solo se puede agarrar con la caja fuerte abierta (con el código): el botón aparece recién
+		-- cuando se destraba, y el servidor lo vuelve a comprobar.
+		local scrollPrompt = spawnItem(id, "scroll", refs.vaults[n].scrollSpot, function(player)
+			if not vaultDoor.unlocked then
+				notify(player, `Abrí la Caja fuerte {n} con su código`)
+				return false
+			end
 			handlers.onBook(player, id)
 			return true
+		end)
+		scrollPrompt.Enabled = vaultDoor.unlocked
+		-- El botón de la caja se apaga al abrirla (ver setDoorUnlocked): el del pergamino al revés.
+		vaultDoor.prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+			if scrollPrompt.Parent then
+				scrollPrompt.Enabled = vaultDoor.unlocked
+			end
 		end)
 	end
 	local function randomSpot(rooms: { string }): Vector3
@@ -522,15 +555,32 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 			return true
 		end, nil, `Nota: código de la Caja fuerte {n}`)
 	end
-	for n = 1, counts.pills do
-		spawnItem(`pill{n}`, "pill", randomSpot(allRooms), function(player)
-			if not Vitality.heal(player, Config.PillHeal) then
-				notify(player, "Tenés la vida llena")
-				return false
-			end
-			notify(player, "Te curaste")
-			return true
-		end)
+	-- Curas: vendas (curan poco) y botiquines (curan más), mitad y mitad.
+	local cures = {
+		{ kind = "bandage", count = counts.bandages, heal = Config.BandageHeal },
+		{ kind = "medkit", count = counts.medkits, heal = Config.MedkitHeal },
+	}
+	for _, cure in cures do
+		for n = 1, cure.count do
+			spawnItem(`{cure.kind}{n}`, cure.kind, randomSpot(allRooms), function(player)
+				-- El botiquín se guarda (uno solo, tecla 3); las vendas se usan al agarrarlas.
+				if cure.kind == "medkit" then
+					if player:GetAttribute("HasMedkit") then
+						notify(player, "Ya llevás un botiquín")
+						return false
+					end
+					player:SetAttribute("HasMedkit", true)
+					notify(player, "Agarraste un botiquín. Tecla 3 para usarlo")
+					return true
+				end
+				if not Vitality.heal(player, cure.heal) then
+					notify(player, "Tenés la vida llena")
+					return false
+				end
+				notify(player, `Te curaste {cure.heal}`)
+				return true
+			end)
+		end
 	end
 
 	for _ = 1, counts.tasers do
@@ -577,6 +627,7 @@ end
 
 function Items.debugGive(player: Player)
 	player:SetAttribute("HasFlashlight", true)
+	player:SetAttribute("HasMedkit", true)
 	player:SetAttribute("Battery", 1)
 	player:SetAttribute("HasLadder", true)
 	player:SetAttribute("HasGoldKey", true)
@@ -647,6 +698,23 @@ function Items.start(refs: any)
 	setupTaserPedestal(refs.taserPedestal)
 	setupHatch(refs.hatchPoint)
 	Vitality.Died:Connect(dropCarried)
+	-- Usar el botiquín guardado (tecla 3): cura de golpe y se gasta; con la vida llena se conserva.
+	Remotes.get("UseMedkit").OnServerEvent:Connect(function(player)
+		if not player:GetAttribute("HasMedkit") or not Vitality.isPlaying(player) then
+			return
+		end
+		local now = os.clock()
+		if now - (lastUse[player] or 0) < Config.InteractCooldown then
+			return
+		end
+		lastUse[player] = now
+		if not Vitality.heal(player, Config.MedkitHeal) then
+			notify(player, "Tenés la vida llena")
+			return
+		end
+		player:SetAttribute("HasMedkit", false)
+		notify(player, `Te curaste {Config.MedkitHeal}`)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		dropCarried(player)
 		lastUse[player] = nil

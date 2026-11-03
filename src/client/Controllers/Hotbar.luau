@@ -1,6 +1,7 @@
 --!strict
--- Barra de objetos: 1 taser y 2 linterna. La tecla saca el objeto a la mano (otra vez lo guarda);
--- el atributo "Equipped" del jugador, que solo vive en este cliente, dice cuál está en la mano.
+-- Barra de objetos: 1 taser, 2 linterna y 3 botiquín. La tecla saca el objeto a la mano (otra vez lo
+-- guarda); el atributo "Equipped" del jugador, que solo vive en este cliente, dice cuál está en la mano.
+-- El botiquín no se sostiene: la tecla 3 lo usa directo.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ItemModels = require(Shared:WaitForChild("ItemModels"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local Hotbar = {}
 
@@ -70,7 +72,7 @@ function Hotbar.start()
 	bar.BackgroundTransparency = 1
 	bar.AnchorPoint = Vector2.new(0.5, 1)
 	bar.Position = UDim2.new(0.5, 0, 1, -24)
-	bar.Size = UDim2.fromOffset(160, 76)
+	bar.Size = UDim2.fromOffset(240, 76)
 	bar.Parent = gui
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
@@ -130,11 +132,14 @@ function Hotbar.start()
 	local slots = {
 		newSlot(1, Enum.KeyCode.One, "1", "taser", ItemModels.taser()),
 		newSlot(2, Enum.KeyCode.Two, "2", "flashlight", ItemModels.flashlight()),
+		newSlot(3, Enum.KeyCode.Three, "3", "medkit", ItemModels.medkit()),
 	}
 
 	local function owns(item: string): boolean
 		if item == "taser" then
 			return ((player:GetAttribute("TaserCharges") :: number?) or 0) > 0
+		elseif item == "medkit" then
+			return player:GetAttribute("HasMedkit") == true
 		end
 		return player:GetAttribute("HasFlashlight") == true
 	end
@@ -157,6 +162,8 @@ function Hotbar.start()
 			if slot.item == "taser" then
 				local charges = (player:GetAttribute("TaserCharges") :: number?) or 0
 				slot.tag.Text = if charges > 0 then `x{charges}` else ""
+			elseif slot.item == "medkit" then
+				slot.tag.Text = if has then "x1" else ""
 			else
 				local on = player:GetAttribute("FlashlightOn") == true
 				slot.tag.Text = if on then "ON" else ""
@@ -171,8 +178,13 @@ function Hotbar.start()
 		end
 		for _, slot in slots do
 			if input.KeyCode == slot.key and owns(slot.item) then
-				local already = player:GetAttribute("Equipped") == slot.item
-				player:SetAttribute("Equipped", if already then nil else slot.item)
+				if slot.item == "medkit" then
+					-- No se saca a la mano: se usa directo.
+					Remotes.get("UseMedkit"):FireServer()
+				else
+					local already = player:GetAttribute("Equipped") == slot.item
+					player:SetAttribute("Equipped", if already then nil else slot.item)
+				end
 			end
 		end
 	end)
@@ -194,6 +206,7 @@ function Hotbar.start()
 	for _, name in { "TaserCharges", "HasFlashlight" } do
 		player:GetAttributeChangedSignal(name):Connect(onPickups)
 	end
+	player:GetAttributeChangedSignal("HasMedkit"):Connect(refresh)
 	for _, name in { "FlashlightOn", "Equipped" } do
 		player:GetAttributeChangedSignal(name):Connect(refresh)
 	end

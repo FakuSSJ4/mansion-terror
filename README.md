@@ -23,6 +23,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `Shift` izquierdo | Correr |
 | `1` | Sacar o guardar el taser |
 | `2` | Sacar o guardar la linterna |
+| `3` | Usar el botiquín guardado (se lleva uno solo; cura 75). Las vendas curan 25 al agarrarlas |
 | Clic | Disparar el taser (si lo tenés en la mano) |
 | Clic derecho | Prender o apagar la linterna |
 
@@ -33,7 +34,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `5` | Modo desarrollador: sin daño, todas las llaves, atravesás puertas y volás (`W A S D`, `Espacio` sube, `Ctrl` baja, doble `Espacio` deja de volar) |
 | `K` | Dar todas las llaves |
 | `J` | Dar todos los pergaminos |
-| `3` | Ir a la pieza siguiente |
+| `=` | Ir a la pieza siguiente |
 | `4` | Disparar un rayo (en la partida caen solos: a horas al azar dentro de una ventana de 3, 5 u 8 minutos, nunca en el primer minuto) |
 | `H` | Recibir un golpe |
 | `6` | Mostrar en Output el estado del asesino |
@@ -59,6 +60,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `M` | Traer al asesino de smoking a tu pieza |
 | `B` | Traer al carnicero a tu pieza |
 | `2` del teclado numérico | Repetir el primer encuentro: sienta al asesino en el sillón del living y te deja en la puerta |
+| `F8` | Ir a ver, de a una por vez, la venda, el botiquín y la pila |
 | `T` | Recorrer alce, rinoceronte, puma, teclado, umbral, cama, sótano largo, mesa de carnicero, sala de juegos y bar |
 
 ## Sonidos

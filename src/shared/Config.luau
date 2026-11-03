@@ -104,8 +104,10 @@ local Config = {
 	FlashlightSeconds = 180,
 	BatteryRechargeSeconds = 60,
 	BatteryCount = 6,
-	PillCount = 8,
-	PillHeal = 50,
+	-- Curas escondidas, mitad vendas y mitad botiquines (el botiquín cura más).
+	CureCount = 8,
+	BandageHeal = 25,
+	MedkitHeal = 75,
 	InteractRange = 10,
 	InteractCooldown = 0.2,
 

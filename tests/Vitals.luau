@@ -57,8 +57,9 @@ return {
 		assert(Vitals.damage(20, 50) == 0)
 	end,
 	healCapsAtMax = function()
-		assert(Vitals.heal(80, Config.PillHeal, Config.MaxHealth) == 100)
-		assert(Vitals.heal(10, Config.PillHeal, Config.MaxHealth) == 60)
+		assert(Vitals.heal(80, Config.MedkitHeal, Config.MaxHealth) == 100)
+		assert(Vitals.heal(10, Config.MedkitHeal, Config.MaxHealth) == 85)
+		assert(Vitals.heal(10, Config.BandageHeal, Config.MaxHealth) == 35)
 	end,
 	fullHealthCannotTakePill = function()
 		assert(not Vitals.canTakePill(100, Config.MaxHealth))

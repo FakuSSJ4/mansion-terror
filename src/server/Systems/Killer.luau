@@ -25,6 +25,8 @@ local Vitality = require(Systems:WaitForChild("Vitality"))
 local TICK = 0.2
 -- A esta distancia o menos del asesino empieza a sonar el aviso de peligro.
 local DANGER_RANGE = 36
+-- Diferencia de altura máxima para considerar que dos están en el mismo piso.
+local SAME_FLOOR = 10
 local WAYPOINT_REACHED = 5
 
 local Killer = {}
@@ -1061,7 +1063,9 @@ function Killer.start(mansionRefs: Mansion.MansionRefs)
 					local nearest = math.huge
 					for _, killer in killers do
 						local position = killer.getPosition()
-						if position then
+						-- Solo cuenta el que está en tu piso: uno arriba o abajo confunde (los pisos
+						-- están a 20 studs).
+						if position and math.abs(position.Y - root.Position.Y) < SAME_FLOOR then
 							nearest = math.min(nearest, (position - root.Position).Magnitude)
 						end
 					end

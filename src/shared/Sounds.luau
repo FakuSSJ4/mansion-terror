@@ -26,7 +26,6 @@ return {
 	DoorSlam = asset(3908308607),
 	DoorPound = asset(132982750965021),
 	DoorCreak = asset(9120839010),
-	DoorUnlock = asset(9114152830),
 	MetalDoor = asset(9116604303),
 	Drawer = asset(9113657277),
 	-- Interfaz y objetos.

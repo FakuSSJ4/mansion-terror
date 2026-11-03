@@ -58,19 +58,49 @@ function Hud.start()
 	local status = label(gui, UDim2.fromOffset(16, 122), UDim2.fromOffset(300, 100), 24)
 	status.TextYAlignment = Enum.TextYAlignment.Top
 
-	-- Una marca por llave, de su color; se enciende cuando el equipo la encuentra.
-	local keyChips: { Frame } = {}
+	-- Un ícono de llave por cada una, de su color; se enciende cuando el equipo la encuentra. Va
+	-- dibujada con cuadros: anillo a la izquierda, vástago y dos dientes.
+	local keyIcons: { (boolean) -> () } = {}
 	for n, key in Config.KeyColors do
-		local chip = Instance.new("Frame")
-		chip.Position = UDim2.fromOffset(16 + (n - 1) * 28, 96)
-		chip.Size = UDim2.fromOffset(22, 22)
-		chip.BackgroundColor3 = Color3.fromRGB(table.unpack(key.rgb))
-		chip.BorderSizePixel = 0
-		chip.Parent = gui
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(225, 215, 195)
-		stroke.Parent = chip
-		keyChips[n] = chip
+		local color = Color3.fromRGB(table.unpack(key.rgb))
+		local icon = Instance.new("Frame")
+		icon.Position = UDim2.fromOffset(16 + (n - 1) * 36, 94)
+		icon.Size = UDim2.fromOffset(32, 24)
+		icon.BackgroundTransparency = 1
+		icon.Parent = gui
+		local solids: { Frame } = {}
+		local function solid(position: UDim2, size: UDim2): Frame
+			local frame = Instance.new("Frame")
+			frame.Position = position
+			frame.Size = size
+			frame.BackgroundColor3 = color
+			frame.BorderSizePixel = 0
+			frame.Parent = icon
+			table.insert(solids, frame)
+			return frame
+		end
+		local ring = Instance.new("Frame")
+		ring.Position = UDim2.fromOffset(1, 5)
+		ring.Size = UDim2.fromOffset(13, 13)
+		ring.BackgroundTransparency = 1
+		ring.Parent = icon
+		local ringShape = Instance.new("UICorner")
+		ringShape.CornerRadius = UDim.new(0.5, 0)
+		ringShape.Parent = ring
+		local ringStroke = Instance.new("UIStroke")
+		ringStroke.Color = color
+		ringStroke.Thickness = 3
+		ringStroke.Parent = ring
+		solid(UDim2.fromOffset(13, 10), UDim2.fromOffset(17, 3))
+		solid(UDim2.fromOffset(22, 13), UDim2.fromOffset(3, 6))
+		solid(UDim2.fromOffset(27, 13), UDim2.fromOffset(3, 4))
+		keyIcons[n] = function(lit: boolean)
+			local alpha = if lit then 0 else 0.85
+			for _, frame in solids do
+				frame.BackgroundTransparency = alpha
+			end
+			ringStroke.Transparency = alpha
+		end
 	end
 
 	local notice = label(gui, UDim2.fromScale(0, 0.72), UDim2.new(1, 0, 0, 40), 28)
@@ -180,8 +210,8 @@ function Hud.start()
 		status.Text =
 			`Pergaminos: {books}/{Config.BookCount}\nTaser: {taser}{ladder}{gold}{hard}{crouch}{gems}{codes}{dev}`
 		batteryBack.Visible = player:GetAttribute("HasFlashlight") == true
-		for n, chip in keyChips do
-			chip.BackgroundTransparency = if workspace:GetAttribute(`Key{n}`) then 0 else 0.85
+		for n, setLit in keyIcons do
+			setLit(workspace:GetAttribute(`Key{n}`) == true)
 		end
 	end
 	for n = 1, Config.KeyCount do

@@ -55,6 +55,8 @@ Sin comprobar a mano todavía: el lobby, la fuga por el túnel, las cajas fuerte
 
 - Stop en (143,46), Play en (86,46). El mouse rota la cámara según su distancia al centro (630,358), así que hacé clic ahí para dar foco. Los atajos de QA y los del tutorial están en el README; antes de usarlos, comprobá que no cambiaron.
 - La tecla `0` gira la vista 90° y `6` imprime el estado de los asesinos.
+- Para atajos nuevos no sirven `I`, `O`, `End`, `PageUp` ni `F9`: la cámara de Roblox o Studio se los queda. `F8` y los dígitos sí llegan. El teclado numérico no se puede apretar con computer-use (no tiene nombre de tecla); por eso hay atajos con otras teclas.
+- Con el teclado de la caja fuerte abierto, los dígitos que escribas también disparan los atajos de QA (`5` modo desarrollador, `9` escalera): tocá los botones con el mouse.
 - No uses `open_application` con Studio abierto: abre otra ventana. Si otra app está al frente, parate y avisá en vez de robarle el foco.
 - No uses Ctrl+A ni Delete durante Play. La barra de comandos es multilínea y conserva líneas viejas: Enter no ejecuta, se usa el botón Ejecutar.
 - Rojo se cae a veces al editar archivos; si pasa, relanzalo y reconectá el plugin.

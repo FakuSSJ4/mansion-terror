@@ -10,7 +10,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("R
 local PAGES = {
 	{
 		title = "Controles",
-		body = "W A S D: moverte\nMouse: mirar\nShift izquierdo: correr (gasta la barra amarilla y se recupera al dejar de correr)\nC o Ctrl: agacharte (más bajo y silencioso, para esconderte detrás de los muebles)\nE: agarrar objetos, abrir puertas y usar la estatua\n1 y 2: sacar el taser o la linterna\nClic: disparar el taser\nClic derecho: prender o apagar la linterna",
+		body = "W A S D: moverte\nMouse: mirar\nShift izquierdo: correr (gasta la barra amarilla y se recupera al dejar de correr)\nC o Ctrl: agacharte (más bajo y silencioso, para esconderte detrás de los muebles)\nE: agarrar objetos, abrir puertas y usar la estatua\n1 y 2: sacar el taser o la linterna\n3: usar el botiquín que llevás\nClic: disparar el taser\nClic derecho: prender o apagar la linterna",
 	},
 	{
 		title = "Cómo escapar",
@@ -18,7 +18,7 @@ local PAGES = {
 	},
 	{
 		title = "Cómo sobrevivir",
-		body = "El asesino te mata con 3 golpes. En el piso de arriba anda otro, de smoking: es más lento, pero con 2 golpes te mata. Abajo hay dos carniceros con máscara de chancho: son rápidos, recorren todo el sótano y suben por la escalera hasta la cocina (no salen de ahí) y te matan con 5 golpes.\nLas píldoras curan 50 de vida.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesita del hall, entre las escaleras. Gasta batería: buscá pilas.\nNo hay zonas seguras: el asesino puede entrar a cualquier pieza.\nEl asesino te oye si corrés cerca; agachado casi no hace ruido.\nSi estás lejos mucho tiempo, sale a buscarte.\nCada asesino ve en un cono delante suyo (se nota por su luz roja): quedate fuera del cono o agachate detrás de un mueble y no te ve.\nHay gemas escondidas: juntalas y gastalas en la tienda del lobby.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
+		body = "El asesino te mata con 3 golpes. En el piso de arriba anda otro, de smoking: es más lento, pero con 2 golpes te mata. Abajo hay dos carniceros con máscara de chancho: son rápidos, recorren todo el sótano y suben por la escalera hasta la cocina (no salen de ahí) y te matan con 5 golpes.\nLos botiquines curan 75 de vida y las vendas 25.\nEl taser lo deja quieto 10 segundos. Llevás uno solo y desaparece al usarlo.\nLa linterna está sobre la mesita del hall, entre las escaleras. Gasta batería: buscá pilas.\nNo hay zonas seguras: el asesino puede entrar a cualquier pieza.\nEl asesino te oye si corrés cerca; agachado casi no hace ruido.\nSi estás lejos mucho tiempo, sale a buscarte.\nCada asesino ve en un cono delante suyo (se nota por su luz roja): quedate fuera del cono o agachate detrás de un mueble y no te ve.\nHay gemas escondidas: juntalas y gastalas en la tienda del lobby.\nEl asesino solo cruza las puertas que ya abriste: cada puerta nueva le abre camino.\nSi te mata, la partida vuelve a empezar de cero.",
 	},
 }
 

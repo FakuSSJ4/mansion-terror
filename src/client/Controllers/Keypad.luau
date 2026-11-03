@@ -42,11 +42,34 @@ function Keypad.start()
 	local title = Instance.new("TextLabel")
 	title.BackgroundTransparency = 1
 	title.Position = UDim2.fromOffset(10, 8)
-	title.Size = UDim2.new(1, -20, 0, 34)
+	title.Size = UDim2.new(1, -56, 0, 34)
 	title.Font = Enum.Font.Garamond
 	title.TextScaled = true
 	title.TextColor3 = GOLD
 	title.Parent = panel
+
+	local closeButton = Instance.new("TextButton")
+	closeButton.AnchorPoint = Vector2.new(1, 0)
+	closeButton.Position = UDim2.new(1, -8, 0, 8)
+	closeButton.Size = UDim2.fromOffset(30, 30)
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.TextScaled = true
+	closeButton.Text = "X"
+	closeButton.TextColor3 = TEXT
+	closeButton.BackgroundColor3 = Color3.fromRGB(120, 36, 32)
+	closeButton.AutoButtonColor = true
+	closeButton.Modal = true
+	closeButton.ZIndex = 2
+	closeButton.Parent = panel
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 8)
+	closeCorner.Parent = closeButton
+	local closePadding = Instance.new("UIPadding")
+	closePadding.PaddingTop = UDim.new(0, 5)
+	closePadding.PaddingBottom = UDim.new(0, 5)
+	closePadding.PaddingLeft = UDim.new(0, 5)
+	closePadding.PaddingRight = UDim.new(0, 5)
+	closePadding.Parent = closeButton
 
 	local display = Instance.new("TextLabel")
 	display.BackgroundColor3 = Color3.fromRGB(14, 10, 8)
@@ -69,6 +92,7 @@ function Keypad.start()
 		typed = ""
 		panel.Visible = false
 	end
+	closeButton.Activated:Connect(close)
 	local function submit()
 		if openFor and #typed == 3 then
 			Remotes.get("Keypad"):FireServer(openFor, tonumber(typed))

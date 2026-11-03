@@ -1,5 +1,5 @@
 --!strict
--- Atajos de QA, solo en Studio: 5 modo desarrollador, K llaves, J pergaminos, 3 pieza siguiente, 4 rayo, H daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera, 9 ir a la gran escalera, 0 girar la vista.
+-- Atajos de QA, solo en Studio: 5 modo desarrollador, K llaves, J pergaminos, = pieza siguiente, 4 rayo, H daño, 6 estado del asesino, 7 traerlo, 8 linterna y escalera, 9 ir a la gran escalera, 0 girar la vista.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,7 @@ local KEYS = {
 	[Enum.KeyCode.Five] = "devmode",
 	[Enum.KeyCode.K] = "keys",
 	[Enum.KeyCode.J] = "books",
-	[Enum.KeyCode.Three] = "next",
+	[Enum.KeyCode.Equals] = "next",
 	[Enum.KeyCode.Four] = "lightning",
 	[Enum.KeyCode.H] = "damage",
 	[Enum.KeyCode.Six] = "status",
@@ -29,6 +29,7 @@ local KEYS = {
 	[Enum.KeyCode.Insert] = "linkTest",
 	[Enum.KeyCode.KeypadZero] = "wolfRoom",
 	[Enum.KeyCode.KeypadOne] = "vault",
+	[Enum.KeyCode.F8] = "cure",
 	[Enum.KeyCode.KeypadPeriod] = "diffMenu",
 	[Enum.KeyCode.KeypadDivide] = "coneChase",
 	[Enum.KeyCode.KeypadMinus] = "shop",
@@ -98,6 +99,7 @@ function Debug.start()
 				command == "viewSeal"
 				or command == "wolfRoom"
 				or command == "vault"
+				or command == "cure"
 				or command == "lobbyTour"
 				or command == "shop"
 				or command == "aerial"

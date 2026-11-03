@@ -47,7 +47,6 @@ local function runSoundCheck()
 	task.spawn(function()
 		local candidates = {
 			DoorCreak = { 9120839010, 9120839174 },
-			DoorUnlock = { 9114152830, 109747366691555 },
 			MetalDoor = { 9116604303 },
 			Drawer = { 9113657277, 9114061142 },
 			Growl = { 9113980319, 2184044761 },
@@ -80,6 +79,7 @@ local function runSoundCheck()
 end
 
 local sealView = 0
+local cureView = 0
 local lobbyView = 0
 
 function DebugTools.start(refs: Mansion.MansionRefs)
@@ -132,6 +132,19 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 					then "Modo desarrollador: W A S D vuela, Espacio sube, Ctrl baja, doble Espacio deja de volar"
 					else "Modo desarrollador apagado"
 			)
+		elseif command == "cure" then
+			-- Va a ver, de a una por vez, la venda, el botiquín y la pila.
+			cureView = cureView % 3 + 1
+			local name = ({ "bandage1", "medkit1", "battery1" })[cureView]
+			local item = workspace:FindFirstChild("Objetos")
+				and workspace.Objetos:FindFirstChild(name)
+			local root = Vitality.rootOf(player)
+			if item and item:IsA("BasePart") and root then
+				local at = item.Position + Vector3.new(0, 2.5, 0) + Vector3.new(-3, 0, 3)
+				root.CFrame = CFrame.lookAt(at, item.Position)
+				player:SetAttribute("QAAim", (item.Position - at).Unit)
+				print(`[QA] viendo {name}`)
+			end
 		elseif command == "cinema" then
 			-- Vuelve a sentar al asesino y te deja recién entrado al living: arranca la escena.
 			Cinema.debugReset()

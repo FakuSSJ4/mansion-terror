@@ -5486,6 +5486,10 @@ local function placeVaults()
 			Material = Enum.Material.Slate,
 			CanCollide = false,
 		})
+		-- Cada detalle (dial, manija) gira con la hoja: las piezas están ancladas, así que un weld no
+		-- las arrastra; se mueven una por una con el mismo giro alrededor de la bisagra.
+		local swing = hinge * CFrame.Angles(0, math.rad(-105), 0) * hinge:Inverse()
+		local leaves = { { part = leaf :: BasePart, closed = closed, open = open } }
 		local function onLeaf(
 			size: Vector3,
 			offset: CFrame,
@@ -5503,10 +5507,10 @@ local function placeVaults()
 				CanCollide = false,
 				CanQuery = false,
 			})
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = leaf
-			weld.Part1 = piece
-			weld.Parent = leaf
+			table.insert(
+				leaves,
+				{ part = piece :: BasePart, closed = piece.CFrame, open = swing * piece.CFrame }
+			)
 			return piece
 		end
 		local faceForward = CFrame.Angles(0, math.rad(90), 0)
@@ -5591,7 +5595,7 @@ local function placeVaults()
 		prompt.RequiresLineOfSight = false
 		prompt.Parent = blocker
 		local vaultDoor: Door = {
-			leaves = { { part = leaf, closed = closed, open = open } },
+			leaves = leaves,
 			blocker = blocker,
 			position = closed.Position,
 			twin = nil,
@@ -6070,10 +6074,6 @@ function Mansion.rattleDoor(door: Door, strength: number)
 end
 
 function Mansion.setDoorUnlocked(door: Door, unlocked: boolean)
-	-- El chasquido de la cerradura, solo cuando de verdad se destraba.
-	if unlocked and not door.unlocked then
-		playAt(door.blocker, Sounds.DoorUnlock, 0.8)
-	end
 	door.unlocked = unlocked
 	door.blocker.CanCollide = not unlocked
 	door.prompt.Enabled = not unlocked
