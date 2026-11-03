@@ -42,6 +42,7 @@ local KEYS = {
 	[Enum.KeyCode.L] = "library",
 	[Enum.KeyCode.M] = "summon2",
 	[Enum.KeyCode.B] = "summon3",
+	[Enum.KeyCode.KeypadTwo] = "cinema",
 }
 
 -- Hacia dónde mirar tras U (animal), Y (cabeza) y G (arcades).

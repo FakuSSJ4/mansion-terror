@@ -1,6 +1,7 @@
 --!strict
 local Systems = script:WaitForChild("Systems")
 
+local Cinema = require(Systems:WaitForChild("Cinema"))
 local DebugTools = require(Systems:WaitForChild("DebugTools"))
 local Entrance = require(Systems:WaitForChild("Entrance"))
 local Escape = require(Systems:WaitForChild("Escape"))
@@ -26,6 +27,7 @@ Round.setLobbySpawn(lobbyRefs.spawns[1])
 Round.start(refs)
 Lobby.start(lobbyRefs)
 Killer.start(refs)
+Cinema.start(refs)
 Entrance.start(refs)
 Escape.start(refs)
 TaserSystem.start()

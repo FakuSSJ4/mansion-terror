@@ -1,6 +1,6 @@
 # Mansión de terror
 
-Juego cooperativo de terror para Roblox. Entrás por la puerta principal desde el patio (el lobby; en el atril de cada círculo, F abre un menú para elegir 1, 2 o 3 jugadores y, si faltan, se esperan 20 segundos) y se cierra detrás tuyo. Juntá las llaves de colores y los 4 pergaminos (cada uno está en una habitación cerrada con código de 3 cifras; el código de cada habitación está escrito en una nota escondida por la casa), dejalos en la estatua de lobo, en la sala del fondo del sótano, y escapá por el túnel con la llave dorada sin que te alcance el asesino.
+Juego cooperativo de terror para Roblox. Entrás por la puerta principal desde el patio (el lobby; en el atril de cada círculo, F abre un menú para elegir 1, 2 o 3 jugadores; al pisar el círculo arranca una cuenta de 10 segundos, del color del círculo, que se cancela si te bajás) y se cierra detrás tuyo. Juntá las llaves de colores y los 4 pergaminos (cada uno está en una habitación cerrada con código de 3 cifras; el código de cada habitación está escrito en una nota escondida por la casa), dejalos en la estatua de lobo, en la sala del fondo del sótano, y escapá por el túnel con la llave dorada sin que te alcance el asesino.
 
 ## Cómo probarlo
 
@@ -58,6 +58,7 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `L` | Ir a las librerías del hall |
 | `M` | Traer al asesino de smoking a tu pieza |
 | `B` | Traer al carnicero a tu pieza |
+| `2` del teclado numérico | Repetir el primer encuentro: sienta al asesino en el sillón del living y te deja en la puerta |
 | `T` | Recorrer alce, rinoceronte, puma, teclado, umbral, cama, sótano largo, mesa de carnicero, sala de juegos y bar |
 
 ## Sonidos

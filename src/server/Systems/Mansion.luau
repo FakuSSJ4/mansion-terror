@@ -131,6 +131,7 @@ export type Door = {
 	normal: Vector3,
 	-- Puerta de hierro: al abrirse suena distinto que una de madera.
 	metal: boolean,
+	quiet: boolean?,
 }
 
 export type Tunnel = {
@@ -168,6 +169,24 @@ export type MansionRefs = {
 		position: Vector3,
 		keySpot: Vector3,
 	},
+	-- Primer encuentro en el living: el sillón frente al proyector, la mesa ratona y sus objetos.
+	cinema: Cinema,
+}
+
+export type Cinema = {
+	-- Sobre el almohadón, donde van las caderas del asesino, mirando a la pantalla.
+	seat: CFrame,
+	-- Delante del sillón, donde queda parado al levantarse.
+	stand: Vector3,
+	floorY: number,
+	-- Molde del vaso de whisky con hielo (sin padre) y el que deja sobre la mesa al levantarse.
+	glass: Model,
+	tableGlass: Model,
+	-- El hacha apoyada contra el sillón mientras mira la película.
+	propAxe: Folder,
+	tableTop: Vector3,
+	screen: Vector3,
+	projector: Vector3,
 }
 
 local Mansion = {}
@@ -898,7 +917,8 @@ local GENERIC_KINDS = { "wardrobe", "table", "bookcase", "bed", "chest", "nights
 
 -- Esquinas: { +X+Z, -X+Z, +X-Z, -X-Z }.
 local THEMES: { [string]: { string } } = {
-	room1 = { "sofa", "fireplace", "sofa", "bookcase" },
+	-- Fijo: en el centro está el sillón del asesino frente al proyector (ver buildCinema).
+	room1 = { "fireplace", "bookcase", "wardrobe", "chest" },
 	room2 = { "wardrobe", "chest", "bookcase", "nightstand" },
 	room3 = { "piano", "bookcase", "chest", "table" },
 	room4 = { "counter", "stove" },
@@ -916,7 +936,6 @@ local EAST_CORNERS = { Vector3.new(1, 0, 1), Vector3.new(1, 0, -1) }
 
 -- Muebles que puede tener cada pieza en una partida; los que no se repiten van una sola vez.
 local POOLS: { [string]: { string } } = {
-	room1 = { "sofa", "sofa", "fireplace", "bookcase", "chest", "table", "wardrobe" },
 	room2 = { "wardrobe", "chest", "bookcase", "nightstand", "table", "sofa" },
 	room3 = { "piano", "bookcase", "chest", "table", "sofa", "wardrobe" },
 	room8 = { "doubleBed", "bed", "nightstand", "nightstand", "wardrobe", "chest", "bookcase" },
@@ -2527,8 +2546,742 @@ local function dressRoom(id: string, random: Random)
 	buildParent = nil
 end
 
+-- Capitoné dibujado sobre una cara: botones hundidos en tresbolillo unidos por pliegues en diagonal.
+local function tufted(target: BasePart, face: Enum.NormalId, columns: number, rows: number)
+	local pps = 40
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = pps
+	gui.LightInfluence = 1
+	gui.Parent = target
+	local size = target.Size
+	local width, height = size.X, size.Y
+	if face == Enum.NormalId.Top or face == Enum.NormalId.Bottom then
+		height = size.Z
+	elseif face == Enum.NormalId.Left or face == Enum.NormalId.Right then
+		width = size.Z
+	end
+	local cellW, cellH = width / columns, height / rows
+	local crease = Color3.fromRGB(6, 5, 6)
+	for row = 1, rows do
+		local shift = (row % 2) * 0.5
+		for column = 1, columns do
+			local x = (column - 0.5 - shift + 0.25) / columns
+			local y = (row - 0.5) / rows
+			local button = Instance.new("Frame")
+			button.AnchorPoint = Vector2.new(0.5, 0.5)
+			button.Position = UDim2.fromScale(x, y)
+			button.Size = UDim2.fromOffset(7, 7)
+			button.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
+			button.BorderSizePixel = 0
+			button.Parent = gui
+			local round = Instance.new("UICorner")
+			round.CornerRadius = UDim.new(0.5, 0)
+			round.Parent = button
+			if row < rows then
+				-- Pliegues hacia los dos botones de la fila de abajo.
+				local length = math.sqrt((cellW / 2) ^ 2 + cellH ^ 2) * pps
+				local angle = math.deg(math.atan2(cellH, cellW / 2))
+				for _, side in { -1, 1 } do
+					local line = Instance.new("Frame")
+					line.AnchorPoint = Vector2.new(0.5, 0.5)
+					line.Position = UDim2.fromScale(x + side * 0.25 / columns, y + 0.5 / rows)
+					line.Size = UDim2.fromOffset(length, 2)
+					line.Rotation = side * angle
+					line.BackgroundColor3 = crease
+					line.BackgroundTransparency = 0.35
+					line.BorderSizePixel = 0
+					line.Parent = gui
+				end
+			end
+		end
+	end
+end
+
+-- Vaso de whisky tallado con dos hielos, armado alrededor de su centro (la parte "Centro").
+local function buildWhiskyGlass(): Model
+	local model = Instance.new("Model")
+	model.Name = "VasoWhisky"
+	local previous = buildParent
+	buildParent = model
+	local height, diameter = 0.75, 0.62
+	local upright = CFrame.Angles(0, 0, math.rad(90))
+	local crystal = Color3.fromRGB(232, 238, 244)
+	local centre = decor({
+		Name = "Centro",
+		Size = Vector3.new(0.1, 0.1, 0.1),
+		CFrame = CFrame.identity,
+		Transparency = 1,
+	})
+	model.PrimaryPart = centre
+	decor({
+		Name = "Vidrio",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, diameter, diameter),
+		CFrame = upright,
+		Color = crystal,
+		Material = Enum.Material.Glass,
+		Transparency = 0.4,
+		Reflectance = 0.25,
+	})
+	decor({
+		Name = "Fondo",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.14, diameter - 0.02, diameter - 0.02),
+		CFrame = CFrame.new(0, -height / 2 + 0.07, 0) * upright,
+		Color = crystal,
+		Material = Enum.Material.Glass,
+		Transparency = 0.3,
+	})
+	decor({
+		Name = "Whisky",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.34, diameter - 0.1, diameter - 0.1),
+		CFrame = CFrame.new(0, -0.07, 0) * upright,
+		Color = Color3.fromRGB(196, 112, 28),
+		Material = Enum.Material.Glass,
+		Transparency = 0.12,
+	})
+	for _, ice in
+		{
+			CFrame.new(0.07, 0.12, 0.05) * CFrame.Angles(0.35, 0.5, 0.2),
+			CFrame.new(-0.1, 0.07, -0.08) * CFrame.Angles(-0.3, 1.1, 0.4),
+		}
+	do
+		decor({
+			Name = "Hielo",
+			Size = Vector3.new(0.26, 0.26, 0.26),
+			CFrame = ice,
+			Color = Color3.fromRGB(226, 240, 252),
+			Material = Enum.Material.Glass,
+			Transparency = 0.2,
+		})
+	end
+	-- Tallado en rombos alrededor de la base.
+	for i = 0, 7 do
+		decor({
+			Name = "Tallado",
+			Size = Vector3.new(0.17, 0.17, 0.03),
+			CFrame = CFrame.Angles(0, i * math.pi / 4, 0)
+				* CFrame.new(0, -0.17, -diameter / 2 - 0.005)
+				* CFrame.Angles(0, 0, math.rad(45)),
+			Color = crystal,
+			Material = Enum.Material.Glass,
+			Transparency = 0.35,
+			Reflectance = 0.4,
+		})
+	end
+	buildParent = previous
+	return model
+end
+
+-- El living es el cine del asesino: el ventanal tapiado hace de pantalla, un proyector antiguo cuelga
+-- del techo y en el centro, de cara a la película, está su sillón Chesterfield con la mesa ratona y
+-- el whisky. Ahí lo encuentran la primera vez (ver Systems/Cinema).
+local function buildCinema(center: Vector3)
+	local leather = Color3.fromRGB(22, 20, 22)
+	local darkWood = Color3.fromRGB(36, 22, 14)
+	local function hard(p: Part): Part
+		p.CollisionGroup = "KillerPass"
+		return p
+	end
+	local function piece(
+		base: CFrame,
+		name: string,
+		size: Vector3,
+		offset: CFrame,
+		color: Color3,
+		material: Enum.Material,
+		shape: Enum.PartType?
+	): Part
+		local p = decor({
+			Name = name,
+			Size = size,
+			CFrame = base * offset,
+			Color = color,
+			Material = material,
+		})
+		if shape then
+			p.Shape = shape
+		end
+		return p
+	end
+	local alongZ = CFrame.Angles(0, math.rad(90), 0)
+	local upright = CFrame.Angles(0, 0, math.rad(90))
+
+	-- Pantalla sobre el ventanal tapiado (pared norte), mirando hacia adentro.
+	local screenAt = center + Vector3.new(0, 9.2, -HALF + 0.75)
+	local screenBase = CFrame.lookAt(screenAt, screenAt + Vector3.zAxis)
+	piece(
+		screenBase,
+		"MarcoPantalla",
+		Vector3.new(31, 14.6, 0.3),
+		CFrame.new(0, 0, 0.2),
+		Color3.fromRGB(16, 14, 13),
+		Enum.Material.Wood
+	)
+	for _, x in { -15.3, 15.3 } do
+		piece(
+			screenBase,
+			"BordePantalla",
+			Vector3.new(0.35, 14.6, 0.45),
+			CFrame.new(x, 0, 0.1),
+			GOLD_COLOR,
+			Enum.Material.Metal
+		)
+	end
+	local screen = piece(
+		screenBase,
+		"Pantalla",
+		Vector3.new(29, 12.6, 0.12),
+		CFrame.identity,
+		Color3.fromRGB(196, 196, 192),
+		Enum.Material.SmoothPlastic
+	)
+	screen:AddTag("ProjectorScreen")
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Pelicula"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0
+	gui.Brightness = 1.3
+	gui.Parent = screen
+	local film = Instance.new("Frame")
+	film.Name = "Imagen"
+	film.Size = UDim2.fromScale(1, 1)
+	film.BackgroundColor3 = Color3.fromRGB(196, 196, 190)
+	film.BorderSizePixel = 0
+	film.ClipsDescendants = true
+	film.Parent = gui
+
+	-- Proyector de cine antiguo colgado del techo, con dos bobinas, apuntando a la pantalla.
+	local projectorAt = center + Vector3.new(0, CEILING - 4.4, 15)
+	local projector = CFrame.lookAt(projectorAt, screenAt)
+	local metal = Color3.fromRGB(34, 34, 38)
+	local rodTop = center.Y + CEILING
+	local rodBottom = projectorAt.Y + 1.2
+	decor({
+		Name = "VaraProyector",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(rodTop - rodBottom, 0.3, 0.3),
+		CFrame = CFrame.new(projectorAt.X, (rodTop + rodBottom) / 2, projectorAt.Z) * upright,
+		Color = metal,
+		Material = Enum.Material.Metal,
+	})
+	decor({
+		Name = "PlacaTecho",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.15, 1.6, 1.6),
+		CFrame = CFrame.new(projectorAt.X, rodTop - 0.1, projectorAt.Z) * upright,
+		Color = metal,
+		Material = Enum.Material.Metal,
+	})
+	piece(
+		projector,
+		"Horquilla",
+		Vector3.new(2.9, 0.22, 0.5),
+		CFrame.new(0, 1.2, 0),
+		metal,
+		Enum.Material.Metal
+	)
+	for _, x in { -1.35, 1.35 } do
+		piece(
+			projector,
+			"Horquilla",
+			Vector3.new(0.15, 1.4, 0.6),
+			CFrame.new(x, 0.55, 0),
+			metal,
+			Enum.Material.Metal
+		)
+	end
+	piece(
+		projector,
+		"Proyector",
+		Vector3.new(2.2, 1.5, 3),
+		CFrame.identity,
+		metal,
+		Enum.Material.Metal
+	)
+	for _, x in { -1.12, 1.12 } do
+		piece(
+			projector,
+			"Rejilla",
+			Vector3.new(0.05, 0.8, 1.6),
+			CFrame.new(x, -0.1, 0.4),
+			Color3.fromRGB(12, 12, 14),
+			Enum.Material.Metal
+		)
+	end
+	piece(
+		projector,
+		"Objetivo",
+		Vector3.new(0.9, 0.75, 0.75),
+		CFrame.new(0, -0.05, -1.9) * alongZ,
+		Color3.fromRGB(20, 20, 22),
+		Enum.Material.Metal,
+		Enum.PartType.Cylinder
+	)
+	piece(
+		projector,
+		"Lente",
+		Vector3.new(0.06, 0.6, 0.6),
+		CFrame.new(0, -0.05, -2.36) * alongZ,
+		Color3.fromRGB(240, 240, 255),
+		Enum.Material.Neon,
+		Enum.PartType.Cylinder
+	)
+	-- Bobinas: disco, rollo de película, eje y tres rayos que el cliente hace girar.
+	for _, reel in { { z = -0.9, size = 1.9 }, { z = 1.05, size = 2.2 } } do
+		local hub = projector * CFrame.new(0, 1.05 + reel.size / 2, reel.z)
+		piece(
+			projector,
+			"BrazoBobina",
+			Vector3.new(0.12, reel.size / 2 + 0.3, 0.12),
+			CFrame.new(0.2, 0.75 + (reel.size / 2 + 0.3) / 2, reel.z),
+			metal,
+			Enum.Material.Metal
+		)
+		piece(
+			hub,
+			"Bobina",
+			Vector3.new(0.12, reel.size, reel.size),
+			CFrame.new(0.35, 0, 0),
+			Color3.fromRGB(70, 70, 76),
+			Enum.Material.Metal,
+			Enum.PartType.Cylinder
+		)
+		piece(
+			hub,
+			"Rollo",
+			Vector3.new(0.3, reel.size * 0.7, reel.size * 0.7),
+			CFrame.new(0.5, 0, 0),
+			Color3.fromRGB(26, 20, 16),
+			Enum.Material.SmoothPlastic,
+			Enum.PartType.Cylinder
+		)
+		for i = 0, 2 do
+			local spoke = piece(
+				hub,
+				"RayoBobina",
+				Vector3.new(0.06, reel.size * 0.45, 0.14),
+				CFrame.new(0.68, 0, 0)
+					* CFrame.Angles(i * math.pi * 2 / 3, 0, 0)
+					* CFrame.new(0, reel.size * 0.22, 0),
+				Color3.fromRGB(160, 160, 166),
+				Enum.Material.Metal
+			)
+			spoke:AddTag("ProjectorReel")
+			spoke:SetAttribute("Hub", hub * CFrame.new(0.68, 0, 0))
+		end
+	end
+	-- Haz de luz hasta la pantalla: un foco y un cono tenue que se ve en el aire.
+	local beamSource = decor({
+		Name = "Haz",
+		Size = Vector3.new(0.2, 0.2, 0.2),
+		CFrame = projector * CFrame.new(0, -0.05, -2.45),
+		Transparency = 1,
+	})
+	beamSource:AddTag("ProjectorLight")
+	local spot = Instance.new("SpotLight")
+	spot.Face = Enum.NormalId.Front
+	spot.Angle = 30
+	spot.Range = 60
+	spot.Brightness = 3
+	spot.Color = Color3.fromRGB(232, 232, 255)
+	spot.Shadows = true
+	spot.Parent = beamSource
+	local from = Instance.new("Attachment")
+	from.Parent = beamSource
+	local to = Instance.new("Attachment")
+	to.Parent = screen
+	local beam = Instance.new("Beam")
+	beam.Attachment0 = from
+	beam.Attachment1 = to
+	beam.Width0 = 0.5
+	beam.Width1 = 13
+	beam.FaceCamera = true
+	beam.LightEmission = 1
+	beam.LightInfluence = 0
+	beam.Color = ColorSequence.new(Color3.fromRGB(235, 235, 255))
+	beam.Transparency = NumberSequence.new(0.84, 0.95)
+	beam.Segments = 1
+	beam.Parent = beamSource
+
+	-- Sillón Chesterfield de cuero negro capitoné, brazos enrollados y tallas doradas, de cara a la
+	-- pantalla. Su -Z mira a la película.
+	local sofaAt = center + Vector3.new(0, 0, 7)
+	local sofa = CFrame.lookAt(sofaAt, sofaAt - Vector3.zAxis)
+	hard(
+		piece(
+			sofa,
+			"BaseSillon",
+			Vector3.new(8.4, 1, 3.6),
+			CFrame.new(0, 0.95, 0.1),
+			leather,
+			Enum.Material.Leather
+		)
+	).CanCollide =
+		true
+	piece(
+		sofa,
+		"TallaFrente",
+		Vector3.new(8.6, 0.22, 0.12),
+		CFrame.new(0, 0.55, -1.86),
+		GOLD_COLOR,
+		Enum.Material.Metal
+	)
+	piece(
+		sofa,
+		"TallaCentro",
+		Vector3.new(1, 0.5, 0.14),
+		CFrame.new(0, 0.65, -1.9),
+		GOLD_COLOR,
+		Enum.Material.Metal
+	)
+	local seat = piece(
+		sofa,
+		"Asiento",
+		Vector3.new(7, 0.55, 3),
+		CFrame.new(0, 1.72, -0.15),
+		leather,
+		Enum.Material.Leather
+	)
+	tufted(seat, Enum.NormalId.Top, 6, 3)
+	-- Respaldo con lomo de camello: más alto al centro, apenas echado hacia atrás.
+	for i, top in { 3.9, 4.5, 4.9, 4.5, 3.9 } do
+		local x = (i - 3) * 1.58
+		local tilt = CFrame.new(x, 0, 1.55) * CFrame.Angles(math.rad(6), 0, 0)
+		local back = piece(
+			sofa,
+			"Respaldo",
+			Vector3.new(1.6, top - 1.45, 0.9),
+			tilt * CFrame.new(0, (top + 1.45) / 2, 0),
+			leather,
+			Enum.Material.Leather
+		)
+		hard(back).CanCollide = true
+		tufted(back, Enum.NormalId.Front, 2, 3)
+		piece(
+			sofa,
+			"RemateRespaldo",
+			Vector3.new(1.6, 0.9, 0.9),
+			tilt * CFrame.new(0, top, 0),
+			leather,
+			Enum.Material.Leather,
+			Enum.PartType.Cylinder
+		)
+	end
+	-- Copete dorado tallado arriba del respaldo.
+	local crest = sofa * CFrame.new(0, 5.45, 2.05)
+	piece(
+		crest,
+		"Copete",
+		Vector3.new(0.6, 0.6, 0.6),
+		CFrame.identity,
+		GOLD_COLOR,
+		Enum.Material.Metal,
+		Enum.PartType.Ball
+	)
+	for _, x in { -0.6, 0.6 } do
+		piece(
+			crest,
+			"Voluta",
+			Vector3.new(0.22, 0.6, 0.6),
+			CFrame.new(x, -0.15, 0),
+			GOLD_COLOR,
+			Enum.Material.Metal,
+			Enum.PartType.Cylinder
+		)
+	end
+	-- Brazos enrollados con la voluta dorada al frente.
+	for _, side in { -1, 1 } do
+		local arm = piece(
+			sofa,
+			"Brazo",
+			Vector3.new(1, 1.6, 3.4),
+			CFrame.new(side * 3.9, 2.05, 0.05),
+			leather,
+			Enum.Material.Leather
+		)
+		hard(arm).CanCollide = true
+		tufted(arm, if side < 0 then Enum.NormalId.Right else Enum.NormalId.Left, 3, 2)
+		piece(
+			sofa,
+			"RolloBrazo",
+			Vector3.new(3.6, 1.35, 1.35),
+			CFrame.new(side * 4.05, 3, -0.05) * alongZ,
+			leather,
+			Enum.Material.Leather,
+			Enum.PartType.Cylinder
+		)
+		piece(
+			sofa,
+			"VolutaBrazo",
+			Vector3.new(0.12, 1.15, 1.15),
+			CFrame.new(side * 4.05, 3, -1.88) * alongZ,
+			GOLD_COLOR,
+			Enum.Material.Metal,
+			Enum.PartType.Cylinder
+		)
+		piece(
+			sofa,
+			"TallaBrazo",
+			Vector3.new(0.3, 1.5, 0.14),
+			CFrame.new(side * 4.05, 1.65, -1.78),
+			GOLD_COLOR,
+			Enum.Material.Metal
+		)
+		for _, z in { -1.4, 1.5 } do
+			piece(
+				sofa,
+				"Pata",
+				Vector3.new(0.55, 0.3, 0.55),
+				CFrame.new(side * 3.8, 0.38, z),
+				GOLD_COLOR,
+				Enum.Material.Metal
+			)
+			piece(
+				sofa,
+				"PieBola",
+				Vector3.new(0.5, 0.5, 0.5),
+				CFrame.new(side * 3.8, 0.2, z),
+				GOLD_COLOR,
+				Enum.Material.Metal,
+				Enum.PartType.Ball
+			)
+		end
+	end
+
+	-- Hacha apoyada contra el brazo izquierdo del sillón (el lado de su única mano).
+	local propAxe = inFolder("HachaApoyada", function()
+		local lean = sofa * CFrame.new(-4.95, 0, -0.9) * CFrame.Angles(0, 0, math.rad(-12))
+		piece(
+			lean,
+			"MangoHacha",
+			Vector3.new(0.3, 4.6, 0.32),
+			CFrame.new(0, 2.3, 0),
+			Color3.fromRGB(14, 14, 16),
+			Enum.Material.Wood
+		)
+		piece(
+			lean,
+			"Empunadura",
+			Vector3.new(0.38, 1.3, 0.4),
+			CFrame.new(0, 0.85, 0),
+			Color3.fromRGB(225, 185, 30),
+			Enum.Material.SmoothPlastic
+		)
+		piece(
+			lean,
+			"CabezaHacha",
+			Vector3.new(0.42, 1.3, 1.5),
+			CFrame.new(0, 4.35, 0),
+			Color3.fromRGB(225, 185, 30),
+			Enum.Material.SmoothPlastic
+		)
+		piece(
+			lean,
+			"FiloHacha",
+			Vector3.new(0.14, 1.9, 0.75),
+			CFrame.new(0, 4.35, -1.05),
+			Color3.fromRGB(190, 190, 195),
+			Enum.Material.Metal
+		)
+		piece(
+			lean,
+			"SangreHacha",
+			Vector3.new(0.16, 1, 0.35),
+			CFrame.new(0, 4.1, -1.3),
+			Color3.fromRGB(70, 10, 12),
+			Enum.Material.Slate
+		)
+	end)
+	propAxe.Parent = world
+
+	-- Mesa ratona de madera oscura con tapa de mármol negro, entre el sillón y la pantalla.
+	local tableBase = sofa * CFrame.new(0, 0, -5.4)
+	hard(
+		piece(
+			tableBase,
+			"MesaRatona",
+			Vector3.new(5.6, 0.3, 2.8),
+			CFrame.new(0, 1.7, 0),
+			darkWood,
+			Enum.Material.Wood
+		)
+	).CanCollide =
+		true
+	piece(
+		tableBase,
+		"Marmol",
+		Vector3.new(5, 0.06, 2.2),
+		CFrame.new(0, 1.87, 0),
+		Color3.fromRGB(14, 14, 16),
+		Enum.Material.Marble
+	)
+	piece(
+		tableBase,
+		"Faldon",
+		Vector3.new(5.2, 0.4, 2.4),
+		CFrame.new(0, 1.35, 0),
+		darkWood,
+		Enum.Material.Wood
+	)
+	piece(
+		tableBase,
+		"Estante",
+		Vector3.new(4.8, 0.15, 2),
+		CFrame.new(0, 0.45, 0),
+		darkWood,
+		Enum.Material.Wood
+	)
+	for _, x in { -2.3, 2.3 } do
+		for _, z in { -1, 1 } do
+			piece(
+				tableBase,
+				"PataMesa",
+				Vector3.new(0.35, 1.25, 0.35),
+				CFrame.new(x, 0.75, z),
+				darkWood,
+				Enum.Material.Wood
+			)
+			piece(
+				tableBase,
+				"PieMesa",
+				Vector3.new(0.4, 0.4, 0.4),
+				CFrame.new(x, 0.15, z),
+				GOLD_COLOR,
+				Enum.Material.Metal,
+				Enum.PartType.Ball
+			)
+		end
+	end
+	local top = tableBase * CFrame.new(0, 1.9, 0)
+	-- La botella de whisky, con la etiqueta hacia el sillón.
+	local bottleBase = top * CFrame.new(-1.3, 0, 0.2)
+	piece(
+		bottleBase,
+		"Botella",
+		Vector3.new(0.8, 1.3, 0.8),
+		CFrame.new(0, 0.65, 0),
+		Color3.fromRGB(150, 86, 26),
+		Enum.Material.Glass
+	).Transparency =
+		0.35
+	piece(
+		bottleBase,
+		"Licor",
+		Vector3.new(0.64, 0.85, 0.64),
+		CFrame.new(0, 0.5, 0),
+		Color3.fromRGB(176, 92, 20),
+		Enum.Material.Glass
+	).Transparency =
+		0.12
+	piece(
+		bottleBase,
+		"Hombro",
+		Vector3.new(0.6, 0.22, 0.6),
+		CFrame.new(0, 1.4, 0),
+		Color3.fromRGB(150, 86, 26),
+		Enum.Material.Glass
+	).Transparency =
+		0.35
+	piece(
+		bottleBase,
+		"Cuello",
+		Vector3.new(0.55, 0.26, 0.26),
+		CFrame.new(0, 1.75, 0) * upright,
+		Color3.fromRGB(150, 86, 26),
+		Enum.Material.Glass,
+		Enum.PartType.Cylinder
+	).Transparency =
+		0.3
+	piece(
+		bottleBase,
+		"Tapon",
+		Vector3.new(0.24, 0.32, 0.32),
+		CFrame.new(0, 2.1, 0) * upright,
+		Color3.fromRGB(46, 28, 16),
+		Enum.Material.Wood,
+		Enum.PartType.Cylinder
+	)
+	local label = piece(
+		bottleBase,
+		"Etiqueta",
+		Vector3.new(0.62, 0.55, 0.03),
+		CFrame.new(0, 0.6, 0.41),
+		Color3.fromRGB(226, 212, 172),
+		Enum.Material.SmoothPlastic
+	)
+	local labelGui = Instance.new("SurfaceGui")
+	labelGui.Face = Enum.NormalId.Back
+	labelGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	labelGui.PixelsPerStud = 120
+	labelGui.LightInfluence = 1
+	labelGui.Parent = label
+	for _, line in
+		{ { text = "WHISKY", y = 0.3, size = 0.34 }, { text = "1887", y = 0.72, size = 0.26 } }
+	do
+		local text = Instance.new("TextLabel")
+		text.BackgroundTransparency = 1
+		text.Size = UDim2.fromScale(1, line.size)
+		text.AnchorPoint = Vector2.new(0, 0.5)
+		text.Position = UDim2.fromScale(0, line.y)
+		text.Font = Enum.Font.Garamond
+		text.TextScaled = true
+		text.Text = line.text
+		text.TextColor3 = Color3.fromRGB(70, 26, 14)
+		text.Parent = labelGui
+	end
+	-- Hielera plateada con un par de cubos.
+	local bucket = top * CFrame.new(1.5, 0, 0.1)
+	piece(
+		bucket,
+		"Hielera",
+		Vector3.new(0.85, 0.9, 0.9),
+		CFrame.new(0, 0.43, 0) * upright,
+		Color3.fromRGB(190, 192, 198),
+		Enum.Material.Metal,
+		Enum.PartType.Cylinder
+	).Reflectance =
+		0.3
+	for _, offset in { CFrame.new(0.15, 0.9, 0.05), CFrame.new(-0.15, 0.92, -0.1) } do
+		piece(
+			bucket,
+			"Hielo",
+			Vector3.new(0.28, 0.28, 0.28),
+			offset * CFrame.Angles(0.4, 0.7, 0.2),
+			Color3.fromRGB(226, 240, 252),
+			Enum.Material.Glass
+		).Transparency =
+			0.2
+	end
+
+	-- El vaso: el molde va a la mano del asesino; la copia aparece en la mesa cuando lo deja.
+	local glass = buildWhiskyGlass()
+	local tableGlass = glass:Clone()
+	tableGlass:PivotTo(top * CFrame.new(0.2, 0.38, 0.5))
+
+	refs.cinema = {
+		seat = sofa * CFrame.new(0, 2, 0.6),
+		stand = (sofa * CFrame.new(0, 0, -2.9)).Position,
+		floorY = center.Y,
+		glass = glass,
+		tableGlass = tableGlass,
+		propAxe = propAxe,
+		tableTop = top.Position,
+		screen = screenAt,
+		projector = projectorAt,
+	}
+end
+
 local function decorateRoom(id: string, random: Random)
 	placeTrophies(id)
+	if id == "room1" then
+		buildCinema(cellCenter(id))
+	end
 	local center = cellCenter(id)
 	local inCellar = PLAN[id].y == CELLAR_Y
 	dressRoom(id, random)
@@ -2764,12 +3517,11 @@ local function buildRoom(id: string, random: Random, openings: { [string]: Openi
 end
 
 -- Dibuja una cara de la hoja sobre la superficie, sin agregar partes: paneles de madera,
--- picaporte y placa del color de la llave. En las rejas, barrotes de hierro.
+-- picaporte y placa del color de la llave.
 local function doorFace(
 	leaf: BasePart,
 	face: Enum.NormalId,
 	emblem: Color3,
-	gate: boolean,
 	hingeSide: number,
 	width: number,
 	height: number
@@ -2794,22 +3546,6 @@ local function doorFace(
 	local sign = if face == Enum.NormalId.Front or face == Enum.NormalId.Right then -1 else 1
 	local freeEdge = 0.5 - hingeSide * sign * 0.5
 
-	if gate then
-		local iron = Color3.fromRGB(28, 28, 32)
-		local bars = math.max(math.floor(width / 1.2), 3)
-		for i = 1, bars do
-			rect((i - 0.5) / bars, 0.5, 0.04, 1, iron)
-		end
-		rect(0.5, 0.03, 1, 0.05, iron)
-		rect(0.5, 0.5, 1, 0.04, iron)
-		rect(0.5, 0.97, 1, 0.05, iron)
-		local badge = rect(math.abs(freeEdge - 0.12), 0.5, 2.2 / width, 1.4 / height, emblem)
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(190, 180, 150)
-		stroke.Parent = badge
-		return
-	end
-
 	local shade = Color3.fromRGB(34, 20, 12)
 	rect(0.5, 0.27, 0.74, 0.38, shade)
 	rect(0.5, 0.74, 0.74, 0.36, shade)
@@ -2823,6 +3559,91 @@ local function doorFace(
 	stroke.Color = Color3.fromRGB(190, 180, 150)
 	stroke.Thickness = 2
 	stroke.Parent = badge
+end
+
+-- Cinta roja de evento entre dos postes cromados, para el pie de las escaleras. Son dos mitades que
+-- salen de cada poste; al abrirse caen al piso. La bola de cada poste lleva el color de la llave.
+local function buildTape(
+	key: string,
+	position: Vector3,
+	along: Vector3,
+	width: number,
+	emblem: Color3
+): { { part: BasePart, closed: CFrame, open: CFrame } }
+	local steel = Color3.fromRGB(196, 198, 204)
+	local ribbonHeight = 1.5
+	local ribbonY = 4.1
+	local postInset = 0.7
+	local half = (width - 2 * postInset) / 2
+	local turn = CFrame.Angles(0, 0, math.rad(90))
+	local faces = if math.abs(along.X) > 0
+		then { Enum.NormalId.Front, Enum.NormalId.Back }
+		else { Enum.NormalId.Left, Enum.NormalId.Right }
+
+	local leaves = {}
+	for _, side in { -1, 1 } do
+		local post = position + along * side * (width / 2 - postInset)
+		decor({
+			Name = "BasePoste",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.3, 2.2, 2.2),
+			CFrame = CFrame.new(post + Vector3.new(0, 0.15, 0)) * turn,
+			Color = steel,
+			Material = Enum.Material.Metal,
+		})
+		decor({
+			Name = "Poste",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(4.6, 0.34, 0.34),
+			CFrame = CFrame.new(post + Vector3.new(0, 2.5, 0)) * turn,
+			Color = steel,
+			Material = Enum.Material.Metal,
+		})
+		decor({
+			Name = "RematePoste",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 0.95,
+			Position = post + Vector3.new(0, 5.05, 0),
+			Color = emblem,
+			Material = Enum.Material.SmoothPlastic,
+		})
+
+		local center = position + along * side * (half / 2)
+		local closed = CFrame.new(center + Vector3.new(0, ribbonY, 0))
+		-- Caída: acostada sobre el piso, a lo ancho de la entrada.
+		local open = CFrame.new(center + Vector3.new(0, 0.16, 0))
+			* CFrame.fromAxisAngle(along, math.rad(90))
+		local ribbon = decor({
+			Name = `Cinta_{key}`,
+			Size = if math.abs(along.X) > 0
+				then Vector3.new(half, ribbonHeight, 0.12)
+				else Vector3.new(0.12, ribbonHeight, half),
+			CFrame = closed,
+			Color = Color3.fromRGB(184, 16, 32),
+			Material = Enum.Material.SmoothPlastic,
+			Reflectance = 0.1,
+		})
+		-- Vivos dorados en los dos bordes de la cinta.
+		for _, face in faces do
+			local gui = Instance.new("SurfaceGui")
+			gui.Face = face
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 24
+			gui.LightInfluence = 1
+			gui.Parent = ribbon
+			for _, y in { 0.1, 0.9 } do
+				local stripe = Instance.new("Frame")
+				stripe.AnchorPoint = Vector2.new(0.5, 0.5)
+				stripe.Position = UDim2.fromScale(0.5, y)
+				stripe.Size = UDim2.fromScale(1, 0.1)
+				stripe.BackgroundColor3 = Color3.fromRGB(226, 178, 66)
+				stripe.BorderSizePixel = 0
+				stripe.Parent = gui
+			end
+		end
+		table.insert(leaves, { part = ribbon, closed = closed, open = open })
+	end
+	return leaves
 end
 
 local function buildDoor(
@@ -2843,16 +3664,20 @@ local function buildDoor(
 	local keyColor = if keyIndex then Config.KeyColors[keyIndex] else nil
 	local emblem =
 		Color3.fromRGB(table.unpack(if keyColor then keyColor.rgb else Config.GoldKeyRgb))
-	local gate = style == "gate"
+	local tape = style == "tape"
 
 	-- Una o dos hojas, cada una girando sobre su propia bisagra del marco.
 	local leaves = {}
-	local double = gate or width >= 14
+	local double = width >= 14
 	local count = if double then 2 else 1
 	local leafWidth = width / count
 	local faces = if math.abs(along.X) > 0
 		then { Enum.NormalId.Front, Enum.NormalId.Back }
 		else { Enum.NormalId.Left, Enum.NormalId.Right }
+	if tape then
+		leaves = buildTape(key, position, along, width, emblem)
+		count = 0
+	end
 	for i = 1, count do
 		local side = if i == 1 then -1 else 1
 		local hinge = position + along * side * (width / 2) + Vector3.new(0, height / 2, 0)
@@ -2867,11 +3692,10 @@ local function buildDoor(
 			CFrame = closed,
 			Color = Color3.fromRGB(52, 30, 18),
 			Material = Enum.Material.WoodPlanks,
-			Transparency = if gate then 1 else 0,
 			CanCollide = false,
 		})
 		for _, face in faces do
-			doorFace(leaf, face, emblem, gate, side, leafWidth, height)
+			doorFace(leaf, face, emblem, side, leafWidth, height)
 		end
 		table.insert(leaves, { part = leaf, closed = closed, open = open })
 	end
@@ -2891,7 +3715,7 @@ local function buildDoor(
 			})
 		end
 	end
-	if blockerHeight > height then
+	if blockerHeight > height and not tape then
 		part({
 			Name = "Dintel",
 			Size = sized(blockerWidth, blockerHeight - height),
@@ -2911,7 +3735,10 @@ local function buildDoor(
 	})
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = actionText
-	prompt.ObjectText = if keyColor then `Puerta {keyColor.name}` else "Puerta principal"
+	prompt.ObjectText = if tape
+		then `Escalera (llave {if keyColor then keyColor.name else "dorada"})`
+		elseif keyColor then `Puerta {keyColor.name}`
+		else "Puerta principal"
 	prompt.MaxActivationDistance = Config.InteractRange
 	prompt.RequiresLineOfSight = false
 	-- En el bloqueo, que no se mueve con las hojas.
@@ -2926,6 +3753,8 @@ local function buildDoor(
 		prompt = prompt,
 		normal = if math.abs(along.X) > 0 then Vector3.zAxis else Vector3.xAxis,
 		metal = key == "exit",
+		-- La cinta cae sin ruido: solo suena el chasquido de la cerradura.
+		quiet = tape,
 	}
 end
 
@@ -3126,7 +3955,7 @@ local function rollDoors(random: Random)
 	placeCorridorDoors(MapDef.DefaultLayout)
 end
 
--- Escalera ancha entre `lower` y `upper`, con reja arriba o abajo según `gateAtTop`.
+-- Escalera ancha entre `lower` y `upper`, con cinta roja arriba o abajo según `gateAtTop`.
 local function buildStairs(lower: string, upper: string, doorKey: string, gateAtTop: boolean)
 	local base = cellCenter(lower)
 	local xCenter = (STAIR.x0 + STAIR.x1) / 2
@@ -3211,7 +4040,7 @@ local function buildStairs(lower: string, upper: string, doorKey: string, gateAt
 		DOOR_HEIGHT,
 		width,
 		CORRIDOR_HEIGHT,
-		"gate"
+		"tape"
 	)
 
 	local up = LEVEL_HEIGHT
@@ -4440,7 +5269,14 @@ local function planOpenings(): ({ [string]: { [string]: Opening } }, { any })
 			for side, delta in { E = { 1, 0 }, W = { -1, 0 }, S = { 0, 1 }, N = { 0, -1 } } do
 				local outside = not occupied[`{plan.col + delta[1]},{plan.row + delta[2]},{plan.y}`]
 				local blockedByStairs = STAIR_ROOMS[id] and side == "W"
-				if outside and not openings[id][side] and not blockedByStairs then
+				-- El ventanal del living se tapió: ahí va la pantalla del proyector.
+				local cinemaWall = id == "room1" and side == "N"
+				if
+					outside
+					and not openings[id][side]
+					and not blockedByStairs
+					and not cinemaWall
+				then
 					openings[id][side] = hole
 					table.insert(windows, {
 						position = cellCenter(id)
@@ -4832,6 +5668,7 @@ function Mansion.build(): MansionRefs
 		altar = nil :: any,
 		tunnel = nil :: any,
 		vaults = {},
+		cinema = nil :: any,
 	}
 
 	local openings, windows = planOpenings()
@@ -5197,7 +6034,7 @@ function Mansion.swingDoor(door: Door, open: boolean)
 		return
 	end
 	door.swung = open
-	if open then
+	if open and not door.quiet then
 		playAt(door.blocker, if door.metal then Sounds.MetalDoor else Sounds.DoorCreak, 1.2)
 	end
 	for _, leaf in door.leaves do

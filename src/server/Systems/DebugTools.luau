@@ -11,6 +11,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local Systems = script.Parent
+local Cinema = require(Systems:WaitForChild("Cinema"))
 local Items = require(Systems:WaitForChild("Items"))
 local LobbyMap = require(Systems:WaitForChild("LobbyMap"))
 local MapDef =
@@ -131,6 +132,15 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 					then "Modo desarrollador: W A S D vuela, Espacio sube, Ctrl baja, doble Espacio deja de volar"
 					else "Modo desarrollador apagado"
 			)
+		elseif command == "cinema" then
+			-- Vuelve a sentar al asesino y te deja recién entrado al living: arranca la escena.
+			Cinema.debugReset()
+			local root = Vitality.rootOf(player)
+			if root then
+				local center = refs.rooms.room1.center
+				local at = center + Vector3.new(-refs.rooms.room1.size.X / 2 + 3, 4, 0)
+				root.CFrame = CFrame.lookAt(at, at + Vector3.xAxis)
+			end
 		elseif command == "keys" then
 			for n = 1, Config.KeyCount do
 				Round.addKey(player, n)

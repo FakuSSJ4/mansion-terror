@@ -189,7 +189,7 @@ local function step(dt: number)
 			humanoid.WalkSpeed = if player:GetAttribute("Escaping")
 				then Config.EscapeSpeed
 				elseif player:GetAttribute("Entering") then Config.EntranceSpeed
-				elseif player:GetAttribute("InTutorial") then 0
+				elseif player:GetAttribute("InTutorial") or player:GetAttribute("Watching") then 0
 				elseif player:GetAttribute("GodMode") then Config.DevWalkSpeed
 				elseif running then Config.RunSpeed
 				elseif crouching then Config.CrouchSpeed

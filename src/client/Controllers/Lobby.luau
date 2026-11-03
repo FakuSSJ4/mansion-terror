@@ -135,6 +135,51 @@ function Lobby.start()
 	end)
 	refreshGems()
 
+	-- Cuenta regresiva en grande mientras estás parado en un círculo, del color de ese círculo.
+	local countdown = Instance.new("TextLabel")
+	countdown.AnchorPoint = Vector2.new(0.5, 0.5)
+	countdown.Position = UDim2.fromScale(0.5, 0.3)
+	countdown.Size = UDim2.fromOffset(220, 160)
+	countdown.BackgroundTransparency = 1
+	countdown.Font = Enum.Font.FredokaOne
+	countdown.TextScaled = true
+	countdown.TextStrokeColor3 = Color3.fromRGB(50, 30, 18)
+	countdown.TextStrokeTransparency = 0
+	countdown.Visible = false
+	countdown.Parent = gui
+	local countdownCaption = Instance.new("TextLabel")
+	countdownCaption.AnchorPoint = Vector2.new(0.5, 1)
+	countdownCaption.Position = UDim2.new(0.5, 0, 0, -2)
+	countdownCaption.Size = UDim2.fromOffset(320, 34)
+	countdownCaption.BackgroundTransparency = 1
+	countdownCaption.Font = Enum.Font.FredokaOne
+	countdownCaption.TextScaled = true
+	countdownCaption.TextStrokeColor3 = Color3.fromRGB(50, 30, 18)
+	countdownCaption.TextStrokeTransparency = 0
+	countdownCaption.Text = "La partida empieza en"
+	countdownCaption.Parent = countdown
+	local function refreshCountdown()
+		local left = player:GetAttribute("LobbyCountdown")
+		local color = player:GetAttribute("LobbyCountdownColor")
+		if typeof(left) ~= "number" then
+			countdown.Visible = false
+			return
+		end
+		local tint = if typeof(color) == "Color3" then color else TEXT
+		countdown.TextColor3 = tint
+		countdownCaption.TextColor3 = tint
+		countdown.Text = tostring(left)
+		countdown.Visible = true
+		-- Un saltito en cada segundo.
+		countdown.Size = UDim2.fromOffset(280, 204)
+		TweenService:Create(
+			countdown,
+			TweenInfo.new(0.25, Enum.EasingStyle.Back),
+			{ Size = UDim2.fromOffset(220, 160) }
+		):Play()
+	end
+	player:GetAttributeChangedSignal("LobbyCountdown"):Connect(refreshCountdown)
+
 	-- Menú para elegir cuántos jugadores necesita el círculo: botones 1, 2 y 3 (o las teclas).
 	local menu = Instance.new("Frame")
 	menu.AnchorPoint = Vector2.new(0.5, 0.5)

@@ -117,6 +117,13 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 	local scripted = false
 	-- Dónde y en qué pieza vio por última vez a su objetivo: si lo pierde de vista (se agachó
 	-- detrás de un mueble, salió del cono), va hasta ahí y se rinde en vez de seguirlo a ciegas.
+	-- Primer encuentro (Systems/Cinema): sentado en el sillón, con el vaso en la mano y el hacha
+	-- escondida. Se guarda qué se ocultó para devolverlo al levantarse.
+	local heldGlass: Model? = nil
+	local glassMotor: Motor6D? = nil
+	local hiddenParts: { [BasePart]: number } = {}
+	local sceneConnection: RBXScriptConnection? = nil
+	local finishEncounter: (() -> ())? = nil
 	local seeingTarget = false
 	local lastSeenPosition: Vector3? = nil
 	local lastSeenRoom: string? = nil
@@ -129,10 +136,11 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		return Mansion.isLinkOpen(a, b)
 	end
 
-	-- Solo le importan los jugadores a los que puede llegar.
+	-- Solo le importan los jugadores a los que puede llegar; al modo desarrollador lo ignora.
 	local function canReach(player: Player): boolean
 		local room = Vitality.getRoom(player)
 		return room ~= nil
+			and not player:GetAttribute("GodMode")
 			and not MapGraph.isRefuge(graph, room)
 			and MapGraph.distance(graph, currentRoom, room, isOpen) < math.huge
 	end
@@ -189,6 +197,7 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			local playing = Vitality.isPlaying(player)
 			if
 				playing
+				and not player:GetAttribute("GodMode")
 				and Vitality.rootOf(player)
 				and room
 				and not MapGraph.isRefuge(graph, room)
@@ -325,6 +334,21 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		return spec.patrolSpeed * scale
 	end
 
+	-- Ruge (o gruñe, el carnicero) con su propia voz en el espacio.
+	local function roar(current: KillerModel.Rig)
+		lastGrowl = os.clock()
+		local growl = Instance.new("Sound")
+		growl.SoundId = if string.find(name, "carnicero") then Sounds.PigGrunt else Sounds.Growl
+		growl.Volume = 1.6
+		growl.RollOffMinDistance = 15
+		growl.RollOffMaxDistance = 110
+		growl.Parent = current.root
+		growl.Ended:Once(function()
+			growl:Destroy()
+		end)
+		growl:Play()
+	end
+
 	local function tryHit(position: Vector3, now: number)
 		if brain.state == "Stunned" or now - lastHit < Config.KillerHitCooldown then
 			return
@@ -433,17 +457,7 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 
 		-- Al empezar una persecución ruge (o gruñe, el carnicero), con su propia voz en el espacio.
 		if brain.state == "Chase" and lastState ~= "Chase" and now - lastGrowl > 10 then
-			lastGrowl = now
-			local growl = Instance.new("Sound")
-			growl.SoundId = if string.find(name, "carnicero") then Sounds.PigGrunt else Sounds.Growl
-			growl.Volume = 1.6
-			growl.RollOffMinDistance = 15
-			growl.RollOffMaxDistance = 110
-			growl.Parent = current.root
-			growl.Ended:Once(function()
-				growl:Destroy()
-			end)
-			growl:Play()
+			roar(current)
 		end
 		lastState = brain.state
 
@@ -535,6 +549,14 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		if rig then
 			rig.model:Destroy()
 		end
+		if sceneConnection then
+			sceneConnection:Disconnect()
+			sceneConnection = nil
+		end
+		heldGlass = nil
+		glassMotor = nil
+		hiddenParts = {}
+		finishEncounter = nil
 		brain = KillerBrain.new()
 		currentRoom = spec.startRoom
 		patrolRoom = nil
@@ -634,6 +656,204 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 				onStrike()
 			end
 		end)
+	end
+
+	local SIT_LEGS = math.rad(72)
+
+	local function ease(alpha: number): number
+		local a = math.clamp(alpha, 0, 1)
+		return a * a * (3 - 2 * a)
+	end
+
+	-- Brazo del vaso: `raise` 0 lo deja apoyado sobre el muslo y 1 lo lleva a la boca; `tilt` inclina
+	-- el vaso hacia la cara. El vaso se contrarrota para quedar derecho mientras sube el brazo.
+	local function holdGlass(current: KillerModel.Rig, raise: number, tilt: number)
+		local turn = CFrame.Angles(0.9 + raise * 1.4, 0, 0.15 + raise * 0.45)
+		current.shoulder.C0 = baseC0[current.shoulder] * turn
+		if glassMotor then
+			glassMotor.C0 = CFrame.new(0, -1.2, 0) * turn:Inverse() * CFrame.Angles(tilt, 0, 0)
+		end
+	end
+
+	-- Primer encuentro: sentado en el sillón mirando la película, con el whisky en la mano. Su
+	-- hacha queda oculta (la que se ve es la apoyada contra el sillón) hasta que se levanta.
+	function self.sit(seat: CFrame, glassTemplate: Model)
+		local current = rig
+		if not current then
+			return
+		end
+		active = false
+		scripted = true
+		passing = nil
+		current.humanoid.WalkSpeed = 0
+		current.root.Anchored = true
+		current.root.CFrame = seat * CFrame.new(0, 0.5 + current.root.Size.Y / 2, 0)
+		for _, hip in { current.leftHip, current.rightHip } do
+			hip.C0 = baseC0[hip] * CFrame.Angles(SIT_LEGS, 0, 0)
+		end
+		hiddenParts = {}
+		for _, item in current.model:GetChildren() do
+			if
+				item:IsA("BasePart")
+				and (string.find(item.Name, "Hacha") ~= nil or item.Name == "Empunadura")
+			then
+				hiddenParts[item] = item.Transparency
+				-- Con sus manchas, que cuelgan de la pieza.
+				for _, joint in item:GetChildren() do
+					if joint:IsA("Motor6D") and joint.Part1 then
+						hiddenParts[joint.Part1] = joint.Part1.Transparency
+					end
+				end
+			end
+		end
+		for item in hiddenParts do
+			item.Transparency = 1
+		end
+
+		local held = glassTemplate:Clone()
+		local centre = held.PrimaryPart :: BasePart
+		for _, item in held:GetDescendants() do
+			if item:IsA("BasePart") then
+				item.Anchored = false
+				item.Massless = true
+				item.CanCollide = false
+				item.CanTouch = false
+				if item ~= centre then
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = centre
+					weld.Part1 = item
+					weld.Parent = item
+				end
+			end
+		end
+		local hand = current.shoulder.Part1 :: BasePart
+		local motor = Instance.new("Motor6D")
+		motor.Part0 = hand
+		motor.Part1 = centre
+		motor.Parent = hand
+		held.Parent = current.model
+		heldGlass = held
+		glassMotor = motor
+		holdGlass(current, 0, 0)
+	end
+
+	-- La escena: respira mirando la película, toma un trago largo, gira hacia `watcher`, deja el vaso,
+	-- se para en `stand`, levanta el hacha y ruge. Al terminar sale a cazar (con un segundo de
+	-- ventaja para los jugadores). `onGlassDown` avisa cuando el vaso pasa a la mesa.
+	function self.encounter(
+		watcher: Vector3,
+		stand: Vector3,
+		floorY: number,
+		onGlassDown: () -> (),
+		onDone: () -> ()
+	)
+		local current = rig
+		if not current or not scripted or not heldGlass then
+			onDone()
+			return
+		end
+		local timing = Config.Cinema
+		local seated = current.root.CFrame
+		local flat = Vector3.new(watcher.X - seated.Position.X, 0, watcher.Z - seated.Position.Z)
+		local yaw = 0
+		if flat.Magnitude > 0.1 then
+			local look = seated.LookVector
+			yaw = math.clamp(math.atan2(look:Cross(flat.Unit).Y, look:Dot(flat.Unit)), -0.7, 0.7)
+		end
+		local standY = floorY + 0.1 + current.humanoid.HipHeight + current.root.Size.Y / 2
+		local standAt = Vector3.new(stand.X, standY, stand.Z)
+		local facing = Vector3.new(watcher.X, standY, watcher.Z)
+		local standing = if (facing - standAt).Magnitude > 0.1
+			then CFrame.lookAt(standAt, facing)
+			else CFrame.new(standAt) * seated.Rotation
+
+		local glassDown = false
+		local roared = false
+		local function putDown()
+			if glassDown then
+				return
+			end
+			glassDown = true
+			if heldGlass then
+				heldGlass:Destroy()
+			end
+			heldGlass = nil
+			glassMotor = nil
+			for item, transparency in hiddenParts do
+				item.Transparency = transparency
+			end
+			hiddenParts = {}
+			onGlassDown()
+		end
+		local function finish()
+			if finishEncounter == nil then
+				return
+			end
+			finishEncounter = nil
+			if sceneConnection then
+				sceneConnection:Disconnect()
+				sceneConnection = nil
+			end
+			putDown()
+			current.leftHip.C0 = baseC0[current.leftHip]
+			current.rightHip.C0 = baseC0[current.rightHip]
+			current.shoulder.C0 = baseC0[current.shoulder]
+			current.root.CFrame = standing
+			current.root.Anchored = false
+			scripted = false
+			active = true
+			releaseAt = os.clock() + 1
+			onDone()
+		end
+		finishEncounter = finish
+
+		local startedAt = os.clock()
+		sceneConnection = RunService.Heartbeat:Connect(function()
+			if not current.model.Parent then
+				finish()
+				return
+			end
+			local t = os.clock() - startedAt
+			if t >= timing.seconds then
+				finish()
+				return
+			end
+			if t < timing.standAt then
+				-- Un trago largo: sube el vaso, lo inclina, lo sostiene y lo baja.
+				local drink = t - timing.drinkAt
+				local raise = if drink < 0
+					then 0
+					elseif drink < 1.2 then ease(drink / 1.2)
+					elseif drink < 2 then 1
+					else 1 - ease((drink - 2) / 0.8)
+				holdGlass(current, raise, raise * raise * 0.9)
+				local turn = yaw * ease((t - timing.turnAt) / 0.9)
+				current.root.CFrame = seated
+					* CFrame.Angles(0, turn, 0)
+					* CFrame.new(0, math.sin(t * 1.6) * 0.03, 0)
+				return
+			end
+			putDown()
+			local u = ease((t - timing.standAt) / (timing.roarAt - timing.standAt))
+			current.root.CFrame = (seated * CFrame.Angles(0, yaw, 0)):Lerp(standing, u)
+			for _, hip in { current.leftHip, current.rightHip } do
+				hip.C0 = baseC0[hip] * CFrame.Angles(SIT_LEGS * (1 - u), 0, 0)
+			end
+			-- El hacha sube y queda en alto para el rugido.
+			local lift = ease((t - timing.roarAt + 0.5) / 0.6)
+			current.shoulder.C0 = baseC0[current.shoulder] * CFrame.Angles(0.3 + lift * 2, 0, 0)
+			if t >= timing.roarAt and not roared then
+				roared = true
+				roar(current)
+			end
+		end)
+	end
+
+	-- Corta la escena: queda parado y sale a cazar enseguida.
+	function self.skipEncounter()
+		if finishEncounter then
+			finishEncounter()
+		end
 	end
 
 	-- Solo para QA: a quién ve ahora, con los mismos sentidos que usa de verdad.
@@ -748,6 +968,25 @@ function Killer.playEscape(
 	floorY: number?
 )
 	killers[1].escapeScene(from, to, delay, speed, strikeEvery, onStrike, floorY)
+end
+
+-- Primer encuentro con el asesino principal (ver Systems/Cinema).
+function Killer.sitMain(seat: CFrame, glassTemplate: Model)
+	killers[1].sit(seat, glassTemplate)
+end
+
+function Killer.encounterMain(
+	watcher: Vector3,
+	stand: Vector3,
+	floorY: number,
+	onGlassDown: () -> (),
+	onDone: () -> ()
+)
+	killers[1].encounter(watcher, stand, floorY, onGlassDown, onDone)
+end
+
+function Killer.skipEncounter()
+	killers[1].skipEncounter()
 end
 
 function Killer.debugSense(index: number): Player?

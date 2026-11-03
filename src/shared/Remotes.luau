@@ -17,6 +17,8 @@ local NAMES = {
 	"Hit",
 	"Escape",
 	"Entrance",
+	"Cinema",
+	"CinemaSkip",
 	"Keypad",
 	"Crouch",
 	"ShopBuy",

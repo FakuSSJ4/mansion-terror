@@ -30,6 +30,8 @@ Cómo es hoy:
 - Cuatro asesinos en `Config.Killers`: el principal (3 golpes, toda la casa), el del smoking (2 golpes, solo el piso de arriba) y dos carniceros (5 golpes, solo el sótano y la cocina).
 - Dificultades Fácil, Normal y Pesadilla (esta se desbloquea al ganar 3 partidas), gemas y tienda del lobby.
 - Los sonidos ya están en `src/shared/Sounds.luau`.
+- Primer encuentro (`Systems/Cinema` y `Controllers/Cinema`): el asesino principal arranca sentado en un Chesterfield del living (room1) mirando un proyector, con un whisky. La primera vez que alguien entra hay una cinemática de unos 10 s (Q la saltea) y después sale a cazar; si nadie entra en 150 s, se levanta solo. La película de la pantalla es provisoria (cuenta regresiva): la definitiva va en el marco `Imagen` (ver `Controllers/Projector`).
+- Los asesinos ignoran al jugador en modo desarrollador.
 
 Sin comprobar a mano todavía: el lobby, la fuga por el túnel, las cajas fuertes con código, la partida con 2 o más jugadores (espectador y objetos que caen) y el taser contra el asesino de smoking. Para más adelante, a pedido del usuario: niveles de gráficos bajo, medio y alto.
 

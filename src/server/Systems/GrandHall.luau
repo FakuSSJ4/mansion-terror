@@ -278,7 +278,7 @@ function GrandHall.build(ctx: any)
 					Material = Enum.Material.Wood,
 				})
 			end
-			-- Impide saltar al tramo por el costado y esquivar la reja.
+			-- Impide saltar al tramo por el costado y esquivar la cinta.
 			ctx.part({
 				Name = "ParedInvisible",
 				Size = Vector3.new(1, TOP, galleryZ - flightZ0),
@@ -305,7 +305,7 @@ function GrandHall.build(ctx: any)
 			ctx.DOOR_HEIGHT,
 			width,
 			ctx.CORRIDOR_HEIGHT,
-			"gate"
+			"tape"
 		)
 	end
 	local westGate = flight(GrandHall.FlightWest, "room7b")

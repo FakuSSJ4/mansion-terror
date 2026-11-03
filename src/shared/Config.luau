@@ -151,6 +151,18 @@ local Config = {
 	EntranceSpeed = 9,
 	EntranceOpenAt = 0.5,
 	EntranceSlamAt = 5.4,
+	-- Primer encuentro: el asesino principal mira la película en el living hasta que alguien entra.
+	-- Si nadie entra en ese tiempo, se levanta solo y sale a cazar.
+	-- Segundos de cada momento de la escena: toma, gira hacia los jugadores, deja el vaso y se para,
+	-- y ruge con el hacha en alto.
+	Cinema = {
+		seconds = 10,
+		maxWait = 150,
+		drinkAt = 3,
+		turnAt = 5.8,
+		standAt = 7.2,
+		roarAt = 8.6,
+	},
 
 	-- Tienda del lobby: lo que se compra con gemas y dura para siempre.
 	Shop = {

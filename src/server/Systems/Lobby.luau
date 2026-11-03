@@ -1,7 +1,7 @@
 --!strict
 -- Lógica del lobby: los círculos donde se arma cada partida y la tienda. En cada círculo se elige
--- la dificultad y cuántos jugadores hacen falta; cuando están todos parados encima, arranca una
--- cuenta regresiva y la partida empieza para ese grupo.
+-- la dificultad y cuántos jugadores se esperan; al pisarlo arranca una cuenta regresiva de 10 s
+-- (se cancela si se bajan todos) y la partida empieza para los que estén arriba.
 -- Por ahora hay una sola mansión por servidor: mientras hay una partida en curso, los demás
 -- círculos esperan.
 
@@ -21,10 +21,9 @@ local Vitality = require(Systems:WaitForChild("Vitality"))
 
 local Lobby = {}
 
-local COUNTDOWN = 5
+-- Segundos desde que alguien pisa el círculo hasta que arranca la partida.
+local COUNTDOWN = 10
 local MAX_PLAYERS = 3
--- Cuando el círculo pide más de un jugador, se espera este tiempo desde que entra el primero.
-local WAIT_SECONDS = 20
 local TICK = 0.25
 
 type Slot = {
@@ -33,8 +32,6 @@ type Slot = {
 	needed: number,
 	-- os.clock() en que arranca la partida, o nil si no hay cuenta regresiva.
 	startsAt: number?,
-	-- os.clock() en que se cierra la espera de más jugadores, o nil si nadie entró todavía.
-	waitEnds: number?,
 }
 
 local function difficultyName(id: string): string
@@ -66,10 +63,7 @@ end
 function Lobby.start(refs: LobbyMap.Refs)
 	local slots: { Slot } = {}
 	for _, pad in refs.pads do
-		table.insert(
-			slots,
-			{ pad = pad, difficulty = "normal", needed = 1, startsAt = nil, waitEnds = nil }
-		)
+		table.insert(slots, { pad = pad, difficulty = "normal", needed = 1, startsAt = nil })
 	end
 
 	for index, slot in slots do
@@ -121,7 +115,6 @@ function Lobby.start(refs: LobbyMap.Refs)
 			return
 		end
 		slot.difficulty = choice
-		slot.waitEnds = nil
 		notify(player, `Partida {index}: dificultad {difficultyName(choice)}`)
 	end)
 
@@ -142,8 +135,6 @@ function Lobby.start(refs: LobbyMap.Refs)
 			return
 		end
 		slot.needed = wanted
-		-- Cambiar la cantidad reinicia la espera.
-		slot.waitEnds = nil
 		notify(player, `Partida {index}: {wanted} {if wanted == 1 then "jugador" else "jugadores"}`)
 	end)
 
@@ -156,10 +147,14 @@ function Lobby.start(refs: LobbyMap.Refs)
 		end)
 	end
 
+	-- Quién ve la cuenta regresiva en pantalla, para borrársela cuando se baja del círculo.
+	local counting: { [Player]: boolean } = {}
+
 	local function refresh()
 		local running = Round.isRunning()
 		local now = os.clock()
 		local launched = false
+		local shown: { [Player]: boolean } = {}
 		for _, slot in slots do
 			local inside = standingOn(slot.pad)
 			local count = #inside
@@ -171,34 +166,41 @@ function Lobby.start(refs: LobbyMap.Refs)
 				slot.startsAt = nil
 				status = "Esperando"
 			elseif count == 0 then
+				-- Se bajaron todos: la cuenta se cancela.
 				slot.startsAt = nil
-				slot.waitEnds = nil
 				status = "Parate en el círculo"
-			elseif count >= slot.needed or (slot.waitEnds and now >= slot.waitEnds) then
+			else
+				-- Al pisar el círculo arranca la cuenta; empiezan los que estén arriba al llegar a cero.
 				if not slot.startsAt then
 					slot.startsAt = now + COUNTDOWN
 				end
 				local left = math.ceil(slot.startsAt - now)
 				if left <= 0 then
 					slot.startsAt = nil
-					slot.waitEnds = nil
 					launched = true
 					status = "¡Empieza!"
 					Round.startMatch(inside, slot.difficulty)
 				else
 					status = `Empieza en {left}`
+					-- Cada uno ve la cuenta en grande, del color de su círculo.
+					for _, player in inside do
+						shown[player] = true
+						player:SetAttribute("LobbyCountdown", left)
+						player:SetAttribute("LobbyCountdownColor", slot.pad.color)
+					end
 				end
-			else
-				-- Entró el primero pero faltan: se espera un rato a que lleguen los demás.
-				slot.startsAt = nil
-				slot.waitEnds = slot.waitEnds or now + WAIT_SECONDS
-				status = `Esperando jugadores: {math.ceil(slot.waitEnds - now)} s`
 			end
 			slot.pad.label.Text =
 				`Partida {table.find(slots, slot)}\n{count}/{slot.needed} jugadores · {difficultyName(
 					slot.difficulty
 				)}\n{status}`
 		end
+		for player in counting do
+			if not shown[player] then
+				player:SetAttribute("LobbyCountdown", nil)
+			end
+		end
+		counting = shown
 	end
 
 	task.spawn(function()
