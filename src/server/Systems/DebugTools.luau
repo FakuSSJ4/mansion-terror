@@ -134,8 +134,32 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			)
 		elseif command == "cure" then
 			-- Va a ver, de a una por vez, la venda, el botiquín, la pila y las cajas fuertes 1 y 4.
-			cureView = cureView % 5 + 1
-			local name = ({ "bandage1", "medkit1", "battery1", "@vault1", "@vault4" })[cureView]
+			cureView = cureView % 8 + 1
+			local name = ({
+				"bandage1",
+				"medkit1",
+				"battery1",
+				"@vault1",
+				"@vault2",
+				"@vault3",
+				"@vault4",
+				"@killers",
+			})[cureView]
+			if name == "@killers" then
+				-- Los cuatro asesinos en fila, mirándote, en el hall.
+				local root = Vitality.rootOf(player)
+				if root then
+					local hall = refs.rooms.hall.center
+					local at = Vector3.new(hall.X, hall.Y + 4, hall.Z - 4)
+					root.CFrame = CFrame.lookAt(at, at + Vector3.zAxis)
+					player:SetAttribute("QAAim", Vector3.zAxis)
+					for index, x in { -10.5, -3.5, 3.5, 10.5 } do
+						Killer.debugPlace(index, at + Vector3.new(x, 0, 11), at)
+					end
+					print("[QA] viendo los asesinos")
+				end
+				return
+			end
 			local item = workspace:FindFirstChild("Objetos")
 				and workspace.Objetos:FindFirstChild(name)
 			local root = Vitality.rootOf(player)
@@ -147,8 +171,11 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 				local at = Vector3.new(front.X, floorY + 4, front.Z)
 				root.CFrame = CFrame.lookAt(at, Vector3.new(door.X, at.Y, door.Z))
 				player:SetAttribute("QAAim", (Vector3.new(door.X, at.Y, door.Z) - at).Unit)
-				-- Para ver lo que guarda, la deja abierta (el código se probó aparte).
-				Mansion.setDoorUnlocked(vault.door, true)
+				-- El armario del altillo se deja abierto para ver lo que guarda; las otras, cerradas, para
+				-- ver el panel.
+				if vault.room == "attic" then
+					Mansion.setDoorUnlocked(vault.door, true)
+				end
 				print(`[QA] viendo {name}`)
 			elseif item and item:IsA("BasePart") and root then
 				local at = item.Position + Vector3.new(0, 2.5, 0) + Vector3.new(-3, 0, 3)

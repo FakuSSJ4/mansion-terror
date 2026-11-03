@@ -5449,7 +5449,8 @@ local function vaultPanel(leaf: Part, leafWidth: number, leafHeight: number): (T
 		local gui = Instance.new("SurfaceGui")
 		gui.Face = Enum.NormalId.Front
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 40
+		-- Lienzo de unos 280 px de ancho sea cual sea el tamaño de la puerta: nítido en las chicas.
+		gui.PixelsPerStud = 280 / leafWidth
 		gui.LightInfluence = influence
 		gui.Parent = leaf
 		return gui
@@ -5458,8 +5459,9 @@ local function vaultPanel(leaf: Part, leafWidth: number, leafHeight: number): (T
 	local glow = canvas(0)
 	glow.Brightness = 1.4
 
-	local panelWidth = 0.86
-	local panelHeight = math.min(0.86, panelWidth * (leafWidth / leafHeight) / 1.15)
+	-- El panel ocupa poco más de la mitad de la puerta: lo importante es la cerradura, no el teclado.
+	local panelWidth = 0.6
+	local panelHeight = math.min(0.62, panelWidth * (leafWidth / leafHeight) / 1.15)
 	local at = UDim2.fromScale(0.5 - panelWidth / 2, 0.5 - panelHeight / 2)
 	local size = UDim2.fromScale(panelWidth, panelHeight)
 	local panel = box(base, at, size, VAULT_SILVER, 0.05)
@@ -5490,8 +5492,8 @@ local function vaultPanel(leaf: Part, leafWidth: number, leafHeight: number): (T
 	box(knob, UDim2.fromScale(0.4, 0.4), UDim2.fromScale(0.2, 0.2), Color3.fromRGB(60, 62, 68), 0.5)
 
 	-- Teclado negro con la pantalla arriba y doce teclas.
-	local keypadAt = UDim2.fromScale(0.52, 0.07)
-	local keypadSize = UDim2.fromScale(0.43, 0.86)
+	local keypadAt = UDim2.fromScale(0.58, 0.12)
+	local keypadSize = UDim2.fromScale(0.36, 0.76)
 	local keypad = box(panel, keypadAt, keypadSize, VAULT_KEYS, 0.06)
 	local keypadGlow = box(panelGlow, keypadAt, keypadSize, nil, nil)
 	local screenAt = UDim2.fromScale(0.07, 0.05)
@@ -5536,11 +5538,16 @@ local function placeVaults()
 		local center = cellCenter(id)
 		-- El armario del altillo es grande y apoya en el piso; las demás cuelgan a la altura de los ojos.
 		local big = id == "attic"
-		local width, high, deep = 6.6, 6, 3.2
+		-- Las chicas miden un 60 % menos que antes (6,6 x 6 x 3,2); `scale` achica también el grosor de
+		-- las chapas y el marco.
+		local scale = if big then 1 else 0.4
+		local width, high, deep = 6.6 * scale, 6 * scale, 3.2 * scale
 		if big then
 			width, high, deep = 8.6, 11.5, 4.8
 		end
-		local rise = if big then high / 2 + 0.05 else 6.5
+		local thick = 0.6 * scale
+		local rim = 0.5 * scale
+		local rise = if big then high / 2 + 0.05 else 4.4
 		-- Todos los lugares posibles: cuatro paredes por seis posiciones, lejos del centro de la pared
 		-- (que es donde van las puertas y ventanales), probados en orden al azar.
 		local candidates = {}
@@ -5555,6 +5562,8 @@ local function placeVaults()
 		end
 		local chosen = candidates[1]
 		local params = OverlapParams.new()
+		-- Si ningún lugar queda del todo libre, se queda con el que tiene menos cosas cerca.
+		local fewest = math.huge
 		for _, candidate in candidates do
 			local along = Vector3.new(-candidate.inward.Z, 0, candidate.inward.X)
 			local at = center
@@ -5562,21 +5571,26 @@ local function placeVaults()
 				+ along * candidate.offset
 				+ Vector3.new(0, rise, 0)
 			local spot = CFrame.lookAt(at, at - candidate.inward)
-			-- La caja y un poco de aire delante (para llegar a ella). Lo decorativo no cuenta: no tiene
-			-- física ni consultas.
+			-- La caja y todo el espacio de adelante (6 studs, de piso a techo del hueco): nada de muebles,
+			-- barriles ni cajones tapándola. Lo decorativo no cuenta: no tiene física ni consultas.
 			local clash = workspace:GetPartBoundsInBox(
 				spot * CFrame.new(0, 0, -(deep / 2 + 0.3)),
-				Vector3.new(width + 1, high + 0.8, deep + 0.2),
+				Vector3.new(width + 1, high - 0.6, deep + 0.2),
 				params
 			)
 			local reach = workspace:GetPartBoundsInBox(
-				spot * CFrame.new(0, -rise + 3, -(deep + 2.5)),
-				Vector3.new(width + 0.4, 5.4, 4),
+				-- De medio stud sobre el piso a 7,5 de alto: sin rozar la chapa del piso.
+				spot * CFrame.new(0, -rise + 4.1, -(deep + 4.3)),
+				Vector3.new(width + 3.5, 7, 8),
 				params
 			)
-			if #clash == 0 and #reach == 0 then
+			local blocked = #clash * 4 + #reach
+			if blocked == 0 then
 				chosen = candidate
 				break
+			elseif blocked < fewest then
+				fewest = blocked
+				chosen = candidate
 			end
 		end
 		local inward = chosen.inward
@@ -5598,18 +5612,18 @@ local function placeVaults()
 			})
 		end
 		-- Cuerpo hueco: fondo, dos laterales, techo y piso; el frente es un marco con la puerta embutida.
-		steelPlate(Vector3.new(width, high, 0.3), CFrame.new(0, 0, -0.15))
-		steelPlate(Vector3.new(0.6, high, deep), CFrame.new(-(width - 0.6) / 2, 0, -deep / 2))
-		steelPlate(Vector3.new(0.6, high, deep), CFrame.new((width - 0.6) / 2, 0, -deep / 2))
-		steelPlate(Vector3.new(width, 0.6, deep), CFrame.new(0, (high - 0.6) / 2, -deep / 2))
-		local floorOffset = CFrame.new(0, -(high - 0.6) / 2, -deep / 2)
-		steelPlate(Vector3.new(width, 0.6, deep), floorOffset)
-		local floorTop = -high / 2 + 0.6
+		steelPlate(Vector3.new(width, high, 0.3 * scale), CFrame.new(0, 0, -0.15 * scale))
+		steelPlate(Vector3.new(thick, high, deep), CFrame.new(-(width - thick) / 2, 0, -deep / 2))
+		steelPlate(Vector3.new(thick, high, deep), CFrame.new((width - thick) / 2, 0, -deep / 2))
+		steelPlate(Vector3.new(width, thick, deep), CFrame.new(0, (high - thick) / 2, -deep / 2))
+		steelPlate(Vector3.new(width, thick, deep), CFrame.new(0, -(high - thick) / 2, -deep / 2))
+		local floorTop = -high / 2 + thick
 		-- Marco del frente (más ancho que la caja, como el borde que rodea la puerta).
-		steelPlate(Vector3.new(width, 0.5, 0.5), CFrame.new(0, (high - 0.5) / 2, -deep + 0.1))
-		steelPlate(Vector3.new(width, 0.5, 0.5), CFrame.new(0, -(high - 0.5) / 2, -deep + 0.1))
-		steelPlate(Vector3.new(0.5, high, 0.5), CFrame.new(-(width - 0.5) / 2, 0, -deep + 0.1))
-		steelPlate(Vector3.new(0.5, high, 0.5), CFrame.new((width - 0.5) / 2, 0, -deep + 0.1))
+		local rimZ = -deep + rim / 5
+		steelPlate(Vector3.new(width, rim, rim), CFrame.new(0, (high - rim) / 2, rimZ))
+		steelPlate(Vector3.new(width, rim, rim), CFrame.new(0, -(high - rim) / 2, rimZ))
+		steelPlate(Vector3.new(rim, high, rim), CFrame.new(-(width - rim) / 2, 0, rimZ))
+		steelPlate(Vector3.new(rim, high, rim), CFrame.new((width - rim) / 2, 0, rimZ))
 		-- Estantes del armario grande (claros, para que se vea lo que guardan).
 		local shelves = { floorTop }
 		if big then
@@ -5623,15 +5637,15 @@ local function placeVaults()
 			end
 		end
 		-- Hoja de la puerta: embutida en el marco, bisagra a la derecha, abre hacia afuera.
-		local doorZ = -deep + 0.2
+		local doorZ = -deep + rim * 0.4
 		local closed = frame * CFrame.new(0, 0, doorZ)
-		local hingeEdge = (width - 1) / 2
+		local leafWidth, leafHeight = width - 2 * rim, high - 2 * rim
+		local hingeEdge = leafWidth / 2
 		local hinge = frame * CFrame.new(hingeEdge, 0, doorZ)
 		local open = hinge * CFrame.Angles(0, math.rad(-105), 0) * hinge:Inverse() * closed
-		local leafWidth, leafHeight = width - 1, high - 1
 		local leaf = part({
 			Name = "PuertaCajaFuerte",
-			Size = Vector3.new(leafWidth, leafHeight, 0.5),
+			Size = Vector3.new(leafWidth, leafHeight, rim),
 			CFrame = closed,
 			Color = doorColor,
 			Material = Enum.Material.Metal,
@@ -5639,22 +5653,22 @@ local function placeVaults()
 		})
 		local lcd, led = vaultPanel(leaf, leafWidth, leafHeight)
 		-- Bisagras de acero sobre el borde derecho, sobresaliendo del marco.
-		local pins = if big then { 4.6, 0, -4.6 } else { 1.9, -1.9 }
+		local pins = if big then { 4.6, 0, -4.6 } else { 0.76, -0.76 }
 		for _, y in pins do
 			local pin = part({
 				Name = "BisagraCajaFuerte",
 				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(1.4, 0.45, 0.45),
+				Size = Vector3.new(1.4, 0.45, 0.45) * scale,
 				CFrame = frame
-					* CFrame.new(width / 2 - 0.1, y, doorZ)
+					* CFrame.new(width / 2 - 0.1 * scale, y, doorZ)
 					* CFrame.Angles(0, 0, math.rad(90)),
 				Color = Color3.fromRGB(150, 154, 162),
 				Material = Enum.Material.Metal,
 			})
 			pin.CanCollide = false
 			steelPlate(
-				Vector3.new(0.9, 1.1, 0.25),
-				CFrame.new(width / 2 - 0.45, y, doorZ - 0.2),
+				Vector3.new(0.9, 1.1, 0.25) * scale,
+				CFrame.new(width / 2 - 0.45 * scale, y, doorZ - 0.2 * scale),
 				Color3.fromRGB(150, 154, 162)
 			)
 		end
@@ -5693,15 +5707,15 @@ local function placeVaults()
 		-- Rótulo sobre la caja.
 		local sign = part({
 			Name = "CartelCajaFuerte",
-			Size = Vector3.new(5, 1, 0.2),
-			CFrame = frame * CFrame.new(0, high / 2 + 1, -0.1),
+			Size = if big then Vector3.new(5, 1, 0.2) else Vector3.new(2.6, 0.5, 0.12),
+			CFrame = frame * CFrame.new(0, high / 2 + (if big then 1 else 0.45), -0.06),
 			Color = WOOD_COLOR,
 			Material = Enum.Material.Wood,
 		})
 		local gui = Instance.new("SurfaceGui")
 		gui.Face = Enum.NormalId.Front
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 40
+		gui.PixelsPerStud = if big then 40 else 80
 		gui.Parent = sign
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
@@ -5717,7 +5731,7 @@ local function placeVaults()
 			return (frame * CFrame.new(x, surface + lift, -deep / 2)).Position
 		end
 		local loot = {}
-		local scrollSpot = spotAt(0, floorTop, 0.4)
+		local scrollSpot = spotAt(0, floorTop, if big then 0.4 else 0.25)
 		if big then
 			scrollSpot = spotAt(0, shelves[3], 0.4)
 			loot = {

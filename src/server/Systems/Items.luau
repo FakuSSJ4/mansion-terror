@@ -469,6 +469,22 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 		free[room] = table.clone(spots)
 	end
 
+	-- Nada escondido delante de una caja fuerte (a menos de 9 studs, en su mismo piso): tiene que
+	-- poder llegarse a ella y verse.
+	for _, vault in refs.vaults do
+		local at = vault.door.position
+		for room, spots in free do
+			local kept = {}
+			for _, spot in spots do
+				local flat = Vector3.new(spot.X - at.X, 0, spot.Z - at.Z).Magnitude
+				if flat > 9 or math.abs(spot.Y - at.Y) > 10 then
+					table.insert(kept, spot)
+				end
+			end
+			free[room] = kept
+		end
+	end
+
 	local function roll(n: number): number
 		return random:NextInteger(1, n)
 	end

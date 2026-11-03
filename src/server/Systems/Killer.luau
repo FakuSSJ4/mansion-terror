@@ -359,6 +359,12 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			local root = Vitality.rootOf(player)
 			-- No pega a través de un mueble: tiene que haber línea de vista a la cintura o la cabeza.
 			local character = player.Character
+			-- El rayo sale del medio del cuerpo: su propio brazo, el hacha o el machete (y los otros
+			-- asesinos) no cuentan como un obstáculo; si no, no pega aunque te tenga pegado.
+			local ignore: { Instance } = { character :: Instance }
+			for _, killerModel in CollectionService:GetTagged("Killer") do
+				table.insert(ignore, killerModel)
+			end
 			if
 				root
 				and character
@@ -366,12 +372,8 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 				and Vitality.isPlaying(player)
 				and (root.Position - position).Magnitude <= Config.KillerHitRange
 				and (
-					hasLineOfSight(position, root.Position, { character })
-					or hasLineOfSight(
-						position,
-						root.Position + Vector3.new(0, 1.2, 0),
-						{ character }
-					)
+					hasLineOfSight(position, root.Position, ignore)
+					or hasLineOfSight(position, root.Position + Vector3.new(0, 1.2, 0), ignore)
 				)
 			then
 				lastHit = now

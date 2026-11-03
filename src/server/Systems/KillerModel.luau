@@ -40,6 +40,8 @@ local function piece(
 	p.Color = color
 	p.Material = material or Enum.Material.SmoothPlastic
 	p.CanCollide = false
+	-- Que los rayos (línea de vista) no se choquen con su propio cuerpo.
+	p.CanQuery = false
 	p.Massless = true
 	p.CollisionGroup = "Killer"
 	p.TopSurface = Enum.SurfaceType.Smooth
@@ -70,6 +72,94 @@ local function attach(
 	local p = piece(model, name, size, color, material)
 	joint(parent, p, offset, CFrame.identity)
 	return p
+end
+
+-- Cilindro vertical (los de Roblox van acostados a lo largo de X): `size` es (alto, diámetro, diámetro).
+local function cylinder(
+	model: Model,
+	parent: BasePart,
+	name: string,
+	size: Vector3,
+	offset: CFrame,
+	color: Color3,
+	material: Enum.Material?
+): Part
+	local p = attach(
+		model,
+		parent,
+		name,
+		size,
+		offset * CFrame.Angles(0, 0, math.rad(90)),
+		color,
+		material
+	)
+	p.Shape = Enum.PartType.Cylinder
+	return p
+end
+
+-- Detalles dibujados sobre una cara: así el rostro y la ropa ganan detalle sin sumar partes.
+-- `alone` apaga la influencia de la luz (para lo que brilla, como las pupilas).
+local function paint(
+	part: BasePart,
+	face: Enum.NormalId,
+	density: number?,
+	alone: boolean?
+): SurfaceGui
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = density or 100
+	gui.LightInfluence = if alone then 0 else 0.75
+	gui.Parent = part
+	return gui
+end
+
+-- Rectángulo (o elipse) en coordenadas de la cara: centro x, y y tamaño, de 0 a 1.
+local function mark(
+	parent: Instance,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	color: Color3,
+	extra: { rotation: number?, alpha: number?, round: boolean? }?
+): Frame
+	local frame = Instance.new("Frame")
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(x, y)
+	frame.Size = UDim2.fromScale(w, h)
+	frame.BackgroundColor3 = color
+	frame.BackgroundTransparency = if extra and extra.alpha then extra.alpha else 0
+	frame.Rotation = if extra and extra.rotation then extra.rotation else 0
+	frame.BorderSizePixel = 0
+	if extra and extra.round then
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(0.5, 0)
+		round.Parent = frame
+	end
+	frame.Parent = parent
+	return frame
+end
+
+-- Degradé de arriba hacia abajo: de `from` a `to` de transparencia (sangre que chorrea).
+local function fade(frame: Frame, from: number, to: number)
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = 90
+	gradient.Transparency = NumberSequence.new(from, to)
+	gradient.Parent = frame
+end
+
+-- Gotas que caen despacio de una pieza (filo del hacha, machete).
+local function drip(part: BasePart)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Rate = 2.5
+	emitter.Lifetime = NumberRange.new(0.8, 1.1)
+	emitter.Speed = NumberRange.new(0, 0.2)
+	emitter.Acceleration = Vector3.new(0, -16, 0)
+	emitter.Size = NumberSequence.new(0.12)
+	emitter.Color = ColorSequence.new(Color3.fromRGB(110, 8, 10))
+	emitter.LightInfluence = 1
+	emitter.Parent = part
 end
 
 -- Desgaste: cada pieza grande sale con un tono algo distinto y con manchas de mugre y de sangre seca
@@ -357,6 +447,130 @@ function KillerModel.build(): Rig
 		Enum.Material.Fabric
 	)
 
+	-- Más detalle y más feo: cinturón, botas, manos, vendaje del muñón, y todo lo demás dibujado.
+	local leather = Color3.fromRGB(30, 22, 18)
+	attach(
+		model,
+		torso,
+		"Cinturon",
+		Vector3.new(2.06, 0.24, 1.06),
+		CFrame.new(0, -0.85, 0),
+		leather,
+		Enum.Material.Leather
+	)
+	attach(
+		model,
+		torso,
+		"Hebilla",
+		Vector3.new(0.42, 0.3, 0.06),
+		CFrame.new(0, -0.85, -0.55),
+		Color3.fromRGB(150, 138, 96),
+		Enum.Material.Metal
+	)
+	for _, leg in { leftLeg, rightLeg } do
+		attach(
+			model,
+			leg,
+			"Bota",
+			Vector3.new(1.05, 0.8, 1.45),
+			CFrame.new(0, -LEG_LENGTH / 2 + 0.4, -0.22),
+			Color3.fromRGB(24, 18, 14),
+			Enum.Material.Leather
+		)
+	end
+	attach(
+		model,
+		arm,
+		"ManoIzquierda",
+		Vector3.new(0.82, 0.5, 0.82),
+		CFrame.new(0, -1.12, 0),
+		Color3.fromRGB(128, 104, 90),
+		Enum.Material.Slate
+	)
+	attach(
+		model,
+		torso,
+		"Venda",
+		Vector3.new(0.98, 0.55, 0.98),
+		CFrame.new(1.4, TORSO_HEIGHT / 2 - 0.5, 0),
+		Color3.fromRGB(176, 166, 146),
+		Enum.Material.Fabric
+	)
+
+	-- Pecho: la camisa rota deja ver la carne y las costillas, la sangre chorrea y una correa lo cruza.
+	local chest = paint(torso, Enum.NormalId.Front, 80)
+	for _, tear in
+		{
+			{ 0.36, 0.42, 0.42, 0.5, -8 },
+			{ 0.62, 0.55, 0.36, 0.42, 10 },
+			{ 0.5, 0.7, 0.5, 0.3, 4 },
+		}
+	do
+		mark(chest, tear[1], tear[2], tear[3], tear[4], FLESH, { rotation = tear[5] })
+	end
+	for i = 0, 5 do
+		mark(chest, 0.5, 0.3 + i * 0.075, 0.5, 0.012, BLOOD, { alpha = 0.2 })
+	end
+	mark(chest, 0.5, 0.5, 0.12, 1.5, leather, { rotation = -38 })
+	local gore = mark(chest, 0.5, 0.8, 1, 0.4, BLOOD)
+	fade(gore, 1, 0.1)
+	for i = 0, 3 do
+		mark(chest, 0.82, 0.22 + i * 0.05, 0.1, 0.012, Color3.fromRGB(14, 10, 10))
+	end
+
+	-- Cara: ojera, cicatriz, venas y sangre que baja del ojo (lado de la piel); fibras y sangre en la boca
+	-- (lado de la carne viva).
+	local skinFace = paint(skinSide, Enum.NormalId.Front, 140)
+	mark(skinFace, 0.5, 0.4, 0.95, 0.2, Color3.fromRGB(34, 18, 18), { alpha = 0.45, round = true })
+	mark(skinFace, 0.5, 0.18, 0.9, 0.012, BLOOD, { rotation = 18 })
+	for _, vein in
+		{
+			{ 0.25, 0.55, 0.012, 0.22, -12 },
+			{ 0.7, 0.6, 0.012, 0.18, 14 },
+			{ 0.4, 0.14, 0.012, 0.16, 30 },
+		}
+	do
+		mark(
+			skinFace,
+			vein[1],
+			vein[2],
+			vein[3],
+			vein[4],
+			Color3.fromRGB(120, 36, 40),
+			{ rotation = vein[5], alpha = 0.25 }
+		)
+	end
+	local streak = mark(skinFace, 0.58, 0.64, 0.06, 0.42, BLOOD)
+	fade(streak, 0, 0.8)
+	local fleshFace = paint(fleshSide, Enum.NormalId.Front, 140)
+	for i = 0, 5 do
+		mark(
+			fleshFace,
+			0.15 + i * 0.14,
+			0.45,
+			0.012,
+			0.8,
+			Color3.fromRGB(70, 10, 14),
+			{ alpha = 0.3 }
+		)
+	end
+	mark(fleshFace, 0.5, 0.78, 0.8, 0.05, Color3.fromRGB(214, 202, 170), { alpha = 0.1 })
+	for i = 0, 3 do
+		mark(fleshFace, 0.2 + i * 0.2, 0.78, 0.015, 0.06, Color3.fromRGB(60, 40, 36))
+	end
+	local mouthBlood = mark(fleshFace, 0.4, 0.9, 0.12, 0.3, BLOOD)
+	fade(mouthBlood, 0.1, 1)
+	-- El ojo único brilla en rojo en la oscuridad.
+	local pupil = model:FindFirstChild("Pupila")
+	if pupil and pupil:IsA("BasePart") then
+		pupil.Material = Enum.Material.Neon
+		pupil.Color = Color3.fromRGB(230, 40, 30)
+	end
+	local blade = model:FindFirstChild("FiloHacha")
+	if blade and blade:IsA("BasePart") then
+		drip(blade)
+	end
+
 	-- Con HipHeight igual al largo de pierna, la altura total da unos 6,4 studs (1,80 m).
 	local humanoid = Instance.new("Humanoid")
 	humanoid.RigType = Enum.HumanoidRigType.R15
@@ -540,6 +754,80 @@ function KillerModel.buildGentleman(): Rig
 		Color3.fromRGB(70, 20, 22)
 	)
 
+	-- Sombrero de copa, guantes blancos, zapatos de charol y la cara descompuesta.
+	local felt = Color3.fromRGB(12, 11, 13)
+	cylinder(
+		model,
+		head,
+		"Copa",
+		Vector3.new(1.15, 1.2, 1.2),
+		CFrame.new(0, HEAD_HEIGHT / 2 + 0.55, 0.02),
+		felt,
+		Enum.Material.Fabric
+	)
+	cylinder(
+		model,
+		head,
+		"Ala",
+		Vector3.new(0.1, 2, 2),
+		CFrame.new(0, HEAD_HEIGHT / 2 - 0.02, 0.02),
+		felt,
+		Enum.Material.Fabric
+	)
+	cylinder(
+		model,
+		head,
+		"CintaSombrero",
+		Vector3.new(0.24, 1.24, 1.24),
+		CFrame.new(0, HEAD_HEIGHT / 2 + 0.16, 0.02),
+		Color3.fromRGB(96, 12, 18),
+		Enum.Material.Fabric
+	)
+	for _, leg in { leftLeg, rightLeg } do
+		local shoe = attach(
+			model,
+			leg,
+			"Zapato",
+			Vector3.new(1, 0.55, 1.4),
+			CFrame.new(0, -LEG_LENGTH / 2 + 0.28, -0.22),
+			Color3.fromRGB(8, 8, 10),
+			Enum.Material.Plastic
+		)
+		shoe.Reflectance = 0.18
+	end
+	for _, arm in { leftArm, rightArm } do
+		for _, item in arm:GetChildren() do
+			if item:IsA("Motor6D") and item.Part1 and item.Part1.Name == "Mano" then
+				item.Part1.Color = Color3.fromRGB(232, 230, 224)
+			end
+		end
+	end
+	-- Cara: mejillas hundidas, cuencas negras con un punto rojo, y una sonrisa cosida de oreja a oreja.
+	local face = paint(head, Enum.NormalId.Front, 120)
+	for _, x in { 0.2, 0.8 } do
+		mark(face, x, 0.66, 0.24, 0.22, Color3.fromRGB(60, 40, 42), { alpha = 0.55, round = true })
+		mark(face, x, 0.42, 0.3, 0.2, Color3.new(0, 0, 0), { alpha = 0.2, round = true })
+	end
+	mark(face, 0.5, 0.86, 0.66, 0.012, Color3.fromRGB(20, 8, 10))
+	for i = 0, 12 do
+		mark(face, 0.2 + i * 0.05, 0.86, 0.007, 0.07, Color3.fromRGB(20, 8, 10))
+	end
+	mark(face, 0.17, 0.83, 0.012, 0.07, Color3.fromRGB(20, 8, 10), { rotation = -25 })
+	mark(face, 0.83, 0.83, 0.012, 0.07, Color3.fromRGB(20, 8, 10), { rotation = 25 })
+	local glow = paint(head, Enum.NormalId.Front, 120, true)
+	for _, x in { 0.26, 0.74 } do
+		mark(glow, x, 0.42, 0.045, 0.04, Color3.fromRGB(255, 40, 30), { round = true })
+	end
+	-- Chaleco: botones dorados y la cadena del reloj.
+	local vest = model:FindFirstChild("Camisa")
+	if vest and vest:IsA("BasePart") then
+		local vestFace = paint(vest, Enum.NormalId.Front, 160)
+		for i = 0, 2 do
+			mark(vestFace, 0.5, 0.22 + i * 0.24, 0.12, 0.06, gold, { round = true })
+		end
+		mark(vestFace, 0.38, 0.5, 0.01, 0.4, gold, { rotation = 55 })
+	end
+
 	local humanoid = Instance.new("Humanoid")
 	humanoid.RigType = Enum.HumanoidRigType.R15
 	humanoid.HipHeight = LEG_LENGTH
@@ -720,6 +1008,97 @@ function KillerModel.buildButcher(): Rig
 			CFrame.new(side * 0.62, 0.72, 0) * CFrame.Angles(0, 0, math.rad(side * -30)),
 			pigDark,
 			fabric
+		)
+		-- Colmillos amarillentos que salen de la boca.
+		attach(
+			model,
+			head,
+			"Colmillo",
+			Vector3.new(0.12, 0.42, 0.12),
+			CFrame.new(side * 0.34, -0.5, -0.66)
+				* CFrame.Angles(math.rad(-12), 0, math.rad(side * 8)),
+			Color3.fromRGB(226, 214, 176)
+		)
+	end
+
+	-- Boca abierta bajo la trompa, botas de goma, y el machete con la hoja astillada y chorreando.
+	local mouth = attach(
+		model,
+		head,
+		"Boca",
+		Vector3.new(0.72, 0.2, 0.1),
+		CFrame.new(0, -0.5, -0.64),
+		Color3.fromRGB(26, 6, 8)
+	)
+	local teeth = paint(mouth, Enum.NormalId.Front, 200)
+	for i = 0, 5 do
+		mark(teeth, 0.1 + i * 0.16, 0.2, 0.09, 0.4, Color3.fromRGB(214, 202, 170))
+		mark(teeth, 0.18 + i * 0.13, 0.8, 0.07, 0.35, Color3.fromRGB(200, 188, 156))
+	end
+	for _, leg in { leftLeg, rightLeg } do
+		attach(
+			model,
+			leg,
+			"Bota",
+			Vector3.new(0.98, 1, 1.25),
+			CFrame.new(0, -legLength / 2 + 0.5, -0.18),
+			Color3.fromRGB(20, 22, 20),
+			Enum.Material.Plastic
+		)
+	end
+	local machete = model:FindFirstChild("Machete")
+	if machete and machete:IsA("BasePart") then
+		drip(machete)
+	end
+
+	-- Máscara: poros, costuras, grietas, una correa de cuero con hebilla, ojos hundidos con un brillo rojo
+	-- y sangre que chorrea de la boca.
+	local mask = paint(head, Enum.NormalId.Front, 110)
+	local pores = Random.new(7)
+	for _ = 1, 40 do
+		mark(
+			mask,
+			pores:NextNumber(0.08, 0.92),
+			pores:NextNumber(0.06, 0.94),
+			0.022,
+			0.026,
+			pigDark,
+			{ alpha = 0.5, round = true }
+		)
+	end
+	for _, eyeX in { 0.264, 0.736 } do
+		mark(mask, eyeX, 0.3, 0.3, 0.3, Color3.new(0, 0, 0), { alpha = 0.3, round = true })
+	end
+	mark(mask, 0.5, 0.12, 1, 0.09, Color3.fromRGB(18, 14, 12))
+	mark(mask, 0.88, 0.12, 0.1, 0.12, Color3.fromRGB(160, 140, 90))
+	for i = 0, 5 do
+		mark(mask, 0.5, 0.2 + i * 0.05, 0.012, 0.03, Color3.fromRGB(30, 14, 16))
+	end
+	mark(mask, 0.3, 0.45, 0.01, 0.2, Color3.fromRGB(80, 40, 44), { rotation = 28 })
+	mark(mask, 0.72, 0.5, 0.01, 0.16, Color3.fromRGB(80, 40, 44), { rotation = -22 })
+	for _, x in { 0.38, 0.5, 0.62 } do
+		local dribble = mark(mask, x, 0.86, 0.045, 0.3, BLOOD)
+		fade(dribble, 0.1, 1)
+	end
+	local glint = paint(head, Enum.NormalId.Front, 110, true)
+	for _, eyeX in { 0.264, 0.736 } do
+		mark(glint, eyeX, 0.3, 0.05, 0.05, Color3.fromRGB(255, 40, 30), { round = true })
+	end
+	-- Delantal: sangre que sube desde abajo, manchas viejas y huellas de manos.
+	local apronFace = paint(bib, Enum.NormalId.Front, 70)
+	local dirt = mark(apronFace, 0.5, 0.15, 1, 0.3, Color3.fromRGB(70, 56, 40))
+	fade(dirt, 0.4, 1)
+	local gore = mark(apronFace, 0.5, 0.75, 1, 0.5, BLOOD)
+	fade(gore, 1, 0.05)
+	for _, handprint in { { 0.3, 0.55, 20 }, { 0.65, 0.65, -15 }, { 0.5, 0.4, 5 } } do
+		mark(
+			apronFace,
+			handprint[1],
+			handprint[2],
+			0.16,
+			0.12,
+			BLOOD,
+			{ rotation = handprint[3], alpha = 0.15 }
 		)
 	end
 
