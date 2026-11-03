@@ -160,7 +160,15 @@ export type MansionRefs = {
 	-- Túnel de fuga: la puerta (al piso), hacia dónde sigue, el pie de la escalera y la salida al bosque.
 	tunnel: Tunnel,
 	-- Habitaciones con código: la puerta, y dónde queda el pergamino de adentro.
-	vaults: { { room: string, scrollSpot: Vector3, door: Door } },
+	-- `loot`: lo que guarda además del pergamino (curas y pila en el armario del altillo).
+	vaults: {
+		{
+			room: string,
+			scrollSpot: Vector3,
+			door: Door,
+			loot: { { kind: string, spot: Vector3 } },
+		}
+	},
 	altar: {
 		prompt: ProximityPrompt,
 		drawer: BasePart,
@@ -5383,11 +5391,131 @@ local function buildAltar(altarAt: Vector3, hall: Vector3)
 	}
 end
 
--- Cajas fuertes con código: una en la pared de cada una de estas piezas, a la altura de los ojos. Son
--- de acero gris martillado, con la puerta embutida, dos bisagras a la derecha, el dial negro de combinación
--- y una manija negra a la izquierda. Al abrirse deja ver el pergamino que guarda adentro. Se arma como una
--- puerta más (hojas, bloqueo y botón) para que abra y cierre con el mismo código del resto.
+-- Cajas fuertes digitales con código: una en la pared de cada una de estas piezas. Son de acero gris
+-- con la puerta embutida, bisagras a la derecha y, en la puerta, un panel plateado con una perilla
+-- redonda y el teclado negro (pantalla, luz de estado y teclas 1-9, C, 0, E), todo dibujado sobre la
+-- cara. La de la pieza más alta (el altillo) es un armario grande con estantes y la puerta blanca; ahí
+-- adentro, además del pergamino, hay curas y una pila. Se arma como una puerta más (hoja, bloqueo y botón)
+-- para que abra y cierre con el mismo código del resto.
 local vaultFolder: Folder? = nil
+
+local VAULT_SILVER = Color3.fromRGB(206, 209, 215)
+local VAULT_KEYS = Color3.fromRGB(26, 26, 30)
+local VAULT_SCREEN = Color3.fromRGB(150, 178, 142)
+local VAULT_LOCKED = Color3.fromRGB(222, 52, 42)
+local VAULT_OPEN = Color3.fromRGB(70, 222, 112)
+
+local function box(
+	parent: Instance,
+	position: UDim2,
+	size: UDim2,
+	color: Color3?,
+	corner: number?
+): Frame
+	local item = Instance.new("Frame")
+	item.Position = position
+	item.Size = size
+	item.BorderSizePixel = 0
+	if color then
+		item.BackgroundColor3 = color
+	else
+		item.BackgroundTransparency = 1
+	end
+	if corner then
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(corner, 0)
+		round.Parent = item
+	end
+	item.Parent = parent
+	return item
+end
+
+local function vaultText(parent: Instance, text: string, color: Color3, font: Enum.Font): TextLabel
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = font
+	label.TextScaled = true
+	label.TextColor3 = color
+	label.Text = text
+	label.Parent = parent
+	return label
+end
+
+-- Panel digital sobre la cara de la puerta. La pantalla y la luz van en un lienzo aparte que no
+-- depende de la luz del cuarto, para que se vean aun a oscuras. Devuelve la pantalla y la luz.
+local function vaultPanel(leaf: Part, leafWidth: number, leafHeight: number): (TextLabel, Frame)
+	local function canvas(influence: number): SurfaceGui
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = influence
+		gui.Parent = leaf
+		return gui
+	end
+	local base = canvas(0.5)
+	local glow = canvas(0)
+	glow.Brightness = 1.4
+
+	local panelWidth = 0.86
+	local panelHeight = math.min(0.86, panelWidth * (leafWidth / leafHeight) / 1.15)
+	local at = UDim2.fromScale(0.5 - panelWidth / 2, 0.5 - panelHeight / 2)
+	local size = UDim2.fromScale(panelWidth, panelHeight)
+	local panel = box(base, at, size, VAULT_SILVER, 0.05)
+	local panelGlow = box(glow, at, size, nil, nil)
+
+	-- Perilla redonda: aro, disco con una barra al medio y el centro oscuro.
+	local knob = box(
+		panel,
+		UDim2.fromScale(0.05, 0.27),
+		UDim2.fromScale(0.4, 0.46),
+		Color3.fromRGB(226, 228, 232),
+		0.5
+	)
+	box(
+		knob,
+		UDim2.fromScale(0.1, 0.1),
+		UDim2.fromScale(0.8, 0.8),
+		Color3.fromRGB(150, 153, 160),
+		0.5
+	)
+	box(
+		knob,
+		UDim2.fromScale(0.12, 0.42),
+		UDim2.fromScale(0.76, 0.16),
+		Color3.fromRGB(214, 216, 222),
+		nil
+	)
+	box(knob, UDim2.fromScale(0.4, 0.4), UDim2.fromScale(0.2, 0.2), Color3.fromRGB(60, 62, 68), 0.5)
+
+	-- Teclado negro con la pantalla arriba y doce teclas.
+	local keypadAt = UDim2.fromScale(0.52, 0.07)
+	local keypadSize = UDim2.fromScale(0.43, 0.86)
+	local keypad = box(panel, keypadAt, keypadSize, VAULT_KEYS, 0.06)
+	local keypadGlow = box(panelGlow, keypadAt, keypadSize, nil, nil)
+	local screenAt = UDim2.fromScale(0.07, 0.05)
+	local screenSize = UDim2.fromScale(0.86, 0.17)
+	box(keypad, screenAt, screenSize, Color3.fromRGB(60, 72, 58), 0.1)
+	local screen = box(keypadGlow, screenAt, screenSize, VAULT_SCREEN, 0.1)
+	local lcd = vaultText(screen, "CODIGO", Color3.fromRGB(24, 40, 24), Enum.Font.Code)
+	local ledAt = UDim2.fromScale(0.34, 0.255)
+	local ledSize = UDim2.fromScale(0.32, 0.026)
+	local led = box(keypadGlow, ledAt, ledSize, VAULT_LOCKED, 0.5)
+	local labels = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "E" }
+	for index, text in labels do
+		local column, row = (index - 1) % 3, math.floor((index - 1) / 3)
+		local key = box(
+			keypad,
+			UDim2.fromScale(0.07 + column * 0.3, 0.3 + row * 0.17),
+			UDim2.fromScale(0.26, 0.15),
+			Color3.fromRGB(196, 199, 205),
+			0.2
+		)
+		vaultText(key, text, Color3.fromRGB(34, 34, 40), Enum.Font.GothamBold)
+	end
+	return lcd, led
+end
 
 -- Ponen o vuelven a poner las cajas fuertes: después de sortear los muebles de la partida, cada una busca en
 -- las paredes de su pieza un lugar donde no choque con nada (muebles, consolas, bancos).
@@ -5406,6 +5534,13 @@ local function placeVaults()
 	local pickRandom = Random.new()
 	for n, id in Config.VaultRooms do
 		local center = cellCenter(id)
+		-- El armario del altillo es grande y apoya en el piso; las demás cuelgan a la altura de los ojos.
+		local big = id == "attic"
+		local width, high, deep = 6.6, 6, 3.2
+		if big then
+			width, high, deep = 8.6, 11.5, 4.8
+		end
+		local rise = if big then high / 2 + 0.05 else 6.5
 		-- Todos los lugares posibles: cuatro paredes por seis posiciones, lejos del centro de la pared
 		-- (que es donde van las puertas y ventanales), probados en orden al azar.
 		local candidates = {}
@@ -5425,14 +5560,18 @@ local function placeVaults()
 			local at = center
 				+ candidate.inward * (HALF - 0.5)
 				+ along * candidate.offset
-				+ Vector3.new(0, 6.5, 0)
-			local spot = CFrame.lookAt(at, at - candidate.inward) * CFrame.new(0, 0, -1.9)
+				+ Vector3.new(0, rise, 0)
+			local spot = CFrame.lookAt(at, at - candidate.inward)
 			-- La caja y un poco de aire delante (para llegar a ella). Lo decorativo no cuenta: no tiene
 			-- física ni consultas.
-			local clash = workspace:GetPartBoundsInBox(spot, Vector3.new(7.6, 6.8, 3.4), params)
+			local clash = workspace:GetPartBoundsInBox(
+				spot * CFrame.new(0, 0, -(deep / 2 + 0.3)),
+				Vector3.new(width + 1, high + 0.8, deep + 0.2),
+				params
+			)
 			local reach = workspace:GetPartBoundsInBox(
-				spot * CFrame.new(0, -3, -3),
-				Vector3.new(7, 5, 3),
+				spot * CFrame.new(0, -rise + 3, -(deep + 2.5)),
+				Vector3.new(width + 0.4, 5.4, 4),
 				params
 			)
 			if #clash == 0 and #reach == 0 then
@@ -5445,19 +5584,17 @@ local function placeVaults()
 		local wallPoint = center
 			+ inward * (HALF - 0.5)
 			+ along * chosen.offset
-			+ Vector3.new(0, 6.5, 0)
+			+ Vector3.new(0, rise, 0)
 		local frame = CFrame.lookAt(wallPoint, wallPoint - inward)
-		local hammered = Color3.fromRGB(150, 140, 136)
-		local black = Color3.fromRGB(18, 18, 20)
-		local width, high, deep = 6.6, 6, 3.2
-		local function steelPlate(size: Vector3, offset: CFrame): Part
+		local bodyColor = if big then Color3.fromRGB(92, 96, 104) else Color3.fromRGB(70, 74, 82)
+		local doorColor = if big then Color3.fromRGB(232, 234, 238) else Color3.fromRGB(94, 98, 106)
+		local function steelPlate(size: Vector3, offset: CFrame, color: Color3?): Part
 			return part({
 				Name = "CajaFuerte",
 				Size = size,
 				CFrame = frame * offset,
-				Color = hammered,
-				-- Slate da el grano áspero del acero martillado.
-				Material = Enum.Material.Slate,
+				Color = color or bodyColor,
+				Material = Enum.Material.Metal,
 			})
 		end
 		-- Cuerpo hueco: fondo, dos laterales, techo y piso; el frente es un marco con la puerta embutida.
@@ -5465,107 +5602,45 @@ local function placeVaults()
 		steelPlate(Vector3.new(0.6, high, deep), CFrame.new(-(width - 0.6) / 2, 0, -deep / 2))
 		steelPlate(Vector3.new(0.6, high, deep), CFrame.new((width - 0.6) / 2, 0, -deep / 2))
 		steelPlate(Vector3.new(width, 0.6, deep), CFrame.new(0, (high - 0.6) / 2, -deep / 2))
-		local floor =
-			steelPlate(Vector3.new(width, 0.6, deep), CFrame.new(0, -(high - 0.6) / 2, -deep / 2))
+		local floorOffset = CFrame.new(0, -(high - 0.6) / 2, -deep / 2)
+		steelPlate(Vector3.new(width, 0.6, deep), floorOffset)
+		local floorTop = -high / 2 + 0.6
 		-- Marco del frente (más ancho que la caja, como el borde que rodea la puerta).
 		steelPlate(Vector3.new(width, 0.5, 0.5), CFrame.new(0, (high - 0.5) / 2, -deep + 0.1))
 		steelPlate(Vector3.new(width, 0.5, 0.5), CFrame.new(0, -(high - 0.5) / 2, -deep + 0.1))
 		steelPlate(Vector3.new(0.5, high, 0.5), CFrame.new(-(width - 0.5) / 2, 0, -deep + 0.1))
 		steelPlate(Vector3.new(0.5, high, 0.5), CFrame.new((width - 0.5) / 2, 0, -deep + 0.1))
+		-- Estantes del armario grande (claros, para que se vea lo que guardan).
+		local shelves = { floorTop }
+		if big then
+			for _, top in { -1.7, 1.8 } do
+				steelPlate(
+					Vector3.new(width - 1.2, 0.25, deep - 1),
+					CFrame.new(0, top - 0.125, -(deep - 1) / 2 - 0.3),
+					Color3.fromRGB(214, 216, 220)
+				)
+				table.insert(shelves, top)
+			end
+		end
 		-- Hoja de la puerta: embutida en el marco, bisagra a la derecha, abre hacia afuera.
 		local doorZ = -deep + 0.2
 		local closed = frame * CFrame.new(0, 0, doorZ)
 		local hingeEdge = (width - 1) / 2
 		local hinge = frame * CFrame.new(hingeEdge, 0, doorZ)
 		local open = hinge * CFrame.Angles(0, math.rad(-105), 0) * hinge:Inverse() * closed
+		local leafWidth, leafHeight = width - 1, high - 1
 		local leaf = part({
 			Name = "PuertaCajaFuerte",
-			Size = Vector3.new(width - 1, high - 1, 0.5),
+			Size = Vector3.new(leafWidth, leafHeight, 0.5),
 			CFrame = closed,
-			Color = hammered,
-			Material = Enum.Material.Slate,
+			Color = doorColor,
+			Material = Enum.Material.Metal,
 			CanCollide = false,
 		})
-		-- Cada detalle (dial, manija) gira con la hoja: las piezas están ancladas, así que un weld no
-		-- las arrastra; se mueven una por una con el mismo giro alrededor de la bisagra.
-		local swing = hinge * CFrame.Angles(0, math.rad(-105), 0) * hinge:Inverse()
-		local leaves = { { part = leaf :: BasePart, closed = closed, open = open } }
-		local function onLeaf(
-			size: Vector3,
-			offset: CFrame,
-			color: Color3,
-			material: Enum.Material?,
-			shape: Enum.PartType?
-		): Part
-			local piece = part({
-				Name = "DetalleCajaFuerte",
-				Shape = shape or Enum.PartType.Block,
-				Size = size,
-				CFrame = closed * offset,
-				Color = color,
-				Material = material or Enum.Material.Metal,
-				CanCollide = false,
-				CanQuery = false,
-			})
-			table.insert(
-				leaves,
-				{ part = piece :: BasePart, closed = piece.CFrame, open = swing * piece.CFrame }
-			)
-			return piece
-		end
-		local faceForward = CFrame.Angles(0, math.rad(90), 0)
-		-- Dial negro de combinación a la derecha: aro, disco con números (marquitas) y perilla central.
-		local dialAt = CFrame.new(1.3, 0.5, -0.3)
-		onLeaf(
-			Vector3.new(0.25, 1.9, 1.9),
-			dialAt * faceForward,
-			black,
-			Enum.Material.SmoothPlastic,
-			Enum.PartType.Cylinder
-		)
-		onLeaf(
-			Vector3.new(0.3, 1.5, 1.5),
-			dialAt * CFrame.new(0, 0, -0.08) * faceForward,
-			Color3.fromRGB(36, 36, 38),
-			Enum.Material.SmoothPlastic,
-			Enum.PartType.Cylinder
-		)
-		for tick = 0, 19 do
-			local angle = tick / 20 * math.pi * 2
-			onLeaf(
-				Vector3.new(0.09, 0.2, 0.06),
-				dialAt
-					* CFrame.new(math.cos(angle) * 0.68, math.sin(angle) * 0.68, -0.22)
-					* CFrame.Angles(0, 0, angle - math.pi / 2),
-				Color3.fromRGB(226, 214, 170),
-				Enum.Material.SmoothPlastic
-			)
-		end
-		onLeaf(
-			Vector3.new(0.45, 0.95, 0.95),
-			dialAt * CFrame.new(0, 0, -0.18) * faceForward,
-			black,
-			Enum.Material.SmoothPlastic,
-			Enum.PartType.Cylinder
-		)
-		-- Manija negra a la izquierda: base redonda y barra vertical.
-		local handleAt = CFrame.new(-1.7, 0.7, -0.3)
-		onLeaf(
-			Vector3.new(0.6, 0.9, 0.9),
-			handleAt * faceForward,
-			black,
-			Enum.Material.SmoothPlastic,
-			Enum.PartType.Cylinder
-		)
-		onLeaf(
-			Vector3.new(2.6, 0.38, 0.38),
-			handleAt * CFrame.new(0, -1.1, -0.45) * CFrame.Angles(0, 0, math.rad(90)),
-			black,
-			Enum.Material.SmoothPlastic,
-			Enum.PartType.Cylinder
-		)
-		-- Dos bisagras de acero sobre el borde derecho, sobresaliendo del marco.
-		for _, y in { 1.9, -1.9 } do
+		local lcd, led = vaultPanel(leaf, leafWidth, leafHeight)
+		-- Bisagras de acero sobre el borde derecho, sobresaliendo del marco.
+		local pins = if big then { 4.6, 0, -4.6 } else { 1.9, -1.9 }
+		for _, y in pins do
 			local pin = part({
 				Name = "BisagraCajaFuerte",
 				Shape = Enum.PartType.Cylinder,
@@ -5573,11 +5648,15 @@ local function placeVaults()
 				CFrame = frame
 					* CFrame.new(width / 2 - 0.1, y, doorZ)
 					* CFrame.Angles(0, 0, math.rad(90)),
-				Color = hammered,
+				Color = Color3.fromRGB(150, 154, 162),
 				Material = Enum.Material.Metal,
 			})
 			pin.CanCollide = false
-			steelPlate(Vector3.new(0.9, 1.1, 0.25), CFrame.new(width / 2 - 0.45, y, doorZ - 0.2))
+			steelPlate(
+				Vector3.new(0.9, 1.1, 0.25),
+				CFrame.new(width / 2 - 0.45, y, doorZ - 0.2),
+				Color3.fromRGB(150, 154, 162)
+			)
 		end
 		-- Bloqueo chiquito oculto adentro (no estorba el paso) que lleva el botón.
 		local blocker = part({
@@ -5594,8 +5673,14 @@ local function placeVaults()
 		prompt.MaxActivationDistance = Config.InteractRange
 		prompt.RequiresLineOfSight = false
 		prompt.Parent = blocker
+		-- La pantalla y la luz siguen a la cerradura: el botón se apaga al abrirla.
+		prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+			local isOpen = not prompt.Enabled
+			lcd.Text = if isOpen then "ABIERTA" else "CODIGO"
+			led.BackgroundColor3 = if isOpen then VAULT_OPEN else VAULT_LOCKED
+		end)
 		local vaultDoor: Door = {
-			leaves = leaves,
+			leaves = { { part = leaf :: BasePart, closed = closed, open = open } },
 			blocker = blocker,
 			position = closed.Position,
 			twin = nil,
@@ -5609,7 +5694,7 @@ local function placeVaults()
 		local sign = part({
 			Name = "CartelCajaFuerte",
 			Size = Vector3.new(5, 1, 0.2),
-			CFrame = frame * CFrame.new(0, 4, -0.1),
+			CFrame = frame * CFrame.new(0, high / 2 + 1, -0.1),
 			Color = WOOD_COLOR,
 			Material = Enum.Material.Wood,
 		})
@@ -5627,11 +5712,28 @@ local function placeVaults()
 		label.Text = `CAJA FUERTE {n}`
 		label.Parent = gui
 
+		-- Qué guarda: el pergamino siempre; el armario grande, además, dos vendas, un botiquín y una pila.
+		local function spotAt(x: number, surface: number, lift: number): Vector3
+			return (frame * CFrame.new(x, surface + lift, -deep / 2)).Position
+		end
+		local loot = {}
+		local scrollSpot = spotAt(0, floorTop, 0.4)
+		if big then
+			scrollSpot = spotAt(0, shelves[3], 0.4)
+			loot = {
+				{ kind = "bandage", spot = spotAt(-2.6, shelves[1], 0.23) },
+				{ kind = "bandage", spot = spotAt(-1, shelves[1], 0.23) },
+				{ kind = "battery", spot = spotAt(1.8, shelves[1], 0.35) },
+				{ kind = "medkit", spot = spotAt(-1.8, shelves[2], 0.2) },
+			}
+		end
+
 		refs.doors[`vault{n}`] = vaultDoor
 		refs.vaults[n] = {
 			room = id,
-			scrollSpot = (floor.CFrame * CFrame.new(0, 0.7, 0)).Position,
+			scrollSpot = scrollSpot,
 			door = vaultDoor,
+			loot = loot,
 		}
 	end
 	buildParent = nil

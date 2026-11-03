@@ -495,27 +495,95 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 		end, Config.KeyColors[n])
 	end
 
-	-- Un pergamino en cada habitación con código, sobre su pedestal.
-	for n = 1, Config.BookCount do
-		local id = `book{n}`
-		local vaultDoor = refs.vaults[n].door
-		-- Solo se puede agarrar con la caja fuerte abierta (con el código): el botón aparece recién
-		-- cuando se destraba, y el servidor lo vuelve a comprobar.
-		local scrollPrompt = spawnItem(id, "scroll", refs.vaults[n].scrollSpot, function(player)
+	-- Lo que se hace al agarrar una cura o una pila (también las que están en las cajas fuertes).
+	local function cureHandler(kind: string, heal: number): (Player) -> boolean
+		return function(player)
+			-- El botiquín se guarda (uno solo, tecla 3); las vendas se usan al agarrarlas.
+			if kind == "medkit" then
+				if player:GetAttribute("HasMedkit") then
+					notify(player, "Ya llevás un botiquín")
+					return false
+				end
+				player:SetAttribute("HasMedkit", true)
+				notify(player, "Agarraste un botiquín. Tecla 3 para usarlo")
+				return true
+			end
+			if not Vitality.heal(player, heal) then
+				notify(player, "Tenés la vida llena")
+				return false
+			end
+			notify(player, `Te curaste {heal}`)
+			return true
+		end
+	end
+	local function batteryHandler(player: Player): boolean
+		local level = (player:GetAttribute("Battery") :: number?) or 0
+		if not player:GetAttribute("HasFlashlight") then
+			notify(player, "Te falta la linterna")
+			return false
+		end
+		if not Battery.canRecharge(level) then
+			notify(player, "La batería está llena")
+			return false
+		end
+		player:SetAttribute("Battery", Battery.recharge(level, Config))
+		notify(player, "Recargaste la linterna")
+		return true
+	end
+	-- Lo que guarda una caja fuerte solo se agarra con la caja abierta (con el código): el botón aparece
+	-- recién cuando se destraba, y el servidor lo vuelve a comprobar.
+	local function inVault(
+		vaultDoor: any,
+		n: number,
+		onPicked: (Player) -> boolean
+	): (Player) -> boolean
+		return function(player)
 			if not vaultDoor.unlocked then
 				notify(player, `Abrí la Caja fuerte {n} con su código`)
 				return false
 			end
-			handlers.onBook(player, id)
-			return true
-		end)
-		scrollPrompt.Enabled = vaultDoor.unlocked
-		-- El botón de la caja se apaga al abrirla (ver setDoorUnlocked): el del pergamino al revés.
+			return onPicked(player)
+		end
+	end
+	local function gateToVault(prompt: ProximityPrompt, vaultDoor: any)
+		prompt.Enabled = vaultDoor.unlocked
+		-- El botón de la caja se apaga al abrirla (ver setDoorUnlocked): el de lo que guarda, al revés.
 		vaultDoor.prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
-			if scrollPrompt.Parent then
-				scrollPrompt.Enabled = vaultDoor.unlocked
+			if prompt.Parent then
+				prompt.Enabled = vaultDoor.unlocked
 			end
 		end)
+	end
+
+	-- Un pergamino en cada caja fuerte; el armario grande guarda además curas y una pila.
+	local fromVaults = { bandage = 0, medkit = 0, battery = 0 }
+	for n = 1, Config.BookCount do
+		local id = `book{n}`
+		local vault = refs.vaults[n]
+		local scrollPrompt = spawnItem(
+			id,
+			"scroll",
+			vault.scrollSpot,
+			inVault(vault.door, n, function(player)
+				handlers.onBook(player, id)
+				return true
+			end)
+		)
+		gateToVault(scrollPrompt, vault.door)
+		for index, loot in vault.loot do
+			local handler = if loot.kind == "battery"
+				then batteryHandler
+				elseif loot.kind == "medkit" then cureHandler("medkit", Config.MedkitHeal)
+				else cureHandler("bandage", Config.BandageHeal)
+			local prompt = spawnItem(
+				`vault{n}{loot.kind}{index}`,
+				loot.kind,
+				loot.spot,
+				inVault(vault.door, n, handler)
+			)
+			gateToVault(prompt, vault.door)
+			fromVaults[loot.kind] += 1
+		end
 	end
 	local function randomSpot(rooms: { string }): Vector3
 		-- A veces cae en un hueco de las librerías del hall.
@@ -556,30 +624,27 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 		end, nil, `Nota: código de la Caja fuerte {n}`)
 	end
 	-- Curas: vendas (curan poco) y botiquines (curan más), mitad y mitad.
+	-- Las que guardan las cajas fuertes salen del total: el reparto no suma objetos.
 	local cures = {
-		{ kind = "bandage", count = counts.bandages, heal = Config.BandageHeal },
-		{ kind = "medkit", count = counts.medkits, heal = Config.MedkitHeal },
+		{
+			kind = "bandage",
+			count = math.max(counts.bandages - fromVaults.bandage, 0),
+			heal = Config.BandageHeal,
+		},
+		{
+			kind = "medkit",
+			count = math.max(counts.medkits - fromVaults.medkit, 0),
+			heal = Config.MedkitHeal,
+		},
 	}
 	for _, cure in cures do
 		for n = 1, cure.count do
-			spawnItem(`{cure.kind}{n}`, cure.kind, randomSpot(allRooms), function(player)
-				-- El botiquín se guarda (uno solo, tecla 3); las vendas se usan al agarrarlas.
-				if cure.kind == "medkit" then
-					if player:GetAttribute("HasMedkit") then
-						notify(player, "Ya llevás un botiquín")
-						return false
-					end
-					player:SetAttribute("HasMedkit", true)
-					notify(player, "Agarraste un botiquín. Tecla 3 para usarlo")
-					return true
-				end
-				if not Vitality.heal(player, cure.heal) then
-					notify(player, "Tenés la vida llena")
-					return false
-				end
-				notify(player, `Te curaste {cure.heal}`)
-				return true
-			end)
+			spawnItem(
+				`{cure.kind}{n}`,
+				cure.kind,
+				randomSpot(allRooms),
+				cureHandler(cure.kind, cure.heal)
+			)
 		end
 	end
 
@@ -587,21 +652,8 @@ function Items.spawnAll(refs: any, handlers: Handlers, counts: Loot.Counts)
 		spawnTaser(randomSpot(allRooms))
 	end
 
-	for n = 1, counts.batteries do
-		spawnItem(`battery{n}`, "battery", randomSpot(allRooms), function(player)
-			local level = (player:GetAttribute("Battery") :: number?) or 0
-			if not player:GetAttribute("HasFlashlight") then
-				notify(player, "Te falta la linterna")
-				return false
-			end
-			if not Battery.canRecharge(level) then
-				notify(player, "La batería está llena")
-				return false
-			end
-			player:SetAttribute("Battery", Battery.recharge(level, Config))
-			notify(player, "Recargaste la linterna")
-			return true
-		end)
+	for n = 1, math.max(counts.batteries - fromVaults.battery, 0) do
+		spawnItem(`battery{n}`, "battery", randomSpot(allRooms), batteryHandler)
 	end
 
 	-- Gemas escondidas: de una a cinco por partida, para gastar en la tienda del lobby.

@@ -673,7 +673,8 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		local turn = CFrame.Angles(0.9 + raise * 1.4, 0, 0.15 + raise * 0.45)
 		current.shoulder.C0 = baseC0[current.shoulder] * turn
 		if glassMotor then
-			glassMotor.C0 = CFrame.new(0, -1.2, 0) * turn:Inverse() * CFrame.Angles(tilt, 0, 0)
+			-- Un poco más allá de la punta del brazo: si no, queda metido adentro y no se ve.
+			glassMotor.C0 = CFrame.new(0, -1.6, -0.2) * turn:Inverse() * CFrame.Angles(tilt, 0, 0)
 		end
 	end
 
@@ -713,6 +714,8 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		end
 
 		local held = glassTemplate:Clone()
+		-- Más grande que el de la mesa: en su mano tiene que verse desde la cámara.
+		held:ScaleTo(1.1)
 		local centre = held.PrimaryPart :: BasePart
 		for _, item in held:GetDescendants() do
 			if item:IsA("BasePart") then
@@ -721,9 +724,12 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 				item.CanCollide = false
 				item.CanTouch = false
 				if item ~= centre then
-					local weld = Instance.new("WeldConstraint")
+					-- Weld con el desfase escrito a mano: un WeldConstraint armado fuera del mundo
+					-- no sigue al centro y las piezas se quedan atrás.
+					local weld = Instance.new("Weld")
 					weld.Part0 = centre
 					weld.Part1 = item
+					weld.C0 = centre.CFrame:ToObjectSpace(item.CFrame)
 					weld.Parent = item
 				end
 			end
@@ -802,6 +808,10 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			current.shoulder.C0 = baseC0[current.shoulder]
 			current.root.CFrame = standing
 			current.root.Anchored = false
+			-- Si no, el Humanoide queda "sentado" en el piso, sin altura de cadera: no camina y se hunde.
+			current.humanoid.Sit = false
+			current.humanoid.PlatformStand = false
+			current.humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 			scripted = false
 			active = true
 			releaseAt = os.clock() + 1
@@ -915,7 +925,9 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 
 	function self.debugStatus(): string
 		local position = self.getPosition()
-		return `{name}: estado={brain.state} objetivo={brain.target} pieza={currentRoom} pos={position} lejos={brain.farFor}`
+		local anchored = if rig then rig.root.Anchored else false
+		local glass = if heldGlass then "en la mano" else "sin vaso"
+		return `{name}: estado={brain.state} objetivo={brain.target} pieza={currentRoom} pos={position} lejos={brain.farFor} anclado={anchored} escena={scripted} activo={active} vaso={glass}`
 	end
 
 	function self.debugTeleport(position: Vector3)

@@ -32,6 +32,9 @@ Cómo es hoy:
 - Los sonidos ya están en `src/shared/Sounds.luau`.
 - Primer encuentro (`Systems/Cinema` y `Controllers/Cinema`): el asesino principal arranca sentado en un Chesterfield del living (room1) mirando un proyector, con un whisky. La primera vez que alguien entra hay una cinemática de unos 10 s (Q la saltea) y después sale a cazar; si nadie entra en 150 s, se levanta solo. La película de la pantalla es provisoria (cuenta regresiva): la definitiva va en el marco `Imagen` (ver `Controllers/Projector`).
 - Los asesinos ignoran al jugador en modo desarrollador.
+- Cajas fuertes: digitales (pantalla y teclado dibujados con SurfaceGui en la puerta). La 4 es un armario grande en el altillo con estantes: guarda el pergamino, dos vendas, un botiquín y una pila (salen del total de curas y pilas del reparto). Todo lo de adentro solo se agarra con la caja abierta.
+- Si un asesino queda "sentado" en el piso después de una escena guionada (anclado y vuelto a soltar), hay que devolverle el estado al Humanoide (`ChangeState(GettingUp)`); si no se hunde y no camina.
+- Un `WeldConstraint` armado fuera del mundo no arrastra las piezas: para el vaso en la mano se usan `Weld` con el desfase escrito.
 
 Sin comprobar a mano todavía: el lobby, la fuga por el túnel, las cajas fuertes con código, la partida con 2 o más jugadores (espectador y objetos que caen) y el taser contra el asesino de smoking. Para más adelante, a pedido del usuario: niveles de gráficos bajo, medio y alto.
 

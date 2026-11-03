@@ -135,7 +135,8 @@ local Config = {
 	BookCount = 4,
 	-- Piezas con una caja fuerte en la pared, cerrada con código; en cada una hay un pergamino. El código de la
 	-- caja fuerte N (de tres cifras, distinto en cada partida) aparece escrito en una nota por la casa.
-	VaultRooms = { "room1", "room3", "room9", "room10" },
+	-- La 4 es el armario grande del altillo: además del pergamino guarda dos vendas, un botiquín y una pila.
+	VaultRooms = { "room1", "room3", "room9", "attic" },
 	VictorySeconds = 15,
 	-- Secuencia de fuga: todo en segundos desde que el jugador cruza la puerta del túnel.
 	EscapeSeconds = 17,

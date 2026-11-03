@@ -116,13 +116,13 @@ local function run(data: Payload)
 		elseif t < timing.turnAt then
 			-- De tres cuartos: el trago largo.
 			local u = Cinematic.ease((t - timing.drinkAt) / (timing.turnAt - timing.drinkAt))
-			-- Bien de costado y a la altura de la cara, así las piernas quedan fuera de cuadro.
-			-- Del lado del muñón: el brazo que sube queda detrás del vaso y no le tapa la cara.
-			local from = head + right * 4.2 + forward * 3.6 + UP * 0.7
-			local to = head + right * 3.4 + forward * 3 + UP * 0.6
+			-- De frente y apenas del lado de su mano (la izquierda), a la altura de la cara: se ven la
+			-- cara y el vaso que sube hasta la boca.
+			local from = head + forward * 5.2 - right * 2.4 + UP * 0.5
+			local to = head + forward * 4.4 - right * 1.9 + UP * 0.4
 			position = from:Lerp(to, u)
-			target = head + forward * 0.8 - UP * 0.2
-			fov = 42
+			target = head + forward * 0.9 - right * 0.7 - UP * 0.5
+			fov = 40
 		elseif t < timing.standAt then
 			-- Primer plano: gira la cabeza y mira a quien entró.
 			-- Siempre entre él y el jugador, aunque se haya entrado pegado al sillón.

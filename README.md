@@ -60,7 +60,8 @@ Para probar con 2 jugadores: pestaña **Test**, **Clients and Servers**, elegí 
 | `M` | Traer al asesino de smoking a tu pieza |
 | `B` | Traer al carnicero a tu pieza |
 | `2` del teclado numérico | Repetir el primer encuentro: sienta al asesino en el sillón del living y te deja en la puerta |
-| `F8` | Ir a ver, de a una por vez, la venda, el botiquín y la pila |
+| `F8` | Ir a ver, de a una por vez, la venda, el botiquín, la pila y las cajas fuertes 1 y 4 (las deja abiertas) |
+| `Retroceso` | Repetir el primer encuentro del living (sienta al asesino y te deja en la puerta) |
 | `T` | Recorrer alce, rinoceronte, puma, teclado, umbral, cama, sótano largo, mesa de carnicero, sala de juegos y bar |
 
 ## Sonidos

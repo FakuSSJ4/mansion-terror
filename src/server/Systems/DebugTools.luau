@@ -133,13 +133,24 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 					else "Modo desarrollador apagado"
 			)
 		elseif command == "cure" then
-			-- Va a ver, de a una por vez, la venda, el botiquín y la pila.
-			cureView = cureView % 3 + 1
-			local name = ({ "bandage1", "medkit1", "battery1" })[cureView]
+			-- Va a ver, de a una por vez, la venda, el botiquín, la pila y las cajas fuertes 1 y 4.
+			cureView = cureView % 5 + 1
+			local name = ({ "bandage1", "medkit1", "battery1", "@vault1", "@vault4" })[cureView]
 			local item = workspace:FindFirstChild("Objetos")
 				and workspace.Objetos:FindFirstChild(name)
 			local root = Vitality.rootOf(player)
-			if item and item:IsA("BasePart") and root then
+			local vault = refs.vaults[tonumber(string.match(name, "^@vault(%d)$")) or 0]
+			if vault and root then
+				local door = vault.door.leaves[1].closed
+				local floorY = refs.rooms[vault.room].center.Y
+				local front = door * CFrame.new(0, 0, -12)
+				local at = Vector3.new(front.X, floorY + 4, front.Z)
+				root.CFrame = CFrame.lookAt(at, Vector3.new(door.X, at.Y, door.Z))
+				player:SetAttribute("QAAim", (Vector3.new(door.X, at.Y, door.Z) - at).Unit)
+				-- Para ver lo que guarda, la deja abierta (el código se probó aparte).
+				Mansion.setDoorUnlocked(vault.door, true)
+				print(`[QA] viendo {name}`)
+			elseif item and item:IsA("BasePart") and root then
 				local at = item.Position + Vector3.new(0, 2.5, 0) + Vector3.new(-3, 0, 3)
 				root.CFrame = CFrame.lookAt(at, item.Position)
 				player:SetAttribute("QAAim", (item.Position - at).Unit)
