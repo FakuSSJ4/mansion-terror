@@ -2,7 +2,7 @@
 
 Respondé en español (Argentina), corto y al grano. Antes de cambios grandes, mostrá un plan corto y esperá el OK. No borres archivos sin preguntar. Claude se reserva para lo difícil: las tareas simples sugerí hacerlas con Gemini o DeepSeek en Cursor.
 
-Juego de terror cooperativo para Roblox en Luau estricto, con Rojo, Selene, StyLua y pruebas en Lune. Diseño vigente: `docs/superpowers/specs/2026-10-31-mansion-terror-design.md` (los "Retoques acordados" mandan sobre lo de abajo). Atajos de QA: `README.md`.
+Juego de terror cooperativo para Roblox en Luau estricto, con Rojo, Selene, StyLua y pruebas en Lune. Cómo se juega y los atajos de QA: `README.md` (es lo que manda; los atajos cambiaron respecto de versiones viejas). Diseño: `docs/superpowers/specs/2026-10-31-mansion-terror-design.md`, parcialmente desactualizado: donde choque con el README o el código, mandan estos.
 
 ## Poner en marcha en otra PC
 
@@ -18,41 +18,41 @@ lune run tests/run
 rojo build -o mansion-terror.rbxl
 ```
 
-Abrí el `.rbxl` en Studio. Para sincronizar en vivo, corré `rojo serve --port 34900` y conectá el plugin de Rojo a ese puerto.
+Abrí el `.rbxl` en Studio y dale Probar. Para sincronizar en vivo, corré `rojo serve --port 34900` y conectá el plugin de Rojo a ese puerto.
 
 ## Estado
 
-Probado en Studio solo con 1 jugador. Último trabajo: patio delantero con ángel, salida por su portón, luz en modo desarrollador.
+Hecho en dos PC: el trabajo de la primera (asesinos, patio, salas) y el de la segunda (lobby, fuga, cajas fuertes, dificultades, sonidos). Las pruebas de Lune pasan (86); el juego completo se probó a mano solo en parte.
 
-Sin probar todavía:
-- Partida completa a pie, con las llaves alternando pisos.
-- Partida con 2 jugadores: espectador y objetos que caen.
-- Asesinos usando las escaleras, entrando a las salas nuevas o saliendo al patio.
-- Taser contra el asesino de smoking.
-- Carnicero subiendo a la planta baja y sus 5 golpes.
-- De cerca: máquinas de paintball, instrumentos de la mesa, cadáveres tirados y cama.
+Cómo es hoy:
+- El juego arranca en el lobby, en el patio. Se entra por la puerta principal, que se cierra detrás. Hay 1, 2 o 3 jugadores según el círculo.
+- 6 llaves de colores, 4 pergaminos en cajas fuertes con código de 3 cifras (el código está escrito en notas por la casa) y la estatua de lobo, en la sala del fondo del sótano, que da la llave dorada. Se escapa por un túnel con una secuencia de fuga.
+- Cuatro asesinos en `Config.Killers`: el principal (3 golpes, toda la casa), el del smoking (2 golpes, solo el piso de arriba) y dos carniceros (5 golpes, solo el sótano y la cocina).
+- Dificultades Fácil, Normal y Pesadilla (esta se desbloquea al ganar 3 partidas), gemas y tienda del lobby.
+- Los sonidos ya están en `src/shared/Sounds.luau`.
 
-Para más adelante, a pedido del usuario: sonidos (ID vacíos en `src/shared/Sounds.luau`) y niveles de gráficos bajo, medio y alto.
+Sin comprobar a mano todavía: el lobby, la fuga por el túnel, las cajas fuertes con código, la partida con 2 o más jugadores (espectador y objetos que caen) y el taser contra el asesino de smoking. Para más adelante, a pedido del usuario: niveles de gráficos bajo, medio y alto.
 
 ## Preferencias del usuario
 
 - Conservar los colores: paredes blanco grisáceo, cielo raso marrón oscuro, piso rojo sangre.
 - Preferir pocas partes y detalles dibujados, para no saturar el sistema.
-- La casa va bien oscura; el modo desarrollador (tecla `1`) ve todo iluminado.
+- La casa va bien oscura; el modo desarrollador (tecla `5`) ve todo iluminado.
 - Quiere que Claude pruebe en Studio y le cuente con honestidad qué no pudo verificar.
 
 ## Reglas del código
 
 - Lógica pura en `src/shared/Rules`, sin APIs de Roblox, con pruebas en `tests/`. `Config.luau` no puede usar `Color3` porque Lune no lo tiene.
 - El servidor es la autoridad. Los valores de balance van en `src/shared/Config.luau`.
-- Asesinos en `Config.Killers`; cada uno es una instancia en `Killer.luau` y puede limitarse con `rooms`.
+- Cada asesino es una instancia en `Killer.luau` y puede limitarse a ciertas piezas con `rooms`.
 - `decor()` no choca. Lo que queda en el centro de una pieza debe dejar pasar a los asesinos (grupo `KillerPass`), porque pasan por ahí.
 - Evitá caras coplanares (umbrales, techos de pasillo): en Roblox parpadean y se ven bugueadas.
+- Rojo solo incluye archivos `.luau`: una copia como `Mansion.luau.bak` no entra al juego, pero ensucia el repo. Para respaldar, usá git.
 
 ## Probar con computer-use
 
-- Stop en (143,46), Play en (86,46). El mouse rota la cámara según su distancia al centro (630,358), así que hacé clic ahí para dar foco. Tutorial: `Q`, dificultad: `N`.
-- La tecla `T` recorre las vistas de QA; `0` gira 90°; `6` imprime el estado de los asesinos.
+- Stop en (143,46), Play en (86,46). El mouse rota la cámara según su distancia al centro (630,358), así que hacé clic ahí para dar foco. Los atajos de QA y los del tutorial están en el README; antes de usarlos, comprobá que no cambiaron.
+- La tecla `0` gira la vista 90° y `6` imprime el estado de los asesinos.
 - No uses `open_application` con Studio abierto: abre otra ventana. Si otra app está al frente, parate y avisá en vez de robarle el foco.
 - No uses Ctrl+A ni Delete durante Play. La barra de comandos es multilínea y conserva líneas viejas: Enter no ejecuta, se usa el botón Ejecutar.
 - Rojo se cae a veces al editar archivos; si pasa, relanzalo y reconectá el plugin.
