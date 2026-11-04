@@ -22,6 +22,12 @@ export type Rig = {
 	leftHip: Motor6D,
 	rightHip: Motor6D,
 	shoulder: Motor6D,
+	-- Articulaciones extra (solo el del smoking): cuello, cintura y hombro izquierdo, para una caminata
+	-- más expresiva; y cuánto se escaló el modelo.
+	head: Motor6D?,
+	spine: Motor6D?,
+	leftShoulder: Motor6D?,
+	scale: number?,
 	-- Parte que lleva el resplandor de la cara.
 	glowPart: BasePart,
 	glowColor: Color3,
@@ -612,15 +618,10 @@ function KillerModel.buildGentleman(): Rig
 	root.Massless = false
 	model.PrimaryPart = root
 
-	local torso = attach(
-		model,
-		root,
-		"Saco",
-		Vector3.new(2, TORSO_HEIGHT, 1),
-		CFrame.identity,
-		jacket,
-		fabric
-	)
+	-- Torso, brazo izquierdo y cabeza articulados (la cintura, el hombro y el cuello) para poder moverlos
+	-- al caminar.
+	local torso = piece(model, "Saco", Vector3.new(2, TORSO_HEIGHT, 1), jacket, fabric)
+	local spine = joint(root, torso, CFrame.identity, CFrame.identity)
 	-- Pechera en V: camisa, moño y solapas.
 	attach(
 		model,
@@ -653,15 +654,9 @@ function KillerModel.buildGentleman(): Rig
 	end
 
 	-- Brazo izquierdo fijo y derecho articulado con el arma; los dos con puño de camisa.
-	local leftArm = attach(
-		model,
-		torso,
-		"BrazoIzquierdo",
-		Vector3.new(0.85, 2.3, 0.9),
-		CFrame.new(-1.43, 0.1, 0),
-		jacket,
-		fabric
-	)
+	local leftArm = piece(model, "BrazoIzquierdo", Vector3.new(0.85, 2.3, 0.9), jacket, fabric)
+	local leftShoulder =
+		joint(torso, leftArm, CFrame.new(-1.43, TORSO_HEIGHT / 2 - 0.2, 0), CFrame.new(0, 0.95, 0))
 	local rightArm = piece(model, "BrazoDerecho", Vector3.new(0.85, 2.3, 0.9), jacket, fabric)
 	local shoulder =
 		joint(torso, rightArm, CFrame.new(1.43, TORSO_HEIGHT / 2 - 0.2, 0), CFrame.new(0, 0.95, 0))
@@ -718,13 +713,12 @@ function KillerModel.buildGentleman(): Rig
 
 	-- Cabeza pálida, pelo engominado y ojos hundidos.
 	local headY = TORSO_HEIGHT / 2 + HEAD_HEIGHT / 2
-	local head = attach(
-		model,
+	local head = piece(model, "Cabeza", Vector3.new(1.25, HEAD_HEIGHT, 1.1), pale)
+	local neck = joint(
 		torso,
-		"Cabeza",
-		Vector3.new(1.25, HEAD_HEIGHT, 1.1),
-		CFrame.new(0, headY, 0),
-		pale
+		head,
+		CFrame.new(0, headY - HEAD_HEIGHT / 2, 0),
+		CFrame.new(0, -HEAD_HEIGHT / 2, 0)
 	)
 	attach(
 		model,
@@ -839,6 +833,10 @@ function KillerModel.buildGentleman(): Rig
 	humanoid.Parent = model
 
 	weather(model)
+	-- Más alto y más ancho que los otros: el doble de presencia, y el pasillo se le queda justo.
+	local scale = 1.35
+	model:ScaleTo(scale)
+	humanoid.HipHeight = LEG_LENGTH * scale
 	return {
 		model = model,
 		root = root,
@@ -846,6 +844,10 @@ function KillerModel.buildGentleman(): Rig
 		leftHip = leftHip,
 		rightHip = rightHip,
 		shoulder = shoulder,
+		head = neck,
+		spine = spine,
+		leftShoulder = leftShoulder,
+		scale = scale,
 		glowPart = head,
 		glowColor = Color3.fromRGB(190, 195, 210),
 	}

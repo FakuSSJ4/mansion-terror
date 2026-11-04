@@ -22,6 +22,7 @@ local Mansion = require(Systems:WaitForChild("Mansion"))
 local Round = require(Systems:WaitForChild("Round"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
 local Weather = require(Systems:WaitForChild("Weather"))
+local WallCheck = require(Systems:WaitForChild("WallCheck"))
 
 -- Paradas de la tecla T: alce, rinoceronte, puma, teclado y umbral del primer piso.
 local TOUR_STOPS: { [any]: Vector3 } = {
@@ -80,6 +81,7 @@ end
 
 local sealView = 0
 local cureView = 0
+local sala1View = 0
 local lobbyView = 0
 
 function DebugTools.start(refs: Mansion.MansionRefs)
@@ -134,8 +136,13 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			)
 		elseif command == "cure" then
 			-- Va a ver, de a una por vez, la venda, el botiquín, la pila y las cajas fuertes 1 y 4.
-			cureView = cureView % 8 + 1
+			cureView = cureView % 14 + 1
 			local name = ({
+				"@sala1",
+				"@sala1",
+				"@sala1",
+				"@sala1",
+				"@sala1",
 				"bandage1",
 				"medkit1",
 				"battery1",
@@ -144,7 +151,46 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 				"@vault3",
 				"@vault4",
 				"@killers",
+				"@mesas",
 			})[cureView]
+			if name == "@sala1" then
+				-- Los muebles nuevos, de a uno por vez: vitrina, reloj y chimenea del living, y el ropero
+				-- con espejo y la cama con dosel del dormitorio.
+				local root = Vitality.rootOf(player)
+				if root then
+					sala1View = sala1View % 5 + 1
+					-- Cada vista: pieza, desde dónde mirás y qué mirás (relativo al centro de la pieza).
+					local views = {
+						{ "room1", Vector3.new(-14, 4, 14), Vector3.new(-25, 4, 25) },
+						{ "room1", Vector3.new(-14, 4, -14), Vector3.new(-25, 4, -25) },
+						{ "room1", Vector3.new(14, 4, 14), Vector3.new(25, 4, 25) },
+						{ "room8", Vector3.new(-14, 4, 14), Vector3.new(-25, 4, 25) },
+						-- La cama, contra el ventanal de la pared norte, desde el centro de la pieza.
+						{ "room8", Vector3.new(0, 5, 6), Vector3.new(0, 5, -24) },
+					}
+					local room = refs.rooms[views[sala1View][1]].center
+					local at = room + views[sala1View][2]
+					local target = room + views[sala1View][3]
+					root.CFrame = CFrame.lookAt(at, target)
+					player:SetAttribute("QAAim", (target - at).Unit)
+					print(`[QA] viendo mueble {sala1View}/5`)
+				end
+				return
+			end
+			if name == "@mesas" then
+				-- Las mesas de pool y de ping pong de la sala de juegos, de frente.
+				local root = Vitality.rootOf(player)
+				if root then
+					local room = refs.rooms.gameRoom.center
+					-- De frente al rincón de la heladera (oeste, al fondo).
+					local at = Vector3.new(room.X - 8, room.Y + 4, room.Z + 2)
+					local fridge = Vector3.new(room.X - 25, room.Y + 4, room.Z + 25)
+					root.CFrame = CFrame.lookAt(at, fridge)
+					player:SetAttribute("QAAim", (fridge - at).Unit)
+					print("[QA] viendo las mesas")
+				end
+				return
+			end
 			if name == "@killers" then
 				-- Los cuatro asesinos en fila, mirándote, en el hall.
 				local root = Vitality.rootOf(player)
@@ -442,6 +488,16 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			Items.debugGive(player)
 		elseif command == "status" then
 			print(`[QA] {Killer.debugStatus()} jugador={Vitality.getRoom(player)}`)
+		elseif command == "overlaps" then
+			local mansion = workspace:FindFirstChild("Mansion")
+			if mansion then
+				local lines = WallCheck.scan(mansion, refs.rooms)
+				print(`[Choques] {#lines} pares que se pisan`)
+				for _, line in lines do
+					print(`[Choques] {line}`)
+				end
+				print("[Choques] fin")
+			end
 		elseif command == "summon" then
 			local room = Vitality.getRoom(player)
 			if room then

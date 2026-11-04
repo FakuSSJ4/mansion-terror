@@ -27,6 +27,8 @@ local TICK = 0.2
 local DANGER_RANGE = 36
 -- Diferencia de altura máxima para considerar que dos están en el mismo piso.
 local SAME_FLOOR = 10
+-- Mitad de la altura del torso del smoking (sin escalar): de ahí pivota al inclinarse al caminar.
+local TORSO_PIVOT = 1.2
 local WAYPOINT_REACHED = 5
 
 local Killer = {}
@@ -489,6 +491,53 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		checkStuck(current, position)
 	end
 
+	-- Caminata del asesino de arriba (el del smoking): lenta, a destiempo y torcida, para que se vea mal
+	-- hecha a propósito. Sale de lo que recomiendan para el terror: mover solo un lado del cuerpo, que una
+	-- pierna se arrastre, brazos rígidos fuera de ritmo, la cabeza que no mira hacia donde va y
+	-- se retrasa respecto del cuerpo, un tic de vez en cuando y saltitos como cuadros de stop-motion.
+	local function animateStalker(current: KillerModel.Rig, now: number, speed: number)
+		local head = current.head :: Motor6D
+		local spine = current.spine :: Motor6D
+		local leftShoulder = current.leftShoulder :: Motor6D
+		local scale = current.scale or 1
+		-- Doce cuadros por segundo: el movimiento va a tirones.
+		local t = math.floor(now * 12) / 12
+		local moving = speed > 1
+		local chasing = brain.state == "Chase"
+		local phase = t * (if chasing then 6.4 else 3.4)
+		local long = if moving then math.sin(phase) else 0
+		local dragging = if moving then math.sin(phase + 1.1) else 0
+		-- Piernas: una larga y firme, la otra corta que se arrastra hacia atrás.
+		current.leftHip.C0 = baseC0[current.leftHip]
+			* CFrame.Angles(dragging * 0.3 - (if moving then 0.14 else 0), 0, 0)
+		current.rightHip.C0 = baseC0[current.rightHip] * CFrame.Angles(-long * 0.85, 0, 0)
+		-- Cintura: inclinado hacia adelante (más si corre), meciéndose de costado y con un bamboleo lento.
+		local lean = -(if chasing then 0.36 else if moving then 0.16 else 0.04)
+		local sway = if moving then math.sin(phase * 0.5) * 0.12 else math.sin(t * 1.3) * 0.02
+		local bob = if moving then math.abs(math.sin(phase)) * 0.14 * scale else 0
+		local waist = (TORSO_PIVOT * scale)
+		spine.C0 = baseC0[spine]
+			* CFrame.new(0, bob - waist, 0)
+			* CFrame.Angles(lean, sway * 0.6, sway)
+			* CFrame.new(0, waist, 0)
+		-- Cabeza: torcida de lado y gacha hacia abajo, y girando por su cuenta (no mira hacia donde va);
+		-- cada tanto un tic, un golpe seco hacia el otro lado.
+		local roll = -0.42 + math.sin(t * 0.7) * 0.1
+		local yaw = math.sin(t * 0.55) * 0.55
+		local pitch = -0.2 - (if chasing then 0.12 else 0)
+		local cycle = (t % 3.3) / 3.3
+		if cycle < 0.06 then
+			roll += 0.8 * (if math.floor(t / 3.3) % 2 == 0 then 1 else -1)
+			yaw += 0.3
+		end
+		head.C0 = baseC0[head] * CFrame.Angles(pitch, yaw, roll)
+		-- Brazos: el izquierdo cuelga rígido y se balancea a destiempo; el derecho sostiene el bastón al
+		-- frente, casi sin moverse (el golpe lo levanta).
+		leftShoulder.C0 = baseC0[leftShoulder] * CFrame.Angles(0.12 + dragging * 0.22, 0, -0.1)
+		current.shoulder.C0 = baseC0[current.shoulder]
+			* CFrame.Angles(if now < swingUntil then 2.2 else 0.5 - long * 0.08, 0, 0.06)
+	end
+
 	local function animate(current: KillerModel.Rig, now: number)
 		-- Se anima con C0 porque Transform no replica a los clientes.
 		if scripted or now - lastAnimate < 0.05 then
@@ -496,6 +545,10 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 		end
 		lastAnimate = now
 		local speed = current.root.AssemblyLinearVelocity.Magnitude
+		if current.head and current.spine and current.leftShoulder then
+			animateStalker(current, now, speed)
+			return
+		end
 		local stride = if speed > 1 then math.sin(now * (4 + speed * 0.5)) * 0.65 else 0
 		local swing = if now < swingUntil then 2.2 else 0.25 + stride * 0.2
 		current.leftHip.C0 = baseC0[current.leftHip] * CFrame.Angles(stride, 0, 0)
@@ -505,7 +558,10 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 
 	local function spawnModel()
 		local built = buildModel()
-		built.model:PivotTo(CFrame.new(Killer.safeSpot(refs.rooms[spec.startRoom].center)))
+		-- safeSpot da el piso más 4: se ajusta a la altura real de este modelo (el del smoking es más alto).
+		local spot = Killer.safeSpot(refs.rooms[spec.startRoom].center)
+		local height = built.humanoid.HipHeight + built.root.Size.Y / 2 + 0.1
+		built.model:PivotTo(CFrame.new(spot.X, spot.Y - 4 + height, spot.Z))
 		built.model.Parent = workspace
 		built.root:SetNetworkOwner(nil)
 
@@ -546,6 +602,9 @@ local function create(name: string, spec: any, buildModel: () -> KillerModel.Rig
 			[built.rightHip] = built.rightHip.C0,
 			[built.shoulder] = built.shoulder.C0,
 		}
+		for _, extra in { built.head, built.spine, built.leftShoulder } do
+			baseC0[extra] = extra.C0
+		end
 		rig = built
 	end
 

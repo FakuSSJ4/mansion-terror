@@ -30,6 +30,7 @@ local KEYS = {
 	[Enum.KeyCode.KeypadZero] = "wolfRoom",
 	[Enum.KeyCode.KeypadOne] = "vault",
 	[Enum.KeyCode.F8] = "cure",
+	[Enum.KeyCode.Three] = "overlaps",
 	[Enum.KeyCode.Backspace] = "cinema",
 	[Enum.KeyCode.KeypadPeriod] = "diffMenu",
 	[Enum.KeyCode.KeypadDivide] = "coneChase",
