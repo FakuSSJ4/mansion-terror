@@ -137,6 +137,11 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			player:SetAttribute("GodMode", on)
 			Vitality.applyDevCollision(player)
 			if on then
+				-- Mil gemas para probar la tienda y lo que cuesta gemas.
+				local missing = 1000 - Profile.gems(player)
+				if missing > 0 then
+					Profile.addGems(player, missing)
+				end
 				for n = 1, Config.KeyCount do
 					Round.addKey(player, n)
 				end

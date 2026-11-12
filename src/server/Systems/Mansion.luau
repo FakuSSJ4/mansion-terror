@@ -7334,7 +7334,12 @@ local function buildExterior()
 	local yardX0, yardX1 = Courtyard.X0 - 2, Courtyard.X1 + 2
 	ground(-far, yardX0, -far, hallZ0)
 	ground(yardX1, far, -far, hallZ0)
-	ground(yardX0, yardX1, -far, Courtyard.Z1 - 6)
+	-- Costuras entre los bloques de pasto, al costado del patio delantero (se veía el cielo): se tapan
+	-- con una franja que se superpone con los bloques vecinos.
+	ground(-110, -76, -75, -70)
+	ground(12, 46, -75, -70)
+	-- El piso del patio llega hasta Z1 - 4: el pasto se mete 1 stud debajo para no dejar un hueco.
+	ground(yardX0, yardX1, -far, Courtyard.Z1 - 3)
 	ground(-far, far, z1, far)
 	-- El ala oeste tiene piso propio: el pasto la rodea.
 	local wingX0 = cellCenter("gameRoom").X - HALF - 2
