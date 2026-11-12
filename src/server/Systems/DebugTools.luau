@@ -81,8 +81,24 @@ end
 
 local sealView = 0
 local cureView = 0
-local sala1View = 0
 local lobbyView = 0
+
+-- Vistas de QA de los muebles nuevos: pieza, desde dónde se mira y qué se mira (relativo al centro).
+local FURNITURE_VIEWS: { { any } } = {
+	-- Living: vitrina, reloj y chimenea.
+	{ "room1", Vector3.new(-14, 4, 14), Vector3.new(-25, 4, 25) },
+	{ "room1", Vector3.new(-14, 4, -14), Vector3.new(-25, 4, -25) },
+	{ "room1", Vector3.new(14, 4, 14), Vector3.new(25, 4, 25) },
+	-- Dormitorio: ropero con espejo y la cama contra el ventanal norte.
+	{ "room8", Vector3.new(-14, 4, 14), Vector3.new(-25, 4, 25) },
+	{ "room8", Vector3.new(0, 5, 6), Vector3.new(0, 5, -24) },
+	-- Cocina: isla, mesadas del norte, cocina del sur, heladera y vinoteca del este.
+	{ "room4", Vector3.new(0, 5, 14), Vector3.new(14, 4, 2) },
+	{ "room4", Vector3.new(14, 5, -10), Vector3.new(17, 6, -31) },
+	{ "room4", Vector3.new(14, 5, 12), Vector3.new(17, 6, 31) },
+	{ "room4", Vector3.new(14, 5, 6), Vector3.new(32, 5, 22) },
+	{ "room4", Vector3.new(14, 5, -6), Vector3.new(32, 5, -22) },
+}
 
 function DebugTools.start(refs: Mansion.MansionRefs)
 	if not RunService:IsStudio() then
@@ -136,13 +152,7 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 			)
 		elseif command == "cure" then
 			-- Va a ver, de a una por vez, la venda, el botiquín, la pila y las cajas fuertes 1 y 4.
-			cureView = cureView % 14 + 1
-			local name = ({
-				"@sala1",
-				"@sala1",
-				"@sala1",
-				"@sala1",
-				"@sala1",
+			local others = {
 				"bandage1",
 				"medkit1",
 				"battery1",
@@ -152,28 +162,22 @@ function DebugTools.start(refs: Mansion.MansionRefs)
 				"@vault4",
 				"@killers",
 				"@mesas",
-			})[cureView]
-			if name == "@sala1" then
-				-- Los muebles nuevos, de a uno por vez: vitrina, reloj y chimenea del living, y el ropero
-				-- con espejo y la cama con dosel del dormitorio.
+			}
+			cureView = cureView % (#FURNITURE_VIEWS + #others) + 1
+			local name = if cureView <= #FURNITURE_VIEWS
+				then "@muebles"
+				else others[cureView - #FURNITURE_VIEWS]
+			if name == "@muebles" then
+				-- Los muebles nuevos, de a uno por vez (las primeras vistas de la tecla).
 				local root = Vitality.rootOf(player)
 				if root then
-					sala1View = sala1View % 5 + 1
-					-- Cada vista: pieza, desde dónde mirás y qué mirás (relativo al centro de la pieza).
-					local views = {
-						{ "room1", Vector3.new(-14, 4, 14), Vector3.new(-25, 4, 25) },
-						{ "room1", Vector3.new(-14, 4, -14), Vector3.new(-25, 4, -25) },
-						{ "room1", Vector3.new(14, 4, 14), Vector3.new(25, 4, 25) },
-						{ "room8", Vector3.new(-14, 4, 14), Vector3.new(-25, 4, 25) },
-						-- La cama, contra el ventanal de la pared norte, desde el centro de la pieza.
-						{ "room8", Vector3.new(0, 5, 6), Vector3.new(0, 5, -24) },
-					}
-					local room = refs.rooms[views[sala1View][1]].center
-					local at = room + views[sala1View][2]
-					local target = room + views[sala1View][3]
+					local view = FURNITURE_VIEWS[cureView]
+					local room = refs.rooms[view[1]].center
+					local at = room + view[2]
+					local target = room + view[3]
 					root.CFrame = CFrame.lookAt(at, target)
 					player:SetAttribute("QAAim", (target - at).Unit)
-					print(`[QA] viendo mueble {sala1View}/5`)
+					print(`[QA] viendo mueble {cureView}/{#FURNITURE_VIEWS}`)
 				end
 				return
 			end

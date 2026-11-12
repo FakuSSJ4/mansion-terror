@@ -732,6 +732,171 @@ local function clockFace(gui: SurfaceGui, widthStuds: number, heightStuds: numbe
 	disc(0.2 * scale, gold)
 end
 
+-- Venas grises dibujadas sobre una tapa de mármol (cara de arriba).
+local function marbleVeins(top: BasePart, seed: number)
+	local gui = fridgeGui(top, Enum.NormalId.Top, 12, 1)
+	local random = Random.new(seed)
+	for _ = 1, 10 do
+		local vein = Instance.new("Frame")
+		vein.AnchorPoint = Vector2.new(0.5, 0.5)
+		vein.Position = UDim2.fromScale(random:NextNumber(), random:NextNumber())
+		vein.Size = UDim2.fromScale(random:NextNumber(0.15, 0.4), 0.012)
+		vein.Rotation = random:NextInteger(-35, 35)
+		vein.BackgroundColor3 = Color3.fromRGB(150, 150, 156)
+		vein.BackgroundTransparency = 0.45
+		vein.BorderSizePixel = 0
+		vein.Parent = gui
+	end
+end
+
+-- Frente de mueble de cocina con tableros hundidos en columnas y filas, y un tirador dorado en cada uno.
+local function cabinetFront(target: BasePart, columns: number, rows: number)
+	local gui = fridgeGui(target, Enum.NormalId.Front, 30, 0.9)
+	local sunk = Color3.fromRGB(40, 24, 17)
+	local raised = Color3.fromRGB(72, 45, 31)
+	local gold = Color3.fromRGB(190, 150, 64)
+	for row = 1, rows do
+		for column = 1, columns do
+			local x = (column - 0.5) / columns
+			local y = (row - 0.5) / rows
+			fridgeMark(gui, x, y, 0.88 / columns, 0.84 / rows, sunk)
+			fridgeMark(gui, x, y, 0.76 / columns, 0.68 / rows, raised)
+			local side = if column % 2 == 1 then 0.3 else -0.3
+			fridgeMark(gui, x + side / columns, y, 0.08 / columns, 0.1 / rows, gold, true)
+		end
+	end
+end
+
+-- Vitrina hueca de nogal, de pie sobre su base: fondo, laterales, techo y piso, estantes de vidrio con
+-- la vajilla (o las botellas) dibujada contra el fondo y dos puertas de vidrio con marco dorado.
+local function glassCabinet(
+	base: CFrame,
+	name: string,
+	width: number,
+	height: number,
+	depth: number,
+	shelves: { { top: number, kind: string, tall: number } },
+	lit: boolean
+)
+	local walnut = Color3.fromRGB(58, 34, 22)
+	local gold = Color3.fromRGB(190, 150, 64)
+	local wood = Enum.Material.WoodPlanks
+	local thick = 0.3
+	solid(
+		base,
+		`{name}Fondo`,
+		Vector3.new(width, height, thick),
+		CFrame.new(0, height / 2, depth / 2 - thick / 2),
+		walnut,
+		wood
+	)
+	for _, side in { -1, 1 } do
+		solid(
+			base,
+			`{name}Lateral`,
+			Vector3.new(thick, height, depth),
+			CFrame.new(side * (width / 2 - thick / 2), height / 2, 0),
+			walnut,
+			wood
+		)
+	end
+	solid(
+		base,
+		`{name}Techo`,
+		Vector3.new(width + 0.4, 0.4, depth + 0.3),
+		CFrame.new(0, height - 0.2, 0),
+		walnut,
+		wood
+	)
+	solid(base, `{name}Piso`, Vector3.new(width, 0.3, depth), CFrame.new(0, 0.15, 0), walnut, wood)
+	for _, level in shelves do
+		local glassShelf = solid(
+			base,
+			`{name}Estante`,
+			Vector3.new(width - 0.6, 0.15, depth - 0.4),
+			CFrame.new(0, level.top - 0.075, 0),
+			Color3.fromRGB(190, 210, 226),
+			Enum.Material.SmoothPlastic
+		)
+		glassShelf.Transparency = 0.45
+		local goods = decor({
+			Name = `{name}Vajilla`,
+			Size = Vector3.new(width - 0.8, level.tall, 0.2),
+			CFrame = base * CFrame.new(0, level.top + level.tall / 2, depth / 2 - thick - 0.15),
+			Color = Color3.fromRGB(70, 46, 32),
+			Material = Enum.Material.SmoothPlastic,
+		})
+		VITRINE_ROWS[level.kind](fridgeGui(goods, Enum.NormalId.Front, 60, 0.9))
+	end
+	for _, side in { -1, 1 } do
+		local door = solid(
+			base,
+			`{name}Vidrio`,
+			Vector3.new(width / 2 - 0.25, height - 0.7, 0.1),
+			CFrame.new(side * (width / 4 - 0.05), height / 2, -depth / 2 + 0.05),
+			Color3.fromRGB(196, 224, 240),
+			Enum.Material.SmoothPlastic
+		)
+		door.Transparency = 0.82
+		local frame = fridgeGui(door, Enum.NormalId.Front, 40, 0.8)
+		fridgeMark(frame, 0.5, 0.012, 1, 0.024, gold)
+		fridgeMark(frame, 0.5, 0.988, 1, 0.024, gold)
+		fridgeMark(frame, 0.02, 0.5, 0.04, 1, gold)
+		fridgeMark(frame, 0.98, 0.5, 0.04, 1, gold)
+		fridgeMark(frame, if side < 0 then 0.9 else 0.1, 0.5, 0.05, 0.1, gold, true)
+	end
+	if lit then
+		local lamp = decor({
+			Name = `{name}Luz`,
+			Size = Vector3.new(0.3, 0.3, 0.3),
+			CFrame = base * CFrame.new(0, height * 0.6, -0.2),
+			Transparency = 1,
+		})
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 214, 150)
+		light.Range = 12
+		light.Brightness = 0.6
+		light.Shadows = false
+		light.Parent = lamp
+	end
+end
+
+-- Olla o recipiente de cobre, de pie, con su tapa y un pomo dorado si lleva.
+local function copperPot(base: CFrame, at: Vector3, diameter: number, height: number, lid: boolean)
+	local copper = Color3.fromRGB(184, 100, 60)
+	local pot = decor({
+		Name = "OllaCobre",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, diameter, diameter),
+		CFrame = base
+			* CFrame.new(at + Vector3.new(0, height / 2, 0))
+			* CFrame.Angles(0, 0, math.rad(90)),
+		Color = copper,
+		Material = Enum.Material.Metal,
+	})
+	pot.Reflectance = 0.25
+	if lid then
+		decor({
+			Name = "TapaOlla",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.2, diameter + 0.1, diameter + 0.1),
+			CFrame = base
+				* CFrame.new(at + Vector3.new(0, height + 0.1, 0))
+				* CFrame.Angles(0, 0, math.rad(90)),
+			Color = copper:Lerp(Color3.new(0, 0, 0), 0.15),
+			Material = Enum.Material.Metal,
+		})
+		decor({
+			Name = "PomoOlla",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(0.35, 0.35, 0.35),
+			CFrame = base * CFrame.new(at + Vector3.new(0, height + 0.4, 0)),
+			Color = Color3.fromRGB(190, 150, 64),
+			Material = Enum.Material.Metal,
+		})
+	end
+end
+
 -- Muebles para las esquinas: reciben la base y devuelven sus escondites.
 local FURNITURE: { [string]: (CFrame) -> { Vector3 } } = {
 	-- Vitrina de porcelana: cristalero de nogal con puertas de vidrio, repleto de platos, copas y botellas.
@@ -1354,6 +1519,524 @@ local FURNITURE: { [string]: (CFrame) -> { Vector3 } } = {
 		return {
 			(base * CFrame.new(3, 7.6, -1.1)).Position,
 			(base * CFrame.new(-8, 0.3, 0)).Position,
+		}
+	end,
+	-- Isla de cocina grande: base de nogal con tableros, tapa de mármol veteado con voladizo para los
+	-- taburetes, frutero de cobre, botellas, copas, tabla con pan, tacos de cuchillos y tres lámparas
+	-- colgantes de cobre. El frente (-Z) mira al centro de la pieza.
+	luxIsland = function(base)
+		local walnut = Color3.fromRGB(58, 34, 22)
+		local copper = Color3.fromRGB(184, 100, 60)
+		local gold = Color3.fromRGB(190, 150, 64)
+		local metal = Enum.Material.Metal
+		local body = solid(
+			base,
+			"IslaBase",
+			Vector3.new(15.2, 3.2, 5.4),
+			CFrame.new(0, 1.6, 0),
+			walnut,
+			Enum.Material.WoodPlanks
+		)
+		cabinetFront(body, 6, 1)
+		-- Piso de mármol blanco y negro, en damero, bajo la isla y los taburetes (sobre la alfombra).
+		local tiles = decor({
+			Name = "PisoDamero",
+			Size = Vector3.new(19, 0.08, 10.4),
+			CFrame = base * CFrame.new(0, 0.15, 1),
+			Color = Color3.fromRGB(236, 234, 228),
+			Material = Enum.Material.Marble,
+		})
+		local grid = fridgeGui(tiles, Enum.NormalId.Top, 10, 1)
+		for column = 0, 9 do
+			for row = 0, 4 do
+				if (column + row) % 2 == 0 then
+					fridgeMark(
+						grid,
+						(column + 0.5) / 10,
+						(row + 0.5) / 5,
+						0.1,
+						0.2,
+						Color3.fromRGB(28, 26, 28)
+					)
+				end
+			end
+		end
+		local top = solid(
+			base,
+			"IslaTapa",
+			Vector3.new(16.4, 0.4, 6.6),
+			CFrame.new(0, 3.4, 0.6),
+			Color3.fromRGB(236, 234, 228),
+			Enum.Material.Marble
+		)
+		marbleVeins(top, 21)
+		decor({
+			Name = "IslaFilete",
+			Size = Vector3.new(16.5, 0.14, 0.14),
+			CFrame = base * CFrame.new(0, 3.2, -2.75),
+			Color = gold,
+			Material = metal,
+		})
+		-- Frutero de cobre con manzanas, naranjas y peras.
+		local bowl = decor({
+			Name = "Frutero",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.7, 2.8, 2.8),
+			CFrame = base * CFrame.new(-4.8, 3.95, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = copper,
+			Material = metal,
+		})
+		bowl.Reflectance = 0.25
+		for _, fruit in
+			{
+				{ -5.2, 0.3, Color3.fromRGB(176, 30, 28) },
+				{ -4.5, -0.3, Color3.fromRGB(226, 128, 30) },
+				{ -4.7, 0.5, Color3.fromRGB(196, 190, 60) },
+				{ -4.3, 0.3, Color3.fromRGB(176, 30, 28) },
+				{ -5.0, -0.4, Color3.fromRGB(226, 128, 30) },
+			}
+		do
+			decor({
+				Name = "Fruta",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(0.85, 0.85, 0.85),
+				CFrame = base * CFrame.new(fruit[1], 4.55, fruit[2]),
+				Color = fruit[3],
+				Material = Enum.Material.SmoothPlastic,
+			})
+		end
+		-- Dos botellas de vino y dos copas.
+		for _, x in { -1.9, -1.1 } do
+			decor({
+				Name = "BotellaVino",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(2.3, 0.55, 0.55),
+				CFrame = base * CFrame.new(x, 4.75, -0.7) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = Color3.fromRGB(26, 54, 32),
+				Material = Enum.Material.SmoothPlastic,
+			})
+		end
+		for _, x in { 0.5, 1.2 } do
+			decor({
+				Name = "Copa",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(1.0, 0.55, 0.55),
+				CFrame = base * CFrame.new(x, 4.1, -0.5) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = Color3.fromRGB(200, 220, 235),
+				Material = Enum.Material.SmoothPlastic,
+				Transparency = 0.45,
+			})
+		end
+		-- Tabla de madera con una hogaza y el taco de cuchillos.
+		decor({
+			Name = "TablaCocina",
+			Size = Vector3.new(3.4, 0.25, 2.2),
+			CFrame = base * CFrame.new(3.2, 3.72, -0.3),
+			Color = Color3.fromRGB(150, 100, 60),
+			Material = Enum.Material.Wood,
+		})
+		decor({
+			Name = "Hogaza",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.8, 0.8, 0.8),
+			CFrame = base * CFrame.new(3.2, 4.25, -0.3) * CFrame.Angles(0, math.rad(15), 0),
+			Color = Color3.fromRGB(190, 140, 70),
+			Material = Enum.Material.Fabric,
+		})
+		decor({
+			Name = "TacoCuchillos",
+			Size = Vector3.new(0.9, 1.5, 0.9),
+			CFrame = base * CFrame.new(6.4, 4.35, -0.8),
+			Color = walnut,
+			Material = Enum.Material.Wood,
+		})
+		for slot = -1, 1 do
+			decor({
+				Name = "MangoCuchillo",
+				Size = Vector3.new(0.18, 0.5, 0.18),
+				CFrame = base * CFrame.new(6.4 + slot * 0.25, 5.35, -0.8),
+				Color = Color3.fromRGB(20, 18, 16),
+				Material = Enum.Material.SmoothPlastic,
+			})
+		end
+		-- Cuatro taburetes tapizados del lado del voladizo.
+		for _, x in { -5.5, -1.8, 1.8, 5.5 } do
+			decor({
+				Name = "BaseTaburete",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.2, 1.5, 1.5),
+				CFrame = base * CFrame.new(x, 0.1, 4.9) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = gold,
+				Material = metal,
+			})
+			solid(
+				base,
+				"PostaTaburete",
+				Vector3.new(2.3, 0.35, 0.35),
+				CFrame.new(x, 1.25, 4.9) * CFrame.Angles(0, 0, math.rad(90)),
+				gold,
+				metal
+			)
+			solid(
+				base,
+				"AsientoTaburete",
+				Vector3.new(0.5, 1.9, 1.9),
+				CFrame.new(x, 2.65, 4.9) * CFrame.Angles(0, 0, math.rad(90)),
+				Color3.fromRGB(110, 26, 38),
+				Enum.Material.Fabric
+			)
+		end
+		-- Tres lámparas colgantes de cobre con luz cálida.
+		for _, x in { 0, 3.5, 7 } do
+			decor({
+				Name = "CordonLampara",
+				Size = Vector3.new(0.1, 7.2, 0.1),
+				CFrame = base * CFrame.new(x, 14.0, 0.6),
+				Color = Color3.fromRGB(20, 18, 16),
+				Material = Enum.Material.SmoothPlastic,
+			})
+			local shade = decor({
+				Name = "PantallaLampara",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(1.1, 3.2, 3.2),
+				CFrame = base * CFrame.new(x, 10.2, 0.6) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = copper,
+				Material = metal,
+			})
+			shade.Reflectance = 0.25
+			local glow = decor({
+				Name = "BrilloLampara",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.15, 2.7, 2.7),
+				CFrame = base * CFrame.new(x, 9.6, 0.6) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = Color3.fromRGB(255, 214, 150),
+				Material = Enum.Material.Neon,
+			})
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 200, 130)
+			light.Range = 18
+			light.Brightness = 0.7
+			light.Shadows = false
+			light.Parent = glow
+		end
+		return {
+			(base * CFrame.new(-6.5, 0.3, -4.4)).Position,
+			(base * CFrame.new(6.5, 0.3, -4.4)).Position,
+			(base * CFrame.new(0, 3.9, 0.6)).Position,
+		}
+	end,
+	-- Pared de mesadas con pileta de cobre y grifería dorada, alacenas altas con vidrio y una barra con
+	-- ollas de cobre colgadas. Se apoya contra la pared (el fondo es +Z).
+	luxCounter = function(base)
+		local walnut = Color3.fromRGB(58, 34, 22)
+		local copper = Color3.fromRGB(184, 100, 60)
+		local gold = Color3.fromRGB(190, 150, 64)
+		local metal = Enum.Material.Metal
+		local body = solid(
+			base,
+			"MesadaBase",
+			Vector3.new(18, 3.2, 3),
+			CFrame.new(0, 1.6, 0),
+			walnut,
+			Enum.Material.WoodPlanks
+		)
+		cabinetFront(body, 6, 1)
+		local top = solid(
+			base,
+			"MesadaTapa",
+			Vector3.new(18.4, 0.4, 3.4),
+			CFrame.new(0, 3.4, -0.1),
+			Color3.fromRGB(236, 234, 228),
+			Enum.Material.Marble
+		)
+		marbleVeins(top, 37)
+		decor({
+			Name = "Salpicadero",
+			Size = Vector3.new(18, 2.6, 0.25),
+			CFrame = base * CFrame.new(0, 4.9, 1.4),
+			Color = Color3.fromRGB(226, 224, 218),
+			Material = Enum.Material.Marble,
+		})
+		-- Pileta de cobre con grifo dorado de caño alto.
+		local basin = decor({
+			Name = "Pileta",
+			Size = Vector3.new(4.6, 0.12, 2.2),
+			CFrame = base * CFrame.new(-4, 3.62, 0),
+			Color = copper,
+			Material = metal,
+		})
+		basin.Reflectance = 0.3
+		decor({
+			Name = "FondoPileta",
+			Size = Vector3.new(4.0, 0.14, 1.7),
+			CFrame = base * CFrame.new(-4, 3.64, 0),
+			Color = Color3.fromRGB(70, 36, 24),
+			Material = metal,
+		})
+		decor({
+			Name = "GrifoColumna",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.9, 0.4, 0.4),
+			CFrame = base * CFrame.new(-4, 4.55, 1.1) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = gold,
+			Material = metal,
+		})
+		decor({
+			Name = "GrifoCaño",
+			Size = Vector3.new(0.28, 0.28, 1.3),
+			CFrame = base * CFrame.new(-4, 5.4, 0.5),
+			Color = gold,
+			Material = metal,
+		})
+		for _, x in { -5.2, -2.8 } do
+			decor({
+				Name = "GrifoLlave",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(0.45, 0.45, 0.45),
+				CFrame = base * CFrame.new(x, 3.95, 1.1),
+				Color = gold,
+				Material = metal,
+			})
+		end
+		-- Dos alacenas altas de vidrio con vajilla.
+		for _, x in { -5.6, 5.6 } do
+			glassCabinet(base * CFrame.new(x, 7.4, 0.65), "Alacena", 7.6, 3.8, 1.7, {
+				{ top = 1.5, kind = "plates", tall = 1.2 },
+				{ top = 2.7, kind = "goblets", tall = 1.0 },
+			}, false)
+		end
+		-- Barra con cuatro ollas de cobre colgadas bajo las alacenas, del lado derecho.
+		decor({
+			Name = "BarraOllas",
+			Size = Vector3.new(8.4, 0.18, 0.18),
+			CFrame = base * CFrame.new(5.6, 6.95, 0.5),
+			Color = gold,
+			Material = metal,
+		})
+		for slot = 0, 3 do
+			local x = 2.6 + slot * 1.9
+			decor({
+				Name = "GanchoOlla",
+				Size = Vector3.new(0.08, 0.7, 0.08),
+				CFrame = base * CFrame.new(x, 6.55, 0.5),
+				Color = gold,
+				Material = metal,
+			})
+			copperPot(base, Vector3.new(x, 4.9, 0.5), 1.5, 1.3, slot % 2 == 0)
+		end
+		-- Frascos de cobre y una pava sobre la mesada.
+		for slot = 0, 2 do
+			copperPot(base, Vector3.new(2.6 + slot * 1.3, 3.6, 0.9), 0.9, 1.5, true)
+		end
+		local kettle = decor({
+			Name = "Pava",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(1.6, 1.4, 1.6),
+			CFrame = base * CFrame.new(8, 4.3, 0.6),
+			Color = copper,
+			Material = metal,
+		})
+		kettle.Reflectance = 0.25
+		decor({
+			Name = "PicoPava",
+			Size = Vector3.new(0.3, 0.3, 0.8),
+			CFrame = base * CFrame.new(8, 4.5, -0.5),
+			Color = copper,
+			Material = metal,
+		})
+		return {
+			(base * CFrame.new(0, 0.3, -2.4)).Position,
+			(base * CFrame.new(-9.9, 0.3, -0.5)).Position,
+			(base * CFrame.new(6, 3.9, 0.3)).Position,
+		}
+	end,
+	-- Cocina de lujo esmaltada color crema con trabas doradas, seis anafes, campana de cobre con
+	-- chimenea hasta el techo y una mesada de mármol a cada lado.
+	luxRange = function(base)
+		local cream = Color3.fromRGB(232, 224, 200)
+		local walnut = Color3.fromRGB(58, 34, 22)
+		local copper = Color3.fromRGB(184, 100, 60)
+		local gold = Color3.fromRGB(190, 150, 64)
+		local metal = Enum.Material.Metal
+		local plastic = Enum.Material.SmoothPlastic
+		local range = solid(
+			base,
+			"CocinaCuerpo",
+			Vector3.new(8, 3.4, 3.2),
+			CFrame.new(0, 1.7, 0),
+			cream,
+			plastic
+		)
+		local front = fridgeGui(range, Enum.NormalId.Front, 40, 0.9)
+		fridgeMark(front, 0.5, 0.97, 1, 0.06, gold)
+		fridgeMark(front, 0.5, 0.58, 0.78, 0.5, Color3.fromRGB(20, 18, 18))
+		fridgeMark(front, 0.5, 0.58, 0.7, 0.4, Color3.fromRGB(34, 30, 28))
+		fridgeMark(front, 0.5, 0.26, 0.8, 0.03, gold)
+		for slot = 0, 4 do
+			fridgeMark(front, 0.14 + slot * 0.18, 0.12, 0.06, 0.1, gold, true)
+		end
+		fridgeMark(front, 0.5, 0.97, 1, 0.04, gold)
+		-- Placa negra con seis anafes y parrillas, ollas encima y el respaldo con repisa dorada.
+		decor({
+			Name = "Placa",
+			Size = Vector3.new(8.1, 0.2, 3.3),
+			CFrame = base * CFrame.new(0, 3.5, 0),
+			Color = Color3.fromRGB(16, 16, 18),
+			Material = plastic,
+		})
+		for _, x in { -2.6, 0, 2.6 } do
+			for _, z in { -0.8, 0.8 } do
+				decor({
+					Name = "Anafe",
+					Shape = Enum.PartType.Cylinder,
+					Size = Vector3.new(0.15, 1.5, 1.5),
+					CFrame = base * CFrame.new(x, 3.65, z) * CFrame.Angles(0, 0, math.rad(90)),
+					Color = Color3.fromRGB(44, 44, 48),
+					Material = metal,
+				})
+				decor({
+					Name = "Parrilla",
+					Size = Vector3.new(1.8, 0.14, 0.14),
+					CFrame = base * CFrame.new(x, 3.8, z),
+					Color = Color3.fromRGB(20, 20, 22),
+					Material = metal,
+				})
+			end
+		end
+		copperPot(base, Vector3.new(-2.6, 3.6, 0.8), 2.0, 1.4, true)
+		copperPot(base, Vector3.new(2.6, 3.6, -0.8), 1.7, 1.0, false)
+		decor({
+			Name = "Respaldo",
+			Size = Vector3.new(8, 2.2, 0.3),
+			CFrame = base * CFrame.new(0, 4.8, 1.45),
+			Color = cream,
+			Material = plastic,
+		})
+		decor({
+			Name = "RepisaRespaldo",
+			Size = Vector3.new(8, 0.15, 0.9),
+			CFrame = base * CFrame.new(0, 5.9, 1.0),
+			Color = gold,
+			Material = metal,
+		})
+		-- Campana de cobre con chimenea hasta el techo, anillos dorados y luz abajo.
+		local hood = decor({
+			Name = "Campana",
+			Size = Vector3.new(9, 1.6, 3.6),
+			CFrame = base * CFrame.new(0, 9.4, 0.2),
+			Color = copper,
+			Material = metal,
+		})
+		hood.Reflectance = 0.25
+		local chimney = decor({
+			Name = "Chimenea",
+			Size = Vector3.new(3.2, 7.4, 2.4),
+			CFrame = base * CFrame.new(0, 14, 0.6),
+			Color = copper,
+			Material = metal,
+		})
+		chimney.Reflectance = 0.25
+		for _, y in { 10.4, 15.5 } do
+			decor({
+				Name = "AnilloCampana",
+				Size = Vector3.new(3.6, 0.3, 2.8),
+				CFrame = base * CFrame.new(0, y, 0.6),
+				Color = gold,
+				Material = metal,
+			})
+		end
+		local lamp = decor({
+			Name = "LuzCampana",
+			Size = Vector3.new(0.3, 0.3, 0.3),
+			CFrame = base * CFrame.new(0, 8.4, -0.2),
+			Transparency = 1,
+		})
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 200, 130)
+		light.Range = 14
+		light.Brightness = 0.8
+		light.Shadows = false
+		light.Parent = lamp
+		-- Mesadas de mármol a los lados.
+		for _, side in { -1, 1 } do
+			local cabinet = solid(
+				base,
+				"MesadaLado",
+				Vector3.new(5, 3.2, 3),
+				CFrame.new(side * 6.5, 1.6, 0),
+				walnut,
+				Enum.Material.WoodPlanks
+			)
+			cabinetFront(cabinet, 2, 1)
+			local slab = solid(
+				base,
+				"MesadaLadoTapa",
+				Vector3.new(5.2, 0.4, 3.4),
+				CFrame.new(side * 6.5, 3.4, -0.1),
+				Color3.fromRGB(236, 234, 228),
+				Enum.Material.Marble
+			)
+			marbleVeins(slab, 50 + side)
+		end
+		copperPot(base, Vector3.new(7.2, 3.6, 0.2), 2.4, 2.4, true)
+		decor({
+			Name = "TablaLado",
+			Size = Vector3.new(3, 0.25, 2),
+			CFrame = base * CFrame.new(-6.8, 3.72, -0.2),
+			Color = Color3.fromRGB(150, 100, 60),
+			Material = Enum.Material.Wood,
+		})
+		return {
+			(base * CFrame.new(-6.5, 3.9, 0)).Position,
+			(base * CFrame.new(0, 0.3, -2.4)).Position,
+			(base * CFrame.new(9.6, 0.3, -0.5)).Position,
+		}
+	end,
+	-- Heladera de acero de dos puertas con trabas doradas, y moldura dorada arriba.
+	luxFridge = function(base)
+		local steel = Color3.fromRGB(176, 182, 190)
+		local gold = Color3.fromRGB(190, 150, 64)
+		local body = solid(
+			base,
+			"HeladeraAcero",
+			Vector3.new(7, 9.6, 3.4),
+			CFrame.new(0, 4.8, 0),
+			steel,
+			Enum.Material.Metal
+		)
+		local front = fridgeGui(body, Enum.NormalId.Front, 40, 0.9)
+		fridgeMark(front, 0.25, 0.5, 0.46, 0.94, Color3.fromRGB(196, 202, 210))
+		fridgeMark(front, 0.75, 0.5, 0.46, 0.94, Color3.fromRGB(196, 202, 210))
+		fridgeMark(front, 0.5, 0.5, 0.012, 1, Color3.fromRGB(70, 74, 80))
+		fridgeMark(front, 0.46, 0.45, 0.018, 0.3, gold)
+		fridgeMark(front, 0.54, 0.45, 0.018, 0.3, gold)
+		fridgeMark(front, 0.5, 0.03, 1, 0.04, gold)
+		fridgeMark(front, 0.5, 0.97, 1, 0.04, gold)
+		fridgeMark(front, 0.25, 0.14, 0.2, 0.06, Color3.fromRGB(60, 120, 190))
+		decor({
+			Name = "MolduraHeladera",
+			Size = Vector3.new(7.4, 0.4, 3.7),
+			CFrame = base * CFrame.new(0, 9.8, 0),
+			Color = gold,
+			Material = Enum.Material.Metal,
+		})
+		return {
+			(base * CFrame.new(-4.2, 0.3, -1)).Position,
+			(base * CFrame.new(0, 0.3, -3)).Position,
+		}
+	end,
+	-- Vinoteca alta de vidrio con cinco estantes de botellas y luz cálida.
+	wineCabinet = function(base)
+		glassCabinet(base, "Vinoteca", 6, 9.4, 3, {
+			{ top = 1.6, kind = "bottles", tall = 1.35 },
+			{ top = 3.2, kind = "bottles", tall = 1.35 },
+			{ top = 4.8, kind = "bottles", tall = 1.35 },
+			{ top = 6.4, kind = "bottles", tall = 1.35 },
+			{ top = 8.0, kind = "bottles", tall = 1.2 },
+		}, true)
+		return {
+			(base * CFrame.new(-3.8, 0.3, -1)).Position,
+			(base * CFrame.new(0, 0.3, -3)).Position,
 		}
 	end,
 	counter = function(base)
@@ -2125,6 +2808,45 @@ local ROOM8_CORNERS = { Vector3.new(-1, 0, 1) }
 local WALL_PIECES: { [string]: { kind: string, outward: Vector3, depth: number } } = {
 	room8 = { kind = "canopyBed", outward = Vector3.new(0, 0, -1), depth = 10.05 },
 }
+-- Piezas de muebles que los asesinos atraviesan, por quedar en el medio de su camino.
+local KILLER_PASS_PARTS: { [string]: boolean } = {
+	IslaBase = true,
+	IslaTapa = true,
+	PostaTaburete = true,
+	AsientoTaburete = true,
+}
+-- Cocina: nada en los rincones; todo va en su lugar (ver PLACED_PIECES).
+local NO_CORNERS: { Vector3 } = {}
+-- Muebles en un lugar fijo de la pieza: `offset` desde el centro y hacia dónde mira el frente. La
+-- escalera de la cocina ocupa el lado oeste (x de -20 a -4), así que todo queda al este.
+local PLACED_PIECES: { [string]: { { kind: string, offset: Vector3, facing: Vector3 } } } = {
+	room4 = {
+		-- Isla grande en el medio del lado este.
+		{ kind = "luxIsland", offset = Vector3.new(14, 0, 2), facing = Vector3.new(0, 0, -1) },
+		-- Mesadas con pileta contra la pared norte y cocina con campana contra la sur.
+		{
+			kind = "luxCounter",
+			offset = Vector3.new(17, 0, -(HALF - 2.1)),
+			facing = Vector3.new(0, 0, 1),
+		},
+		{
+			kind = "luxRange",
+			offset = Vector3.new(17, 0, HALF - 2.1),
+			facing = Vector3.new(0, 0, -1),
+		},
+		-- Heladera de acero y vinoteca contra la pared este, lejos de la puerta del centro.
+		{
+			kind = "luxFridge",
+			offset = Vector3.new(HALF - 2.4, 0, 22),
+			facing = Vector3.new(-1, 0, 0),
+		},
+		{
+			kind = "wineCabinet",
+			offset = Vector3.new(HALF - 2.1, 0, -22),
+			facing = Vector3.new(-1, 0, 0),
+		},
+	},
+}
 
 -- Muebles que puede tener cada pieza en una partida; los que no se repiten van una sola vez.
 local POOLS: { [string]: { string } } = {
@@ -2156,8 +2878,9 @@ end
 -- partida anterior y sortea otro; los escondites de objetos se actualizan con los muebles nuevos.
 local function furnishRoom(id: string, random: Random, reroll: boolean?)
 	local center = cellCenter(id)
-	local corners = if STAIR_ROOMS[id]
-		then EAST_CORNERS
+	local corners = if id == "room4"
+		then NO_CORNERS
+		elseif STAIR_ROOMS[id] then EAST_CORNERS
 		elseif id == "gameRoom" then GAME_CORNERS
 		elseif id == "room8" then ROOM8_CORNERS
 		elseif id == "room1" then ROOM1_CORNERS
@@ -2188,6 +2911,19 @@ local function furnishRoom(id: string, random: Random, reroll: boolean?)
 		local base = CFrame.lookAt(at, at - wallPiece.outward)
 		for _, spot in FURNITURE[wallPiece.kind](base) do
 			table.insert(spots, spot)
+		end
+	end
+	for _, piece in PLACED_PIECES[id] or {} do
+		local at = center + piece.offset
+		local base = CFrame.lookAt(at, at + piece.facing)
+		for _, spot in FURNITURE[piece.kind](base) do
+			table.insert(spots, spot)
+		end
+	end
+	-- Lo que queda en el medio del camino de los asesinos los deja pasar (la isla de la cocina).
+	for _, item in folder:GetDescendants() do
+		if item:IsA("BasePart") and KILLER_PASS_PARTS[item.Name] then
+			item.CollisionGroup = "KillerPass"
 		end
 	end
 	buildParent = nil
@@ -2795,12 +3531,16 @@ type BearLook = {
 	muzzle: Color3,
 	claw: Color3,
 	hump: boolean,
+	-- Patas y brazos, si son de otro tono que el resto del cuerpo.
+	limbs: Color3?,
 	material: Enum.Material?,
 }
 
--- Oso entero caminando sobre el pedestal, con la cabeza hacia +X. El grizzly lleva joroba.
+-- Oso parado en dos patas sobre el pedestal, con la cabeza hacia +X, el torso erguido y las zarpas
+-- juntas frente al pecho, como los osos de pie. Mide casi 10 de alto.
 local function bearOnPlinth(top: CFrame, look: BearLook)
 	local coat = look.coat
+	local limbColor = look.limbs or coat
 	local function fur(
 		name: string,
 		size: Vector3,
@@ -2811,81 +3551,109 @@ local function bearOnPlinth(top: CFrame, look: BearLook)
 	): Part
 		return stuffed(top, name, size, offset, color, shape, material or look.material)
 	end
-	fur("Cuerpo", Vector3.new(4.6, 2.6, 2.3), CFrame.new(0, 3, 0), coat)
-	fur("Anca", Vector3.new(2.4, 2.5, 2.3), CFrame.new(-1.9, 2.9, 0), coat)
-	fur("Hombros", Vector3.new(2, 2.7, 2.2), CFrame.new(1.5, 3.1, 0), coat)
-	if look.hump then
+	-- Un tramo entre dos puntos: muslo, pantorrilla, brazo o antebrazo.
+	local function limb(name: string, from: Vector3, to: Vector3, thick: number, color: Color3)
 		fur(
-			"Joroba",
-			Vector3.new(2.2, 1.5, 2.1),
-			CFrame.new(1, 4.35, 0),
-			look.coat:Lerp(Color3.new(0.2, 0.15, 0.1), 0.15),
-			Enum.PartType.Ball
+			name,
+			Vector3.new(thick, thick, (to - from).Magnitude + thick * 0.4),
+			CFrame.lookAt((from + to) / 2, to),
+			color
 		)
 	end
-	fur("Panza", Vector3.new(3.4, 0.35, 1.9), CFrame.new(0, 1.7, 0), look.belly)
-	for _, leg in { { 1.8, 0.7 }, { 1.4, -0.7 }, { -1.9, 0.7 }, { -1.5, -0.7 } } do
-		fur("Pata", Vector3.new(1, 2, 1), CFrame.new(leg[1], 1, leg[2]), coat)
+	-- Tronco: cilindros verticales que se pisan, de la panza a los hombros.
+	local function trunk(name: string, height: number, diameter: number, at: Vector3, color: Color3)
 		fur(
-			"Pata",
-			Vector3.new(1.15, 0.35, 1.1),
-			CFrame.new(leg[1] + 0.12, 0.17, leg[2]),
-			look.belly
+			name,
+			Vector3.new(height, diameter, diameter),
+			CFrame.new(at) * CFrame.Angles(0, 0, math.rad(90)),
+			color,
+			Enum.PartType.Cylinder
 		)
-		for _, dz in { -0.3, 0, 0.3 } do
+	end
+	trunk("Panza", 3.8, 3.7, Vector3.new(-0.1, 3.9, 0), look.belly)
+	trunk("Pecho", 3.0, 4.0, Vector3.new(0.2, 6, 0), coat)
+	trunk("Hombros", 1.6, 3.3, Vector3.new(0.3, 7.3, 0), coat)
+	fur("Cola", Vector3.new(0.7, 0.7, 0.7), CFrame.new(-1.9, 2.4, 0), coat, Enum.PartType.Ball)
+	for _, side in { -1, 1 } do
+		-- Piernas rectas con pie plano y tres garras.
+		limb(
+			"Muslo",
+			Vector3.new(0, 3.4, side * 0.95),
+			Vector3.new(0.25, 1.7, side * 1.05),
+			1.7,
+			limbColor
+		)
+		limb(
+			"Pantorrilla",
+			Vector3.new(0.25, 1.7, side * 1.05),
+			Vector3.new(0.2, 0.5, side * 1.05),
+			1.4,
+			limbColor
+		)
+		fur("Pie", Vector3.new(1.9, 0.55, 1.3), CFrame.new(0.75, 0.28, side * 1.05), limbColor)
+		for _, dz in { -0.4, 0, 0.4 } do
 			fur(
 				"Garra",
-				Vector3.new(0.35, 0.12, 0.1),
-				CFrame.new(leg[1] + 0.78, 0.1, leg[2] + dz),
+				Vector3.new(0.4, 0.14, 0.14),
+				CFrame.new(1.8, 0.12, side * 1.05 + dz),
 				look.claw,
 				nil,
 				Enum.Material.SmoothPlastic
 			)
 		end
+		-- Brazos doblados: del hombro al codo, y del codo a la zarpa frente al pecho.
+		local shoulder = Vector3.new(0.25, 7, side * 1.95)
+		local elbow = Vector3.new(0.6, 5.3, side * 1.9)
+		local paw = Vector3.new(1.9, 6.2, side * 0.8)
+		limb("Brazo", shoulder, elbow, 1.5, limbColor)
+		limb("Antebrazo", elbow, paw, 1.3, limbColor)
+		fur("Zarpa", Vector3.new(1.15, 1.15, 1.15), CFrame.new(paw), limbColor, Enum.PartType.Ball)
+		for _, dz in { -0.3, 0, 0.3 } do
+			fur(
+				"GarraZarpa",
+				Vector3.new(0.14, 0.45, 0.1),
+				CFrame.new(paw.X + 0.5, paw.Y - 0.5, paw.Z + dz),
+				look.claw,
+				nil,
+				Enum.Material.SmoothPlastic
+			)
+		end
+		fur(
+			"Oreja",
+			Vector3.new(0.85, 0.85, 0.5),
+			CFrame.new(0.5, 10.05, side * 1.0),
+			coat,
+			Enum.PartType.Ball
+		)
+		fur(
+			"Ojo",
+			Vector3.new(0.24, 0.24, 0.24),
+			CFrame.new(1.9, 9.25, side * 0.6),
+			Color3.fromRGB(10, 8, 8),
+			Enum.PartType.Ball,
+			Enum.Material.SmoothPlastic
+		)
 	end
-	fur(
-		"Cuello",
-		Vector3.new(1.7, 1.7, 1.7),
-		CFrame.new(2.6, 3.4, 0) * CFrame.Angles(0, 0, math.rad(-12)),
-		coat,
-		Enum.PartType.Ball
-	)
-	fur("Cabeza", Vector3.new(1.7, 1.5, 1.6), CFrame.new(3.5, 3.3, 0), coat, Enum.PartType.Ball)
-	fur("Hocico", Vector3.new(1.2, 0.8, 0.95), CFrame.new(4.35, 3.05, 0), look.muzzle)
+	-- Cuello y cabeza erguida, con el hocico claro y la nariz negra.
+	fur("Cuello", Vector3.new(2.7, 2.7, 2.7), CFrame.new(0.4, 8, 0), coat, Enum.PartType.Ball)
+	fur("Cabeza", Vector3.new(2.5, 2.5, 2.5), CFrame.new(0.7, 8.9, 0), coat, Enum.PartType.Ball)
+	fur("Hocico", Vector3.new(1.5, 1.05, 1.2), CFrame.new(2, 8.6, 0), look.muzzle)
 	fur(
 		"Nariz",
-		Vector3.new(0.3, 0.38, 0.55),
-		CFrame.new(4.95, 3.18, 0),
+		Vector3.new(0.35, 0.45, 0.7),
+		CFrame.new(2.8, 8.8, 0),
 		Color3.fromRGB(14, 12, 12),
 		nil,
 		Enum.Material.SmoothPlastic
 	)
 	fur(
 		"Boca",
-		Vector3.new(0.9, 0.05, 0.1),
-		CFrame.new(4.4, 2.72, 0),
+		Vector3.new(1.1, 0.06, 0.1),
+		CFrame.new(2.05, 8.2, 0),
 		Color3.fromRGB(30, 14, 14),
 		nil,
 		Enum.Material.SmoothPlastic
 	)
-	for _, side in { -1, 1 } do
-		fur(
-			"Oreja",
-			Vector3.new(0.55, 0.55, 0.3),
-			CFrame.new(3.3, 4.2, side * 0.7),
-			coat,
-			Enum.PartType.Ball
-		)
-		fur(
-			"Ojo",
-			Vector3.new(0.18, 0.18, 0.18),
-			CFrame.new(4.1, 3.55, side * 0.5),
-			Color3.fromRGB(10, 8, 8),
-			Enum.PartType.Ball,
-			Enum.Material.SmoothPlastic
-		)
-	end
-	fur("Cola", Vector3.new(0.6, 0.6, 0.6), CFrame.new(-3.2, 3.2, 0), coat, Enum.PartType.Ball)
 end
 
 type AnimalMaker = (CFrame) -> ()
@@ -2930,11 +3698,12 @@ local ANIMALS: { [string]: AnimalMaker } = {
 	end,
 	grizzly = function(top)
 		bearOnPlinth(top, {
-			coat = Color3.fromRGB(98, 64, 40),
-			belly = Color3.fromRGB(78, 50, 32),
+			coat = Color3.fromRGB(118, 78, 48),
+			belly = Color3.fromRGB(150, 106, 68),
 			muzzle = Color3.fromRGB(148, 108, 74),
 			claw = Color3.fromRGB(226, 212, 180),
-			hump = true,
+			limbs = Color3.fromRGB(58, 40, 30),
+			hump = false,
 		})
 	end,
 }
@@ -4065,9 +4834,37 @@ local function fixPaintings()
 				local cf, size = model:GetBoundingBox()
 				-- Un margen para que apoyar el cuadro en la pared no cuente.
 				local probe = size - Vector3.new(0.4, 0.4, 0.4)
+				-- El marco sabe hacia dónde mira el cuadro (la caja del modelo no siempre).
+				local frame = model:FindFirstChild("MarcoCuadro") :: BasePart?
+				local frameOffset = if frame then cf:Inverse() * frame.CFrame else CFrame.identity
 				local function clashes(at: CFrame): boolean
 					for _, hit in workspace:GetPartBoundsInBox(at, probe, params) do
 						if not PAINTING_IGNORES[hit.Name] and not hit:IsDescendantOf(model) then
+							return true
+						end
+					end
+					-- Tiene que haber pared detrás de las esquinas y del centro: si no, el cuadro
+					-- flota sobre una puerta o un hueco.
+					for _, spot in
+						{
+							Vector3.new(-3.6, -2.6, 0),
+							Vector3.new(3.6, -2.6, 0),
+							Vector3.new(-3.6, 2.6, 0),
+							Vector3.new(3.6, 2.6, 0),
+							Vector3.zero,
+						}
+					do
+						local backed = false
+						local behind = at * frameOffset * CFrame.new(spot.X, spot.Y, 0.9)
+						for _, hit in
+							workspace:GetPartBoundsInBox(behind, Vector3.new(0.2, 0.2, 0.6), params)
+						do
+							if hit.Name == "Pared" then
+								backed = true
+								break
+							end
+						end
+						if not backed then
 							return true
 						end
 					end
@@ -4075,9 +4872,8 @@ local function fixPaintings()
 				end
 				if clashes(cf) then
 					-- A lo largo de la pared: el eje horizontal que no es el de la profundidad del cuadro.
-					local along = if math.abs(cf.LookVector.X) > 0.5
-						then Vector3.zAxis
-						else Vector3.xAxis
+					local look = if frame then frame.CFrame.LookVector else cf.LookVector
+					local along = if math.abs(look.X) > 0.5 then Vector3.zAxis else Vector3.xAxis
 					local here = (cf.Position - center):Dot(along)
 					local moved = false
 					for _, shift in { 8, -8, 14, -14, 20, -20, 26, -26, 32, -32 } do
@@ -7548,7 +8344,6 @@ function Mansion.build(): MansionRefs
 
 	buildAltar(altarAt, hall)
 	placeVaults()
-	fixPaintings()
 	buildExterior()
 	carveTunnel()
 	Courtyard.build({ part = part, decor = decor, rainOutside = rainOutside })
@@ -7559,6 +8354,8 @@ function Mansion.build(): MansionRefs
 	applyVariants(Random.new())
 	rollDoors(Random.new())
 	world.Parent = workspace
+	-- Recién con el mundo en el workspace las consultas espaciales ven las paredes y los muebles.
+	fixPaintings()
 	return refs
 end
 

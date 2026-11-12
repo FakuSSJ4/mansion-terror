@@ -1,9 +1,12 @@
 --!strict
--- El proyector del living: las bobinas giran, la luz titila y en la pantalla corre una película vieja
--- en blanco y negro. Por ahora es la cuenta regresiva de una cola de película, con grano y rayas; la
--- animación definitiva va dentro del marco "Imagen" de la pantalla.
+-- El proyector del living: las bobinas giran, la luz titila y en la pantalla corre una película vieja (una escena 3D, ver `Footage`)
+-- en blanco y negro con grano y rayas. La película misma (el chancho con la cámara y el sótano) la dibuja
+-- `Footage` dentro del marco `Imagen` de la pantalla.
+
+local Footage = require(script.Parent.Parent:WaitForChild("Footage"))
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Projector = {}
@@ -15,8 +18,7 @@ local SCRATCH_COUNT = 3
 
 type Film = {
 	image: Frame,
-	sweep: Frame,
-	number: TextLabel,
+	update: (number) -> (),
 	grain: { Frame },
 	scratches: { Frame },
 	position: Vector3,
@@ -36,63 +38,27 @@ local function frame(parent: Instance, props: { [string]: any }): Frame
 	return f
 end
 
-local function circle(parent: Instance, size: number)
-	local ring = frame(parent, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		SizeConstraint = Enum.SizeConstraint.RelativeYY,
-		Size = UDim2.fromScale(size, size),
-		BackgroundTransparency = 1,
-	})
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.5, 0)
-	corner.Parent = ring
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(36, 36, 36)
-	stroke.Thickness = 3
-	stroke.Parent = ring
-end
-
 local function buildFilm(screen: BasePart)
 	local gui = screen:WaitForChild("Pelicula", 5)
 	local image = gui and gui:WaitForChild("Imagen", 5)
 	if not image or not image:IsA("Frame") then
 		return
 	end
-	circle(image, 0.82)
-	circle(image, 0.64)
-	local dark = Color3.fromRGB(36, 36, 36)
-	frame(image, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, 0, 0, 2),
-		BackgroundColor3 = dark,
-	})
-	frame(image, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(0, 2, 1, 0),
-		BackgroundColor3 = dark,
-	})
-	local sweep = frame(image, {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 0.5),
-		SizeConstraint = Enum.SizeConstraint.RelativeYY,
-		Size = UDim2.fromScale(0.012, 0.41),
-		BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-	})
-	local number = Instance.new("TextLabel")
-	number.AnchorPoint = Vector2.new(0.5, 0.5)
-	number.Position = UDim2.fromScale(0.5, 0.5)
-	number.SizeConstraint = Enum.SizeConstraint.RelativeYY
-	number.Size = UDim2.fromScale(0.5, 0.5)
-	number.BackgroundTransparency = 1
-	number.Font = Enum.Font.Garamond
-	number.TextScaled = true
-	number.TextColor3 = Color3.fromRGB(22, 22, 22)
-	number.Text = "8"
-	number.ZIndex = 2
-	number.Parent = image
+	-- Un ViewportFrame no se dibuja dentro de un SurfaceGui del workspace: hay que pasarlo a PlayerGui
+	-- y apuntarlo a la pantalla con Adornee. Si la pantalla desaparece (nueva partida), se va con ella.
+	local surface = gui :: SurfaceGui
+	surface.Adornee = screen
+	surface.ResetOnSpawn = false
+	surface.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	screen.Destroying:Connect(function()
+		surface:Destroy()
+		for index = #films, 1, -1 do
+			if films[index].image == image then
+				table.remove(films, index)
+			end
+		end
+	end)
+	local update = Footage.build(image)
 
 	local grain = {}
 	for _ = 1, GRAIN_COUNT do
@@ -115,8 +81,7 @@ local function buildFilm(screen: BasePart)
 	end
 	table.insert(films, {
 		image = image,
-		sweep = sweep,
-		number = number,
+		update = update,
 		grain = grain,
 		scratches = scratches,
 		position = screen.Position,
@@ -176,12 +141,8 @@ function Projector.start()
 		end
 		for _, film in films do
 			if (camera.CFrame.Position - film.position).Magnitude <= VISIBLE_RANGE then
-				-- Cuenta regresiva de 8 a 2 y vuelve a empezar, con el barrido de cada segundo.
-				film.number.Text = tostring(8 - math.floor(now % 7))
-				film.sweep.Rotation = (now % 1) * 360
+				film.update(now)
 				if noisy then
-					local grey = random:NextInteger(168, 205)
-					film.image.BackgroundColor3 = Color3.fromRGB(grey, grey, grey - 4)
 					for _, speck in film.grain do
 						local size = random:NextInteger(2, 6)
 						speck.Size = UDim2.fromOffset(size, size)

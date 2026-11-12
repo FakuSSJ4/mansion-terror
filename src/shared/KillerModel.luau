@@ -49,7 +49,10 @@ local function piece(
 	-- Que los rayos (línea de vista) no se choquen con su propio cuerpo.
 	p.CanQuery = false
 	p.Massless = true
-	p.CollisionGroup = "Killer"
+	-- El grupo lo registra el servidor; el cliente, que arma al chancho para la película, puede no tenerlo.
+	pcall(function()
+		p.CollisionGroup = "Killer"
+	end)
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = model

@@ -17,7 +17,7 @@ local Sounds = require(Shared:WaitForChild("Sounds"))
 local Taser = require(Rules:WaitForChild("Taser"))
 
 local Systems = script.Parent
-local KillerModel = require(Systems:WaitForChild("KillerModel"))
+local KillerModel = require(Shared:WaitForChild("KillerModel"))
 local Mansion = require(Systems:WaitForChild("Mansion"))
 local Round = require(Systems:WaitForChild("Round"))
 local Vitality = require(Systems:WaitForChild("Vitality"))
